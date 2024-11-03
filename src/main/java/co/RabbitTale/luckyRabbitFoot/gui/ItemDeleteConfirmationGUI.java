@@ -11,20 +11,22 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import co.RabbitTale.luckyRabbitFoot.LuckyRabbitFoot;
 import co.RabbitTale.luckyRabbitFoot.lootbox.Lootbox;
+import co.RabbitTale.luckyRabbitFoot.lootbox.items.LootboxItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 
-public class LootboxDeleteConfirmationGUI implements GUI {
+public class ItemDeleteConfirmationGUI implements GUI {
     private final Inventory inventory;
     private final Player player;
     private final Lootbox lootbox;
+    private final LootboxItem item;
 
-    public LootboxDeleteConfirmationGUI(Player player, Lootbox lootbox) {
+    public ItemDeleteConfirmationGUI(Player player, Lootbox lootbox, LootboxItem item) {
         this.player = player;
         this.lootbox = lootbox;
-        this.inventory = Bukkit.createInventory(this, 27, Component.text("Confirm Delete Lootbox"));
+        this.item = item;
+        this.inventory = Bukkit.createInventory(this, 27, Component.text("Confirm Delete Item"));
         setupInventory();
     }
 
@@ -34,15 +36,8 @@ public class LootboxDeleteConfirmationGUI implements GUI {
             inventory.setItem(i, new ItemStack(Material.BLACK_STAINED_GLASS_PANE));
         }
 
-        // Add lootbox representation in the middle
-        ItemStack lootboxItem = new ItemStack(Material.CHEST);
-        ItemMeta meta = lootboxItem.getItemMeta();
-        meta.displayName(Component.text("Delete: ")
-            .color(NamedTextColor.RED)
-            .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
-            .decoration(TextDecoration.ITALIC, false));
-        lootboxItem.setItemMeta(meta);
-        inventory.setItem(13, lootboxItem);
+        // Add item to delete in the middle
+        inventory.setItem(13, item.getItem());
 
         // Add confirm button (green wool)
         ItemStack confirm = new ItemStack(Material.LIME_WOOL);
@@ -70,14 +65,15 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         if (event.getCurrentItem() == null) return;
 
         if (event.getSlot() == 11) { // Confirm
-            LuckyRabbitFoot.getInstance().getLootboxManager().deleteLootbox(lootbox.getId());
-            player.sendMessage(Component.text("Lootbox deleted successfully!")
+            lootbox.removeItem(item.getItem());
+            LuckyRabbitFoot.getInstance().getLootboxManager().saveLootbox(lootbox);
+            player.sendMessage(Component.text("Item removed successfully!")
                 .color(NamedTextColor.GREEN));
             player.closeInventory();
-            LootboxListGUI.openGUI(player);
+            new LootboxContentGUI(player, lootbox).show();
         } else if (event.getSlot() == 15) { // Cancel
             player.closeInventory();
-            LootboxListGUI.openGUI(player);
+            new LootboxContentGUI(player, lootbox).show();
         }
     }
 

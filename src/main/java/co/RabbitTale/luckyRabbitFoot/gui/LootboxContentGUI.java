@@ -244,6 +244,13 @@ public class LootboxContentGUI implements GUI {
                 player.sendMessage(Component.text("You don't have a key for this lootbox!")
                         .color(NamedTextColor.RED));
             }
+        } else if (slot < ITEMS_PER_PAGE && event.isShiftClick() && event.isLeftClick() && player.hasPermission("luckyrabbitfoot.admin")) {
+            // Show delete confirmation for item
+            int index = currentPage * ITEMS_PER_PAGE + slot;
+            if (index < items.size()) {
+                LootboxItem item = items.get(index);
+                new ItemDeleteConfirmationGUI(player, lootbox, item).show();
+            }
         }
     }
 
