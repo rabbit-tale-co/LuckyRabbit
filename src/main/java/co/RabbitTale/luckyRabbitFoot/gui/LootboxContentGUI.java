@@ -52,6 +52,10 @@ public class LootboxContentGUI implements GUI {
         this.plugin = LuckyRabbitFoot.getInstance();
         this.player = player;
         this.lootbox = lootbox;
+
+        // Load user data before creating inventory
+        plugin.getUserManager().loadUserData(player.getUniqueId());
+
         this.inventory = createInventory();
         this.items = new ArrayList<>(lootbox.getItems().values());
         updateInventory();
@@ -87,7 +91,7 @@ public class LootboxContentGUI implements GUI {
         }
 
         // Add open button
-        int keyCount = plugin.getLootboxManager().getKeyCount(player.getUniqueId(), lootbox.getId());
+        int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
         ItemStack openButton = new ItemStack(Material.TRIPWIRE_HOOK);
         ItemMeta openMeta = openButton.getItemMeta();
         openMeta.displayName(Component.text("Open Lootbox")
@@ -175,26 +179,31 @@ public class LootboxContentGUI implements GUI {
             player.closeInventory();
             LootboxListGUI.openGUI(player);
         } else if (slot == OPEN_BUTTON_SLOT) {
-            int keyCount = plugin.getLootboxManager().getKeyCount(player.getUniqueId(), lootbox.getId());
+            int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
 
             if (keyCount > 0) {
                 // Check if lootbox has items
                 if (lootbox.getItems().isEmpty()) {
                     player.sendMessage(Component.text("This lootbox is empty!")
-                        .color(NamedTextColor.RED));
+                            .color(NamedTextColor.RED));
                     return;
                 }
 
                 try {
                     // Use key before creating animation
-                    plugin.getLootboxManager().useKey(player.getUniqueId(), lootbox.getId());
+                    plugin.getUserManager().useKey(player.getUniqueId(), lootbox.getId());
 
                     BaseAnimationGUI animationGUI = switch (lootbox.getAnimationType()) {
-                        case PIN_POINT -> new PinPointSpinGUI(plugin, player, lootbox);
-                        case CIRCLE -> new CircleSpinGUI(plugin, player, lootbox);
-                        case CASCADE -> new CascadeSpinGUI(plugin, player, lootbox);
-                        case THREE_IN_ROW -> new ThreeInRowSpinGUI(plugin, player, lootbox);
-                        default -> new HorizontalSpinGUI(plugin, player, lootbox);
+                        case PIN_POINT ->
+                            new PinPointSpinGUI(plugin, player, lootbox);
+                        case CIRCLE ->
+                            new CircleSpinGUI(plugin, player, lootbox);
+                        case CASCADE ->
+                            new CascadeSpinGUI(plugin, player, lootbox);
+                        case THREE_IN_ROW ->
+                            new ThreeInRowSpinGUI(plugin, player, lootbox);
+                        default ->
+                            new HorizontalSpinGUI(plugin, player, lootbox);
                     };
 
                     // Close inventory and show animation
@@ -206,14 +215,14 @@ public class LootboxContentGUI implements GUI {
                     e.printStackTrace();
 
                     // Refund the key and show error message
-                    plugin.getLootboxManager().addKeys(player.getUniqueId(), lootbox.getId(), 1);
+                    plugin.getUserManager().addKeys(player.getUniqueId(), lootbox.getId(), 1);
                     player.sendMessage(Component.text("Error opening lootbox: " + e.getMessage())
-                        .color(NamedTextColor.RED));
+                            .color(NamedTextColor.RED));
                 }
             } else {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
                 player.sendMessage(Component.text("You don't have a key for this lootbox!")
-                    .color(NamedTextColor.RED));
+                        .color(NamedTextColor.RED));
             }
         }
     }

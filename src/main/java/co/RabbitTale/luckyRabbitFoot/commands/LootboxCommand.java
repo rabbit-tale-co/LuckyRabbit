@@ -186,7 +186,7 @@ public class LootboxCommand implements CommandExecutor {
 
         switch (action) {
             case "add" -> {
-                plugin.getLootboxManager().addKeys(target.getUniqueId(), id, amount);
+                plugin.getUserManager().addKeys(target.getUniqueId(), id, amount);
                 // Message for admin
                 Component adminMessage = Component.text("You gave ")
                     .color(NamedTextColor.GRAY)
@@ -203,7 +203,7 @@ public class LootboxCommand implements CommandExecutor {
                 player.sendMessage(adminMessage);
             }
             case "remove" -> {
-                plugin.getLootboxManager().removeKeys(target.getUniqueId(), id, amount);
+                plugin.getUserManager().removeKeys(target.getUniqueId(), id, amount);
                 player.sendMessage(Component.text("Successfully removed " + amount + " key(s) from " + target.getName())
                     .color(SUCCESS_COLOR));
             }

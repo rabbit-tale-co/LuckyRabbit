@@ -10,16 +10,15 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
-@Getter
 public class Lootbox {
-    private final String id;
-    private final String displayName;
-    private final List<String> lore;
-    private final Map<String, LootboxItem> items;
-    private final List<Location> locations;
-    private final AnimationType animationType;
-    private int openCount;
-    private boolean modified = false;
+    @Getter private final String id;
+    @Getter private final String displayName;
+    @Getter private final List<String> lore;
+    @Getter private final Map<String, LootboxItem> items;
+    @Getter private final List<Location> locations;
+    @Getter private final AnimationType animationType;
+    @Getter private int openCount;
+    @Getter private boolean modified = false;
 
     public Lootbox(String id, String displayName, AnimationType animationType) {
         this.id = id;
@@ -93,8 +92,8 @@ public class Lootbox {
     }
 
     public void incrementOpenCount() {
-        openCount++;
-        modified = true;
+        this.openCount++;
+        setModified();
     }
 
     public void save(FileConfiguration config) {

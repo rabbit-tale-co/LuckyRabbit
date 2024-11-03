@@ -184,6 +184,10 @@ public class LootboxItem {
         config.set("chance", chance);
         config.set("rarity", rarity);
         config.set("item", item.serialize());
+        // Save action if it exists
+        if (action != null) {
+            action.save(config.createSection("action"));
+        }
     }
 
     public Map<String, Object> serialize() {
@@ -192,28 +196,26 @@ public class LootboxItem {
         data.put("id", id);
         data.put("chance", chance);
         data.put("rarity", rarity);
+        // Include action in serialization if it exists
+        if (action != null) {
+            data.put("action", action.serialize());
+        }
         return data;
     }
 
     public void give(Player player) {
         if (action != null) {
-            // If there's an action, execute it and don't give the physical item
+            // If there's an action defined, ONLY execute it and never give the physical item
             action.execute(player);
+            Logger.debug("Executing action for item " + id + " for player " + player.getName());
         } else if (this instanceof OraxenLootboxItem) {
-            // If it's an Oraxen item, give the physical item
+            // Only give Oraxen items if there's no action
             player.getInventory().addItem(item.clone());
+            Logger.debug("Giving Oraxen item " + id + " to player " + player.getName());
         } else {
-            // Check if the item is a virtual reward by checking its type
-            boolean isVirtualReward = item.getType() == Material.GOLD_INGOT || // Virtual coins
-                                    item.getType() == Material.NAME_TAG ||     // Roles
-                                    item.getType() == Material.TOTEM_OF_UNDYING || // MVP role
-                                    item.getType() == Material.DRAGON_EGG ||   // Owner role
-                                    item.getType() == Material.EXPERIENCE_BOTTLE; // XP boost
-
-            if (!isVirtualReward) {
-                // Only give physical item if it's not a virtual reward
-                player.getInventory().addItem(item.clone());
-            }
+            // Only give physical items if there's no action
+            player.getInventory().addItem(item.clone());
+            Logger.debug("Giving regular item " + id + " to player " + player.getName());
         }
     }
 }

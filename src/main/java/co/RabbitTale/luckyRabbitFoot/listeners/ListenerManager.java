@@ -1,8 +1,9 @@
 package co.RabbitTale.luckyRabbitFoot.listeners;
 
+import org.bukkit.plugin.PluginManager;
+
 import co.RabbitTale.luckyRabbitFoot.LuckyRabbitFoot;
 import co.RabbitTale.luckyRabbitFoot.utils.Logger;
-import org.bukkit.plugin.PluginManager;
 
 public class ListenerManager {
     private final LuckyRabbitFoot plugin;
@@ -17,5 +18,8 @@ public class ListenerManager {
 
         // Register GUI listener
         pm.registerEvents(new GUIListener(), plugin);
+
+        // Register Player listener
+        pm.registerEvents(new PlayerListener(plugin), plugin);
     }
 }

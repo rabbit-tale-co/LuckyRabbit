@@ -6,6 +6,7 @@ import co.RabbitTale.luckyRabbitFoot.config.ConfigManager;
 import co.RabbitTale.luckyRabbitFoot.listeners.ListenerManager;
 import co.RabbitTale.luckyRabbitFoot.lootbox.LootboxManager;
 import co.RabbitTale.luckyRabbitFoot.utils.Logger;
+import co.RabbitTale.luckyRabbitFoot.user.UserManager;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -17,6 +18,7 @@ public class LuckyRabbitFoot extends JavaPlugin {
     @Getter private CommandManager commandManager;
     @Getter private ListenerManager listenerManager;
     @Getter private LootboxAPI api;
+    @Getter private UserManager userManager;
 
     @Override
     public void onEnable() {
@@ -28,6 +30,7 @@ public class LuckyRabbitFoot extends JavaPlugin {
         this.commandManager = new CommandManager(this);
         this.listenerManager = new ListenerManager(this);
         this.api = new LootboxAPI(this);
+        this.userManager = new UserManager(this);
 
         // Load configurations
         configManager.loadConfigs();
@@ -52,6 +55,9 @@ public class LuckyRabbitFoot extends JavaPlugin {
             lootboxManager.saveAll();
             lootboxManager.removeAllEntities();
         }
+
+        // Save all user data when the plugin disables
+        userManager.saveAllUsers();
 
         Logger.info("Plugin disabled successfully!");
     }

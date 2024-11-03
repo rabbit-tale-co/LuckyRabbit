@@ -16,16 +16,14 @@ import java.util.UUID;
 /**
  * Public API for LuckyRabbitFoot plugin
  * Other plugins can use this API to interact with lootboxes
+ *
+ * @param plugin Plugin instance
  */
-public class LootboxAPI {
-    private final LuckyRabbitFoot plugin;
-
-    public LootboxAPI(LuckyRabbitFoot plugin) {
-        this.plugin = plugin;
-    }
+public record LootboxAPI(LuckyRabbitFoot plugin) {
 
     /**
      * Get all available lootboxes
+     *
      * @return Collection of all lootboxes
      */
     public Collection<Lootbox> getAllLootboxes() {
@@ -34,6 +32,7 @@ public class LootboxAPI {
 
     /**
      * Get a specific lootbox by ID
+     *
      * @param id Lootbox ID
      * @return Lootbox object or null if not found
      */
@@ -43,7 +42,8 @@ public class LootboxAPI {
 
     /**
      * Create a new lootbox
-     * @param name Lootbox name
+     *
+     * @param name          Lootbox name
      * @param animationType Animation type
      * @throws IllegalArgumentException if lootbox with this name already exists
      */
@@ -53,6 +53,7 @@ public class LootboxAPI {
 
     /**
      * Delete a lootbox
+     *
      * @param id Lootbox ID
      */
     public void deleteLootbox(String id) {
@@ -61,8 +62,9 @@ public class LootboxAPI {
 
     /**
      * Add an item to a lootbox
-     * @param id Lootbox ID
-     * @param item Item to add
+     *
+     * @param id     Lootbox ID
+     * @param item   Item to add
      * @param chance Drop chance (0-100)
      * @param rarity Item rarity
      */
@@ -77,7 +79,8 @@ public class LootboxAPI {
 
     /**
      * Place a lootbox at a location
-     * @param id Lootbox ID
+     *
+     * @param id       Lootbox ID
      * @param location Location to place the lootbox
      */
     public void placeLootbox(String id, Location location) {
@@ -90,46 +93,51 @@ public class LootboxAPI {
 
     /**
      * Get the number of keys a player has for a specific lootbox
-     * @param playerId Player UUID
+     *
+     * @param playerId  Player UUID
      * @param lootboxId Lootbox ID
      * @return Number of keys
      */
     public int getKeyCount(UUID playerId, String lootboxId) {
-        return plugin.getLootboxManager().getKeyCount(playerId, lootboxId);
+        return plugin.getUserManager().getKeyCount(playerId, lootboxId);
     }
 
     /**
      * Give keys to a player
-     * @param playerId Player UUID
+     *
+     * @param playerId  Player UUID
      * @param lootboxId Lootbox ID
-     * @param amount Number of keys to give
+     * @param amount    Number of keys to give
      */
     public void giveKeys(UUID playerId, String lootboxId, int amount) {
-        plugin.getLootboxManager().addKeys(playerId, lootboxId, amount);
+        plugin.getUserManager().addKeys(playerId, lootboxId, amount);
     }
 
     /**
      * Remove keys from a player
-     * @param playerId Player UUID
+     *
+     * @param playerId  Player UUID
      * @param lootboxId Lootbox ID
-     * @param amount Number of keys to remove
+     * @param amount    Number of keys to remove
      */
     public void removeKeys(UUID playerId, String lootboxId, int amount) {
-        plugin.getLootboxManager().removeKeys(playerId, lootboxId, amount);
+        plugin.getUserManager().removeKeys(playerId, lootboxId, amount);
     }
 
     /**
      * Check if a player has a key for a specific lootbox
-     * @param playerId Player UUID
+     *
+     * @param playerId  Player UUID
      * @param lootboxId Lootbox ID
      * @return true if player has at least one key
      */
     public boolean hasKey(UUID playerId, String lootboxId) {
-        return plugin.getLootboxManager().hasKey(playerId, lootboxId);
+        return plugin.getUserManager().hasKey(playerId, lootboxId);
     }
 
     /**
      * Get all lootbox locations
+     *
      * @param id Lootbox ID
      * @return List of locations where this lootbox is placed
      */
@@ -140,7 +148,8 @@ public class LootboxAPI {
 
     /**
      * Open lootbox preview GUI for a player
-     * @param player Player to show the GUI to
+     *
+     * @param player    Player to show the GUI to
      * @param lootboxId Lootbox ID
      */
     public void openPreview(Player player, String lootboxId) {
@@ -150,11 +159,4 @@ public class LootboxAPI {
         }
     }
 
-    /**
-     * Get plugin instance
-     * @return LRF plugin instance
-     */
-    public LuckyRabbitFoot getPlugin() {
-        return plugin;
-    }
 }

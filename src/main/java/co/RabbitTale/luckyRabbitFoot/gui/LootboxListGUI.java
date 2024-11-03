@@ -124,7 +124,7 @@ public class LootboxListGUI implements GUI {
                 .decoration(TextDecoration.ITALIC, false));
 
         // Add key count
-        int keyCount = plugin.getLootboxManager().getKeyCount(player.getUniqueId(), lootbox.getId());
+        int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
         lore.add(Component.empty());
         lore.add(Component.text("Your keys: " + keyCount)
                 .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED)

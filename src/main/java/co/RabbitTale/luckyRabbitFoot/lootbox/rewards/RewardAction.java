@@ -1,5 +1,6 @@
 package co.RabbitTale.luckyRabbitFoot.lootbox.rewards;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,71 +9,88 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import co.RabbitTale.luckyRabbitFoot.utils.Logger;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
-public class RewardAction {
-    private final String type;
-    private final Map<String, Object> data;
+public record RewardAction(co.RabbitTale.luckyRabbitFoot.lootbox.rewards.RewardAction.ActionType type,
+        List<String> commands, String group, String duration) {
 
-    public RewardAction(String type, Map<String, Object> data) {
-        this.type = type;
-        this.data = data;
-    }
+    public static RewardAction fromConfig(ConfigurationSection config) {
+        if (config == null) {
+            return null;
+        }
 
-    public String getType() {
-        return type;
-    }
+        String typeStr = config.getString("type");
+        if (typeStr == null) {
+            return null;
+        }
 
-    public Map<String, Object> getData() {
-        return data;
+        ActionType type = ActionType.valueOf(typeStr.toUpperCase());
+        List<String> commands = config.getStringList("commands");
+        String group = config.getString("group");
+        String duration = config.getString("duration");
+
+        return new RewardAction(type, commands, group, duration);
     }
 
     public void execute(Player player) {
-        switch (type.toUpperCase()) {
-            case "ECONOMY" -> {
-                double amount = (double) data.get("amount");
-                String command = "eco give " + player.getName() + " " + amount;
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                player.sendMessage(Component.text("You received " + amount + " coins!")
-                    .color(NamedTextColor.GOLD));
-            }
-            case "PERMISSION", "ROLE" -> {
-                String group = (String) data.get("group");
-                String duration = (String) data.get("duration");
-                String command = duration.equals("permanent")
-                    ? "lp user " + player.getName() + " parent add " + group
-                    : "lp user " + player.getName() + " parent addtemp " + group + " " + duration;
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                player.sendMessage(Component.text("You received the " + group.toUpperCase() + " rank!")
-                    .color(NamedTextColor.GOLD));
-            }
-            case "COMMAND" -> {
-                List<String> commands = (List<String>) data.get("commands");
-                for (String command : commands) {
-                    command = command.replace("{player}", player.getName());
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+        switch (type) {
+            case COMMAND -> {
+                if (commands != null) {
+                    for (String command : commands) {
+                        String processedCommand = command.replace("{player}", player.getName());
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                        Logger.debug("Executing command: " + processedCommand);
+                    }
                 }
             }
-            case "XP_BOOST" -> {
-                String duration = (String) data.get("duration");
-                double multiplier = (double) data.get("multiplier");
-                String command = "xpboost give " + player.getName() + " " + multiplier + " " + duration;
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                player.sendMessage(Component.text("You received " + multiplier + "x XP Boost for " + duration + "!")
-                    .color(NamedTextColor.GREEN));
-            }
-            default -> {
-                Logger.warning("Unknown reward type: " + type);
+            case PERMISSION -> {
+                if (group != null) {
+                    String command;
+                    if (duration != null && duration.equalsIgnoreCase("permanent")) {
+                        command = "lp user " + player.getName() + " parent add " + group;
+                    } else {
+                        command = "lp user " + player.getName() + " parent addtemp " + group + " " + duration + "accumulate";
+                    }
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    Logger.debug("Executing permission command: " + command);
+                }
             }
         }
     }
 
-    public static RewardAction fromConfig(ConfigurationSection config) {
-        if (config == null) return null;
-        return new RewardAction(
-            config.getString("type"),
-            config.getValues(true)
-        );
+    public void save(ConfigurationSection config) {
+        config.set("type", type.name());
+        if (commands != null && !commands.isEmpty()) {
+            config.set("commands", commands);
+        }
+        if (group != null) {
+            config.set("group", group);
+        }
+        if (duration != null) {
+            config.set("duration", duration);
+        }
+    }
+
+    public Map<String, Object> serialize() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("type", type.name());
+        if (commands != null && !commands.isEmpty()) {
+            data.put("commands", commands);
+        }
+        if (group != null) {
+            data.put("group", group);
+        }
+        if (duration != null) {
+            data.put("duration", duration);
+        }
+        return data;
+    }
+
+    public Map<String, Object> getData() {
+        return serialize();
+    }
+
+    public enum ActionType {
+        COMMAND,
+        PERMISSION
     }
 }

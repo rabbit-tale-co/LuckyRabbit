@@ -2,10 +2,16 @@ package co.RabbitTale.luckyRabbitFoot.lootbox;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -25,21 +31,17 @@ import co.RabbitTale.luckyRabbitFoot.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbitFoot.lootbox.items.OraxenLootboxItem;
 import co.RabbitTale.luckyRabbitFoot.utils.Logger;
 import io.th0rgal.oraxen.api.OraxenItems;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public class LootboxManager {
     private final LuckyRabbitFoot plugin;
     private final Map<String, Lootbox> lootboxes;
     private final Map<UUID, LootboxEntity> entities;
-    private final Map<UUID, Map<String, Integer>> playerKeys;
 
     public LootboxManager(LuckyRabbitFoot plugin) {
         this.plugin = plugin;
         this.lootboxes = new HashMap<>();
         this.entities = new HashMap<>();
-        this.playerKeys = new HashMap<>();
     }
 
     public void loadLootboxes() {
@@ -236,74 +238,6 @@ public class LootboxManager {
         saveLootbox(lootbox);
     }
 
-    public void addKeys(UUID playerId, String lootboxId, int amount) {
-        if (!lootboxes.containsKey(lootboxId)) {
-            throw new IllegalArgumentException("Lootbox with ID " + lootboxId + " does not exist!");
-        }
-
-        Map<String, Integer> playerKeyMap = playerKeys.computeIfAbsent(playerId, k -> new HashMap<>());
-        playerKeyMap.merge(lootboxId, amount, Integer::sum);
-        savePlayerKeys(playerId);
-
-        // Send messages
-        Player target = Bukkit.getPlayer(playerId);
-        if (target != null) {
-            // Message for receiver
-            Component message = Component.text("You received ")
-                .color(NamedTextColor.GRAY)
-                .append(Component.text(amount + " key(s)")
-                    .color(NamedTextColor.GOLD))
-                .append(Component.text(" for lootbox ")
-                    .color(NamedTextColor.GRAY))
-                .append(Component.text(lootboxes.get(lootboxId).getDisplayName())
-                    .color(NamedTextColor.YELLOW));
-            target.sendMessage(message);
-        }
-    }
-
-    public void removeKeys(UUID playerId, String lootboxId, int amount) {
-        Map<String, Integer> playerKeyMap = playerKeys.get(playerId);
-        if (playerKeyMap == null) return;
-
-        int currentKeys = playerKeyMap.getOrDefault(lootboxId, 0);
-        int newAmount = Math.max(0, currentKeys - amount);
-
-        if (newAmount > 0) {
-            playerKeyMap.put(lootboxId, newAmount);
-        } else {
-            playerKeyMap.remove(lootboxId);
-        }
-
-        savePlayerKeys(playerId);
-    }
-
-    public int getKeyCount(UUID playerId, String lootboxId) {
-        return playerKeys.getOrDefault(playerId, Collections.emptyMap())
-                .getOrDefault(lootboxId, 0);
-    }
-
-    private void savePlayerKeys(UUID playerId) {
-        File playerDataFile = new File(plugin.getDataFolder(), "playerdata/" + playerId + ".yml");
-        YamlConfiguration config = new YamlConfiguration();
-
-        Map<String, Integer> playerKeyMap = playerKeys.get(playerId);
-        if (playerKeyMap != null) {
-            for (Map.Entry<String, Integer> entry : playerKeyMap.entrySet()) {
-                config.set("keys." + entry.getKey(), entry.getValue());
-            }
-        }
-
-        try {
-            config.save(playerDataFile);
-        } catch (IOException e) {
-            Logger.error("Failed to save player keys for " + playerId, e);
-        }
-    }
-
-    public Collection<Lootbox> getAllLootboxes() {
-        return Collections.unmodifiableCollection(lootboxes.values());
-    }
-
     public void saveLootbox(Lootbox lootbox) {
         // Don't save example lootboxes unless they've been modified
         if ((lootbox.getId().equals("example") || lootbox.getId().equals("example2"))
@@ -375,7 +309,7 @@ public class LootboxManager {
             // Save action if exists
             if (item.getAction() != null) {
                 ConfigurationSection actionSection = itemSection.createSection("action");
-                actionSection.set("type", item.getAction().getType());
+                actionSection.set("type", item.getAction().type());
                 item.getAction().getData().forEach(actionSection::set);
             }
 
@@ -414,11 +348,6 @@ public class LootboxManager {
                 saveLootbox(lootbox);
             }
         }
-
-        // Save all player keys
-        for (UUID playerId : playerKeys.keySet()) {
-            savePlayerKeys(playerId);
-        }
     }
 
     private boolean isExampleLootbox(String id) {
@@ -451,14 +380,6 @@ public class LootboxManager {
         return new ArrayList<>(lootboxes.keySet());
     }
 
-    public boolean hasKey(UUID playerId, String lootboxId) {
-        return getKeyCount(playerId, lootboxId) > 0;
-    }
-
-    public void useKey(UUID playerId, String lootboxId) {
-        removeKeys(playerId, lootboxId, 1);
-    }
-
     public void reloadOraxenItems() {
         for (Lootbox lootbox : lootboxes.values()) {
             for (LootboxItem item : lootbox.getItems().values()) {
@@ -477,6 +398,10 @@ public class LootboxManager {
                 }
             }
         }
+    }
+
+    public Collection<Lootbox> getAllLootboxes() {
+        return Collections.unmodifiableCollection(lootboxes.values());
     }
 
     // Additional methods will be implemented here...

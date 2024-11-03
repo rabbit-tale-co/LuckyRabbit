@@ -11,7 +11,7 @@ openedCount: 0
 items:
   '0':
     id: virtual-gold
-    chance: 20.0
+    chance: 35.0
     rarity: COMMON
     item:
       type: GOLD_INGOT
@@ -30,7 +30,7 @@ items:
 
   '1':
     id: vip-role
-    chance: 15.0
+    chance: 25.0
     rarity: UNCOMMON
     item:
       type: NAME_TAG
@@ -49,7 +49,7 @@ items:
 
   '2':
     id: special-elytra
-    chance: 10.0
+    chance: 20.0
     rarity: RARE
     item:
       type: ELYTRA
@@ -65,7 +65,7 @@ items:
 
   '3':
     id: mvp-role
-    chance: 5.0
+    chance: 15.0
     rarity: EPIC
     item:
       type: TOTEM_OF_UNDYING
@@ -83,25 +83,6 @@ items:
       duration: 30d
 
   '4':
-    id: xp-boost
-    chance: 20.0
-    rarity: COMMON
-    item:
-      type: EXPERIENCE_BOTTLE
-      amount: 16
-      meta:
-        display-name: "<green>XP Boost"
-        lore:
-        - "<gray>Grants <green>2x XP"
-        - "<gray>for 30 minutes"
-        - ""
-        - "<yellow>Click to activate!"
-    action:
-      type: XP_BOOST
-      multiplier: 2.0
-      duration: 30m
-
-  '5':
     id: owner-role
     chance: 0.5
     rarity: LEGENDARY
@@ -120,22 +101,10 @@ items:
       group: owner
       duration: permanent
 
-  '6':
+  '5':
     id: excalibur-sword
-    chance: 10.0
-    rarity: RARE
-    oraxen_item: excalibur
-
-  '7':
-    id: dragon-sword
-    chance: 3.5
-    rarity: EPIC
-    oraxen_item: dragon_sword
-
-  '8':
-    id: god-sword
-    chance: 1.0
+    chance: 0.5
     rarity: LEGENDARY
-    oraxen_item: god_sword
+    oraxen_item: excalibur
 
 locations: {}
