@@ -2,6 +2,7 @@ package co.RabbitTale.luckyRabbitFoot.gui.animations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 import org.bukkit.Bukkit;
@@ -18,6 +19,13 @@ import co.RabbitTale.luckyRabbitFoot.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbitFoot.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbitFoot.lootbox.rewards.Reward;
 import co.RabbitTale.luckyRabbitFoot.lootbox.rewards.RewardRarity;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
+import static co.RabbitTale.luckyRabbitFoot.commands.LootboxCommand.*;
 
 public abstract class BaseAnimationGUI extends LootboxGUI {
 
@@ -32,7 +40,9 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
 
     protected BaseAnimationGUI(LuckyRabbitFoot plugin, Player player, Lootbox lootbox, int guiSize) {
         super(plugin, Bukkit.createInventory(null, guiSize,
-                net.kyori.adventure.text.Component.text("Opening " + lootbox.getDisplayName())));
+                Component.text("Opening: ")
+                        .append(Component.text(PlainTextComponentSerializer.plainText()
+                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))))));
         this.player = player;
         this.lootbox = lootbox;
 
@@ -165,6 +175,68 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
 
         // Give reward after a short delay
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // Get reward name based on metadata
+            Component rewardName;
+            ItemStack rewardItem = finalReward.displayItem();
+            ItemMeta meta = rewardItem.getItemMeta();
+
+            if (finalReward.action() != null) {
+                // For virtual rewards, use display name and first lore line
+                if (meta != null && meta.hasLore() && !Objects.requireNonNull(meta.lore()).isEmpty()) {
+                    String firstLoreLine = PlainTextComponentSerializer.plainText()
+                        .serialize(Objects.requireNonNull(meta.lore()).get(0));
+
+                    // Extract the actual reward from lore (e.g., "Adds 1000 coins" -> "1000 coins")
+                    String reward = firstLoreLine.replaceFirst(".*?([0-9]+.*?)$", "$1");
+
+                    // Use MiniMessage to parse the display name with color codes
+                    rewardName = meta.hasDisplayName() ?
+                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                            .serialize(Objects.requireNonNull(meta.displayName()))) :
+                        Component.text(reward).color(NamedTextColor.YELLOW);
+                } else {
+                    rewardName = meta != null && meta.hasDisplayName() ?
+                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                            .serialize(Objects.requireNonNull(meta.displayName()))) :
+                        Component.text(rewardItem.getType().name());
+                }
+            } else {
+                // For physical items, use item display name with color support
+                rewardName = meta != null && meta.hasDisplayName() ?
+                    MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                        .serialize(Objects.requireNonNull(meta.displayName()))) :
+                    Component.text(rewardItem.getType().name());
+            }
+
+            // Message for winner
+            assert rewardName != null;
+            Component winnerMessage = Component.text("You won ")
+                .color(DESCRIPTION_COLOR)
+                .append(rewardName)
+                .append(Component.text("!")
+                    .color(DESCRIPTION_COLOR));
+            player.sendMessage(winnerMessage);
+
+            // Global broadcast message
+            Component broadcastMessage = Component.text("» ")
+                .color(SEPARATOR_COLOR)
+                .append(Component.text(player.getName())
+                    .color(TARGET_COLOR))
+                .append(Component.text(" has won ")
+                    .color(DESCRIPTION_COLOR))
+                .append(rewardName)
+                .append(Component.text(" from ")
+                    .color(DESCRIPTION_COLOR))
+                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                .append(Component.text("!")
+                    .color(DESCRIPTION_COLOR));
+
+            // Broadcast to all players
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.sendMessage(broadcastMessage);
+            }
+
+            // Give the reward
             finalReward.give(player);
 
             // Increment open count and save
@@ -174,6 +246,16 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
             player.closeInventory();
             isProcessingReward = false;
         }, 20L);
+    }
+
+    // Helper class to get color from component
+    private static class TextColorGetter {
+        public static TextColor getColorFromComponent(Component component) {
+            if (component.color() != null) {
+                return component.color();
+            }
+            return NamedTextColor.YELLOW; // Default color
+        }
     }
 
     protected void playTickSound() {

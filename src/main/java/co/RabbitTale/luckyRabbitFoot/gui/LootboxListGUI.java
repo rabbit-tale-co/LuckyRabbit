@@ -2,6 +2,7 @@ package co.RabbitTale.luckyRabbitFoot.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -41,15 +42,15 @@ public class LootboxListGUI implements GUI {
 
         // Debug logs
         plugin.getLogger().info("Loading lootboxes into GUI...");
-        plugin.getLogger().info("Total lootboxes in manager: " + plugin.getLootboxManager().getAllLootboxes().size());
-        plugin.getLogger().info("Lootbox IDs: " + String.join(", ", plugin.getLootboxManager().getLootboxNames()));
+        plugin.getLogger().log(Level.INFO, "Total lootboxes in manager: {0}", plugin.getLootboxManager().getAllLootboxes().size());
+        plugin.getLogger().log(Level.INFO, "Lootbox IDs: {0}", String.join(", ", plugin.getLootboxManager().getLootboxNames()));
 
         this.lootboxes = new ArrayList<>(plugin.getLootboxManager().getAllLootboxes());
 
         // More debug
-        plugin.getLogger().info("Loaded lootboxes into GUI: " + lootboxes.size());
+        plugin.getLogger().log(Level.INFO, "Loaded lootboxes into GUI: {0}", lootboxes.size());
         for (Lootbox box : lootboxes) {
-            plugin.getLogger().info("Lootbox: " + box.getId() + " - " + box.getDisplayName());
+            plugin.getLogger().log(Level.INFO, "Lootbox: {0} - {1}", new Object[]{box.getId(), box.getDisplayName()});
         }
 
         this.inventory = Bukkit.createInventory(this, ROWS * 9,
@@ -72,7 +73,7 @@ public class LootboxListGUI implements GUI {
         inventory.clear();
 
         // Debug log
-        plugin.getLogger().info("Updating inventory with " + lootboxes.size() + " lootboxes");
+        plugin.getLogger().log(Level.INFO, "Updating inventory with {0} lootboxes", lootboxes.size());
 
         // Add lootbox items
         int startIndex = currentPage * PAGE_SIZE;
@@ -80,7 +81,7 @@ public class LootboxListGUI implements GUI {
             Lootbox lootbox = lootboxes.get(startIndex + i);
             ItemStack item = createLootboxItem(lootbox);
             inventory.setItem(i, item);
-            plugin.getLogger().info("Added lootbox to slot " + i + ": " + lootbox.getId());
+            plugin.getLogger().log(Level.INFO, "Added lootbox to slot {0}: {1}", new Object[]{i, lootbox.getId()});
         }
 
         // Add navigation buttons
@@ -107,39 +108,40 @@ public class LootboxListGUI implements GUI {
 
         // Add lore lines
         for (String loreLine : lootbox.getLore()) {
-            lore.add(MiniMessage.miniMessage().deserialize(loreLine)
-                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize(loreLine));
         }
 
         // Add statistics
         lore.add(Component.empty());
         lore.add(Component.text("Statistics:")
                 .color(NamedTextColor.GOLD)
-                .decoration(TextDecoration.ITALIC, false));
+        );
         lore.add(Component.text("• Times opened: " + lootbox.getOpenCount())
                 .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
+        );
         lore.add(Component.text("• Items available: " + lootbox.getItems().size())
                 .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
+        );
 
         // Add key count
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
         lore.add(Component.empty());
         lore.add(Component.text("Your keys: " + keyCount)
                 .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED)
-                .decoration(TextDecoration.ITALIC, false));
+        );
 
         // Add actions
         lore.add(Component.empty());
         lore.add(Component.text("Click to view contents")
                 .color(NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false));
+        );
 
         if (player.hasPermission("luckyrabbitfoot.admin")) {
-            lore.add(Component.text("Shift + Left Click to remove")
-                    .color(NamedTextColor.RED)
-                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(MiniMessage.miniMessage().deserialize("<white>[<red><bold>Admin</bold><white>] ")
+                    .append(Component.text("Shift + Left Click to remove")
+                            .color(NamedTextColor.RED)
+                    ));
         }
 
         meta.lore(lore);
@@ -152,7 +154,7 @@ public class LootboxListGUI implements GUI {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text(name)
                 .color(NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false));
+        );
         item.setItemMeta(meta);
         return item;
     }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -122,16 +123,34 @@ public class LootboxContentGUI implements GUI {
     private ItemStack createDisplayItem(LootboxItem item) {
         ItemStack displayItem = item.getItem().clone();
         ItemMeta meta = displayItem.getItemMeta();
-        List<Component> lore = meta.hasLore() ? new ArrayList<>(Objects.requireNonNull(meta.lore())) : new ArrayList<>();
+
+        // Get original lore and only make it gray if it doesn't have color formatting
+        List<Component> lore = meta.hasLore()
+                ? Objects.requireNonNull(meta.lore()).stream()
+                        .map(line -> {
+                            // Only apply gray color if the line doesn't have any formatting
+                            if (PlainTextComponentSerializer.plainText().serialize(line)
+                                    .equals(MiniMessage.miniMessage().serialize(line))) {
+                                return line.color(NamedTextColor.GRAY)
+                                        .decoration(TextDecoration.ITALIC, false);
+                            }
+                            // Keep original formatting but remove italic
+                            return line.decoration(TextDecoration.ITALIC, false);
+                        })
+                        .collect(Collectors.toList())
+                : new ArrayList<>();
 
         // Add rarity and chance info
         lore.add(Component.empty());
 
         // Get rarity color from RewardRarity enum
         RewardRarity rarity = RewardRarity.valueOf(item.getRarity().toUpperCase());
-        lore.add(Component.text("Rarity: " + rarity.getDisplayName())
-                .color(rarity.getColor())
-                .decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Rarity: ")
+                .color(NamedTextColor.GRAY)
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text(rarity.getDisplayName())
+                        .color(rarity.getColor())
+                        .decoration(TextDecoration.ITALIC, false)));
 
         lore.add(Component.text(String.format("Chance: %.2f%%", item.getChance()))
                 .color(NamedTextColor.GRAY)
@@ -139,9 +158,10 @@ public class LootboxContentGUI implements GUI {
 
         if (player.hasPermission("luckyrabbitfoot.admin")) {
             lore.add(Component.empty());
-            lore.add(Component.text("Shift + Left Click to remove")
-                    .color(NamedTextColor.RED)
-                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<white>[<red><bold>Admin</bold><white>] ")
+                    .append(Component.text("Shift + Left Click to remove")
+                            .color(NamedTextColor.RED)
+                            .decoration(TextDecoration.ITALIC, false)));
         }
 
         meta.lore(lore);

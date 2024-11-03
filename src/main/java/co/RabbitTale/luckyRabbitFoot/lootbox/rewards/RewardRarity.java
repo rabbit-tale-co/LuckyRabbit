@@ -1,14 +1,16 @@
 package co.RabbitTale.luckyRabbitFoot.lootbox.rewards;
 
+import lombok.Getter;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
+@Getter
 public enum RewardRarity {
-    COMMON("Common", NamedTextColor.GRAY),
-    UNCOMMON("Uncommon", NamedTextColor.GREEN),
-    RARE("Rare", NamedTextColor.BLUE),
-    EPIC("Epic", NamedTextColor.DARK_PURPLE),
-    LEGENDARY("Legendary", NamedTextColor.GOLD);
+    COMMON("Common", TextColor.color(180, 180, 180)),
+    UNCOMMON("Uncommon", TextColor.color(120, 230, 120)),
+    RARE("Rare", TextColor.color(100, 180, 255)),
+    EPIC("Epic", TextColor.color(230, 120, 230)),
+    LEGENDARY("Legendary", TextColor.color(255, 200, 80));
 
     private final String displayName;
     private final TextColor color;
@@ -18,11 +20,4 @@ public enum RewardRarity {
         this.color = color;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public TextColor getColor() {
-        return color;
-    }
 }

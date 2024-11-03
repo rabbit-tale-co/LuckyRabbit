@@ -1,11 +1,11 @@
 id: example2
-displayName: <gradient:red:gold>⚔ Epic Rewards ⚔</gradient>
+displayName: <gradient:red:gold>Epic Rewards</gradient>
 lore:
-- <gray>• Virtual items
-- <gray>• Custom weapons
-- <gray>• Rare roles
-- ''
-- <gold>Good luck!
+  - <gray> • Virtual items
+  - <gray> • Custom weapons
+  - <gray> • Rare roles
+  - ''
+  - <gold>Good luck!
 animationType: CIRCLE
 openedCount: 0
 items:
@@ -17,12 +17,9 @@ items:
       type: GOLD_INGOT
       amount: 32
       meta:
-        display-name: "<yellow>Virtual Gold"
+        display-name: "<yellow>Pouch of gold"
         lore:
-        - "<gray>Adds <yellow>1000 coins"
-        - "<gray>to your balance"
-        - ""
-        - "<yellow>Click to claim!"
+          - "<gold>1000 <white>gold"
     action:
       type: COMMAND
       commands:
@@ -35,12 +32,9 @@ items:
     item:
       type: NAME_TAG
       meta:
-        display-name: "<aqua>VIP Role (7 days)"
+        display-name: "<white>[<green>VIP<white>] <gray>Role (7 days)"
         lore:
-        - "<gray>Grants <aqua>VIP"
-        - "<gray>rank for 7 days"
-        - ""
-        - "<yellow>Click to activate!"
+          - "<white>[<green>VIP<white>] <gray>rank for 7 days"
         glow: true
     action:
       type: PERMISSION
@@ -56,8 +50,8 @@ items:
       meta:
         display-name: "<light_purple>Wings of Freedom"
         lore:
-        - "<gray>Legendary wings that grant"
-        - "<gray>unlimited flight"
+          - "<gray>Legendary wings that grant"
+          - "<gray>unlimited flight"
         enchants:
           PROTECTION_ENVIRONMENTAL: 4
           DURABILITY: 3
@@ -70,12 +64,9 @@ items:
     item:
       type: TOTEM_OF_UNDYING
       meta:
-        display-name: "<gold>MVP++ Role (30 days)"
+        display-name: "<white>[<gold>MVP<red>++<white>] <gray>Role (30 days)"
         lore:
-        - "<gray>Grants <gold>MVP++"
-        - "<gray>rank for 30 days"
-        - ""
-        - "<red>Very rare reward!"
+          - "<white>[<gold>MVP<red>++<white>] <gray>rank for 30 days"
         glow: true
     action:
       type: PERMISSION
@@ -89,12 +80,9 @@ items:
     item:
       type: DRAGON_EGG
       meta:
-        display-name: "<rainbow>Owner Role (Permanent)</rainbow>"
+        display-name: "<white>[<dark_red><bold>Owner</bold><white>] <gray>Role (Permanent)"
         lore:
-        - "<gray>Grants <red>Owner"
-        - "<gray>rank permanently!"
-        - ""
-        - "<red>Extremely rare reward!"
+          - "<white>[<dark_red><bold>Owner</bold><white>] <gray>rank <gray>permanent"
         glow: true
     action:
       type: PERMISSION

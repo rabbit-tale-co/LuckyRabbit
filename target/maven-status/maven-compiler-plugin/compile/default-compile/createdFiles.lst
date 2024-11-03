@@ -1,3 +1,4 @@
+co\RabbitTale\luckyRabbitFoot\lootbox\rewards\RewardAction$ActionType.class
 co\RabbitTale\luckyRabbitFoot\utils\ColorFormat.class
 co\RabbitTale\luckyRabbitFoot\commands\LootboxTabCompleter.class
 co\RabbitTale\luckyRabbitFoot\config\LootboxConfig.class
@@ -6,6 +7,7 @@ co\RabbitTale\luckyRabbitFoot\lootbox\items\OraxenLootboxItem.class
 co\RabbitTale\luckyRabbitFoot\gui\LootboxDeleteConfirmationGUI.class
 co\RabbitTale\luckyRabbitFoot\gui\animations\ThreeInRowSpinGUI.class
 co\RabbitTale\luckyRabbitFoot\lootbox\Lootbox.class
+co\RabbitTale\luckyRabbitFoot\gui\animations\BaseAnimationGUI$TextColorGetter.class
 co\RabbitTale\luckyRabbitFoot\gui\animations\CircleSpinGUI$1.class
 co\RabbitTale\luckyRabbitFoot\lootbox\animation\AnimationType.class
 co\RabbitTale\luckyRabbitFoot\gui\LootboxContentGUI.class
@@ -33,6 +35,7 @@ co\RabbitTale\luckyRabbitFoot\gui\LootboxGUI.class
 co\RabbitTale\luckyRabbitFoot\gui\LootboxOpeningGUI.class
 co\RabbitTale\luckyRabbitFoot\LuckyRabbitFoot.class
 co\RabbitTale\luckyRabbitFoot\commands\CommandManager.class
+co\RabbitTale\luckyRabbitFoot\listeners\PlayerListener.class
 co\RabbitTale\luckyRabbitFoot\api\LicenseManager.class
 co\RabbitTale\luckyRabbitFoot\gui\LootboxContentGUI$1.class
 co\RabbitTale\luckyRabbitFoot\gui\animations\BaseAnimationGUI.class

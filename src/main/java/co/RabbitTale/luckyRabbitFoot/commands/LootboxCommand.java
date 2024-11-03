@@ -17,16 +17,16 @@ import net.kyori.adventure.text.format.TextColor;
 
 public class LootboxCommand implements CommandExecutor {
     private final LuckyRabbitFoot plugin;
-    private static final TextColor ERROR_COLOR = NamedTextColor.RED;
-    private static final TextColor SUCCESS_COLOR = NamedTextColor.GREEN;
-    private static final TextColor INFO_COLOR = NamedTextColor.YELLOW;
-    private static final TextColor SEPARATOR_COLOR = TextColor.color(105, 109, 119);
-    private static final TextColor COMMAND_COLOR = NamedTextColor.GRAY;
-    private static final TextColor ACTION_COLOR = TextColor.color(246, 135, 66);
-    private static final TextColor ITEM_COLOR = TextColor.color(246, 66, 97);
-    private static final TextColor TARGET_COLOR = TextColor.color(66, 198, 246);
-    private static final TextColor NAME_COLOR = TextColor.color(236, 231, 64);
-    private static final TextColor DESCRIPTION_COLOR = NamedTextColor.GRAY;
+    public static final TextColor ERROR_COLOR = NamedTextColor.RED;
+    public static final TextColor SUCCESS_COLOR = NamedTextColor.GREEN;
+    public static final TextColor INFO_COLOR = NamedTextColor.YELLOW;
+    public static final TextColor SEPARATOR_COLOR = TextColor.color(105, 109, 119);
+    public static final TextColor COMMAND_COLOR = NamedTextColor.GRAY;
+    public static final TextColor ACTION_COLOR = TextColor.color(246, 135, 66);
+    public static final TextColor ITEM_COLOR = TextColor.color(246, 66, 97);
+    public static final TextColor TARGET_COLOR = TextColor.color(66, 198, 246);
+    public static final TextColor NAME_COLOR = TextColor.color(236, 231, 64);
+    public static final TextColor DESCRIPTION_COLOR = NamedTextColor.GRAY;
 
     public LootboxCommand(LuckyRabbitFoot plugin) {
         this.plugin = plugin;
