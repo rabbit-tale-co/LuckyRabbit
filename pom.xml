@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>co.RabbitTale</groupId>
-    <artifactId>LuckyRabbitFoot</artifactId>
+    <artifactId>LuckyRabbit</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
 
-    <name>LuckyRabbitFoot</name>
+    <name>LuckyRabbit</name>
 
     <properties>
         <java.version>17</java.version>
@@ -113,6 +113,10 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <includes>
+                    <include>**/*.yml</include>
+                    <include>**/*.properties</include>
+                </includes>
             </resource>
         </resources>
     </build>
