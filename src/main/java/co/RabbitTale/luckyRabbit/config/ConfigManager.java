@@ -9,6 +9,7 @@ import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 
 public class ConfigManager {
+
     private final LuckyRabbit plugin;
     private final String[] EXAMPLE_FILES = {
         "example.yml", "example2.yml"
@@ -38,7 +39,7 @@ public class ConfigManager {
                 Logger.error("Failed to create lootboxes directory!");
                 return;
             }
-            Logger.info("Created lootboxes directory");
+            Logger.success("Created lootboxes directory");
         }
 
         // Try to save all example files
@@ -56,7 +57,7 @@ public class ConfigManager {
                     // Copy the file
                     Files.copy(in, exampleFile.toPath());
                     in.close();
-                    Logger.info("Successfully created " + fileName);
+                    Logger.success("Successfully created " + fileName);
                 } catch (IOException e) {
                     Logger.error("Failed to create " + fileName + ": " + e.getMessage());
                     e.printStackTrace();

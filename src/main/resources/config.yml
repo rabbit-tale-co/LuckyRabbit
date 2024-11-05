@@ -19,18 +19,23 @@
 #,ONMMMMMMMMMMMMMMMMMMWKo.
 #.l0WMMMMMMMMMMMMMWN0o.
 #
-# Plugin by Hasiradoo & Squareshox - RabbitTale Studio (https://rabbittale.co)
+# Plugin by Hasiradoo & Squareshox - RabbitTale Studio .co
 # Version: 1.0.0
 
 # ======================================
 # LICENSE CONFIGURATION
 # ======================================
 # Your license key from our Discord server
-# 1. Purchase the plugin at
-# 2. Join our Discord: https://discord.gg/rabbittale
-# 3. Open a ticket and provide your purchase proof
-# 4. Get your unique license key
+# 1. Join our Discord: https://discord.gg/RfBydgJpmU
+# 2. Choose Minecraft Role (Important to see mc related channels!)
+# 3. Go to https://discord.com/channels/1004735926234271864/1302949189512200254 (get-licence channel)
+# 4. Sync your account using /sync (BuildByBit bot) - it will assign you plugin role.
+# 5. Tpe /mc_plugin get-licence LuckyRabbit
+# 6. Bot will create licence key and send it to your private message. (There is only 1 licence key per account!)
+# 7. After provide licence key, restart server or use /lb reload it will check your licence key.
 license-key: ""
+
+#P.S. There is free 3 day trial (with limits) if you want test out PREMIUM version of plugin :)
 
 # ======================================
 # GENERAL SETTINGS
@@ -97,5 +102,5 @@ integrations:
 
 # ======================================
 # Need help? Join our Discord!
-# https://discord.gg/rabbittale
+# https://discord.gg/RfBydgJpmU
 # ======================================

@@ -14,10 +14,8 @@ public class ListenerManager {
     public void registerListeners() {
         PluginManager pm = plugin.getServer().getPluginManager();
 
-        // Register GUI listener
-        pm.registerEvents(new GUIListener(), plugin);
-
-        // Register Player listener
+        // Register all listeners
         pm.registerEvents(new PlayerListener(plugin), plugin);
+        pm.registerEvents(new GUIListener(), plugin);
     }
 }

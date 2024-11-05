@@ -1,16 +1,17 @@
 package co.RabbitTale.luckyRabbit;
 
-import co.RabbitTale.luckyRabbit.api.LootboxAPI;
-import co.RabbitTale.luckyRabbit.api.LicenseManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import co.RabbitTale.luckyRabbit.api.FeatureManager;
+import co.RabbitTale.luckyRabbit.api.LicenseManager;
+import co.RabbitTale.luckyRabbit.api.LootboxAPI;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
 import co.RabbitTale.luckyRabbit.listeners.ListenerManager;
 import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
-import co.RabbitTale.luckyRabbit.utils.Logger;
 import co.RabbitTale.luckyRabbit.user.UserManager;
+import co.RabbitTale.luckyRabbit.utils.Logger;
 import lombok.Getter;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class LuckyRabbit extends JavaPlugin {
 
@@ -37,7 +38,14 @@ public class LuckyRabbit extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        // Initialize managers first
+        // Load config first
+        saveDefaultConfig();
+        reloadConfig();
+
+        // Initialize logger with debug setting
+        Logger.init(this);
+
+        // Initialize managers
         this.configManager = new ConfigManager(this);
         this.licenseManager = new LicenseManager(this);
         this.featureManager = new FeatureManager(licenseManager);
@@ -49,7 +57,6 @@ public class LuckyRabbit extends JavaPlugin {
 
         // Load configurations
         configManager.loadConfigs();
-        saveDefaultConfig();
 
         // Check license status first and display plan info
         String licenseKey = getConfig().getString("license-key", "");
@@ -57,6 +64,7 @@ public class LuckyRabbit extends JavaPlugin {
 
         // Wait for license check to complete
         if (!licenseKey.isEmpty()) {
+            Logger.debug("Found license key, verifying...");
             licenseManager.verifyLicense(licenseKey);
             try {
                 Thread.sleep(1000); // Give time for async license check
@@ -64,7 +72,7 @@ public class LuckyRabbit extends JavaPlugin {
                 Thread.currentThread().interrupt();
             }
         } else {
-            Logger.warning("No license key found! Checking trial status...");
+            Logger.debug("No license key found, checking trial status...");
             LicenseManager.checkTrialStatus();
         }
 
@@ -95,19 +103,30 @@ public class LuckyRabbit extends JavaPlugin {
             lootboxManager.loadLimitedLootboxes();
         }
 
-        Logger.info("Plugin enabled successfully!");
+        // Respawn all lootbox entities
+        lootboxManager.respawnEntities();
+
+        // Log debug mode status
+        boolean debugMode = getConfig().getBoolean("settings.debug", false);
+        if (debugMode) {
+            Logger.success("Plugin enabled successfully! - DEBUG");
+        } else {
+            Logger.success("Plugin enabled successfully!");
+        }
     }
 
     @Override
     public void onDisable() {
-        // Save all data and remove entities
+        // Save all data and cleanup entities
         if (lootboxManager != null) {
             lootboxManager.saveAll();
-            lootboxManager.removeAllEntities();
+            lootboxManager.cleanup();
         }
 
-        // Save all user data when the plugin disables
-        userManager.saveAllUsers();
+        // Save all user data
+        if (userManager != null) {
+            userManager.saveAllUsers();
+        }
 
         Logger.info("Plugin disabled successfully!");
     }
@@ -136,9 +155,12 @@ public class LuckyRabbit extends JavaPlugin {
             Thread.currentThread().interrupt();
         }
 
+        // Cleanup existing entities
+        lootboxManager.cleanup();
+
         // Reload lootboxes based on plan
         if (LicenseManager.isPremium()) {
-            Logger.info("Reloading with PREMIUM access");
+            Logger.success("Reloading with PREMIUM access");
             lootboxManager.loadLootboxes();
         } else {
             String planType = LicenseManager.isTrialActive() ? "TRIAL" : "FREE";
@@ -147,10 +169,12 @@ public class LuckyRabbit extends JavaPlugin {
             Logger.info("Reloading in " + planType + " mode");
             Logger.info("Maximum lootboxes allowed: " + maxLootboxes);
 
-            // Force reload with limited mode
             lootboxManager.loadLimitedLootboxes();
         }
 
-        Logger.info("Plugin reloaded successfully!");
+        // Respawn all entities
+        lootboxManager.respawnEntities();
+
+        Logger.success("Plugin reloaded successfully!");
     }
 }

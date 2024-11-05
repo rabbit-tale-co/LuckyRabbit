@@ -2,12 +2,9 @@ package co.RabbitTale.luckyRabbit.commands;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
-import co.RabbitTale.luckyRabbit.api.LicenseManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -16,9 +13,11 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.api.FeatureManager;
+import co.RabbitTale.luckyRabbit.api.LicenseManager;
 import co.RabbitTale.luckyRabbit.gui.LootboxListGUI;
-import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
+import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -286,28 +285,48 @@ public class LootboxCommand implements CommandExecutor {
             return;
         }
 
+        // Get lootbox to access formatted name
+        Lootbox lootbox = plugin.getLootboxManager().getLootbox(id);
+        if (lootbox == null) {
+            player.sendMessage(Component.text("Lootbox not found: " + id)
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        // Parse the formatted display name
+        Component lootboxName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
+
         switch (action) {
             case "add" -> {
                 plugin.getUserManager().addKeys(target.getUniqueId(), id, amount);
                 // Message for admin
                 Component adminMessage = Component.text("You gave ")
-                    .color(NamedTextColor.GRAY)
-                    .append(Component.text(amount + " key(s)")
-                        .color(NamedTextColor.GOLD))
-                    .append(Component.text(" for lootbox ")
-                        .color(NamedTextColor.GRAY))
-                    .append(Component.text(id)
-                        .color(NamedTextColor.YELLOW))
-                    .append(Component.text(" to ")
-                        .color(NamedTextColor.GRAY))
-                    .append(Component.text(target.getName())
-                        .color(NamedTextColor.AQUA));
+                    .color(DESCRIPTION_COLOR)
+                    .append(Component.text(amount + "x ", ITEM_COLOR))
+                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
+                    .append(lootboxName)
+                    .append(Component.text(" to ", DESCRIPTION_COLOR))
+                    .append(Component.text(target.getName(), TARGET_COLOR));
                 player.sendMessage(adminMessage);
+
+                // Message for target player
+                Component targetMessage = Component.text("You received ")
+                    .color(DESCRIPTION_COLOR)
+                    .append(Component.text(amount + "x ", ITEM_COLOR))
+                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
+                    .append(lootboxName);
+                target.sendMessage(targetMessage);
             }
             case "remove" -> {
                 plugin.getUserManager().removeKeys(target.getUniqueId(), id, amount);
-                player.sendMessage(Component.text("Successfully removed " + amount + " key(s) from " + target.getName())
-                    .color(SUCCESS_COLOR));
+                Component message = Component.text("Successfully removed ")
+                    .color(SUCCESS_COLOR)
+                    .append(Component.text(amount + "x ", ITEM_COLOR))
+                    .append(Component.text("key(s) for ", SUCCESS_COLOR))
+                    .append(lootboxName)
+                    .append(Component.text(" from ", SUCCESS_COLOR))
+                    .append(Component.text(target.getName(), TARGET_COLOR));
+                player.sendMessage(message);
             }
             default -> player.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
                     .color(ERROR_COLOR));
