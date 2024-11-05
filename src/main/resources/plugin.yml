@@ -1,9 +1,10 @@
-name: LuckyRabbitFoot
+name: LuckyRabbit
 version: '${project.version}'
-main: co.RabbitTale.luckyRabbitFoot.LuckyRabbitFoot
+main: co.RabbitTale.luckyRabbit.LuckyRabbit
 api-version: '1.20'
-depend: [Oraxen]
-softdepend: [LuckPerms, Vault]
+depend: [Vault, Oraxen]
+softdepend: [LuckPerms]
+loadbefore: [RabbitValley]
 authors: [RabbitTale]
 description: Advanced lootbox system with animations and custom rewards
 website: https://rabbittale.co
@@ -13,18 +14,18 @@ commands:
     description: Main command for managing lootboxes
     usage: /lootbox
     aliases: [lb, lbox]
-    permission: luckyrabbitfoot.use
+    permission: luckyrabbit.use
 
 permissions:
-  luckyrabbitfoot.use:
+  luckyrabbit.use:
     description: Allows using basic lootbox commands
     default: true
-  luckyrabbitfoot.admin:
+  luckyrabbit.admin:
     description: Gives access to all admin commands
     default: op
     children:
-      luckyrabbitfoot.admin.create: true
-      luckyrabbitfoot.admin.delete: true
-      luckyrabbitfoot.admin.item: true
-      luckyrabbitfoot.admin.place: true
-      luckyrabbitfoot.admin.key: true
+      luckyrabbit.admin.create: true
+      luckyrabbit.admin.delete: true
+      luckyrabbit.admin.item: true
+      luckyrabbit.admin.place: true
+      luckyrabbit.admin.key: true

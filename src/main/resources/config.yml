@@ -1,39 +1,106 @@
-# LuckyRabbitFoot Configuration
+#,KWN0d;.             :kx;.
+#:XMMMMWO;           lNMMNd.
+#:XMMMMMMX:         cXMMMMNl
+#:XMMMMMMMO.       :XMMMMMMk.
+#:XMMMMMMMK,      :KMMMMMMWo
+#:XMMMMMMMK,     ;KMMMMMMWk.
+#:XMMMMMMMO.    ,0MMMMMMNx.
+#:XMMMMMMWd.  ,o0MMMMMMXl.
+#:XMMMMMMX;  'OWWMMMMWk,
+#:XMMMMMMXc.;OWMMMMMNo.
+#:XMMMMMMMNXNMMMMMMMWOc.
+#:XMMMMMMMMMMMMMMMMMMMMXx,
+#:XMMMMMMMMMWWWMMMMMMMMMMXo.
+#:XMMMMMWKxc;,;:cxKWMMMMMMNo
+#:XMMMMNx.        .xWMMMMMMK,
+#:XMMMMXc.        .cXMMMMMMX;
+#:XMMMMMN0OOOOO0OO0NMMMMMMMO.
+#'OMMMMMMMMMMMMMMMMMMMMMMW0;
+#,ONMMMMMMMMMMMMMMMMMMWKo.
+#.l0WMMMMMMMMMMMMMWN0o.
+#
+# Plugin by Hasiradoo & Squareshox - RabbitTale Studio .co
 # Version: 1.0.0
 
-# License configuration
-license:
-  auth-code: "" # Your authorization code
-  trial:
-    enabled: true
-    duration: 3 # Trial duration in days
+# ======================================
+# LICENSE CONFIGURATION
+# ======================================
+# Your license key from our Discord server
+# 1. Join our Discord: https://discord.gg/RfBydgJpmU
+# 2. Choose Minecraft Role (Important to see mc related channels!)
+# 3. Go to https://discord.com/channels/1004735926234271864/1302949189512200254 (get-licence channel)
+# 4. Sync your account using /sync (BuildByBit bot) - it will assign you plugin role.
+# 5. Tpe /mc_plugin get-licence LuckyRabbit
+# 6. Bot will create licence key and send it to your private message. (There is only 1 licence key per account!)
+# 7. After provide licence key, restart server or use /lb reload it will check your licence key.
+license-key: ""
 
-# Plugin settings
+#P.S. There is free 3 day trial (with limits) if you want test out PREMIUM version of plugin :)
+
+# ======================================
+# GENERAL SETTINGS
+# ======================================
 settings:
-  language: "en" # Available: en, pl
-  debug: false
-  save-interval: 300 # Auto-save interval in seconds
+  # Available languages:
+  # - English
+  # - More languages coming soon!
+  language: "English"
 
-# Animation settings
+  # Enable debug mode for additional logging
+  # Only enable this when troubleshooting issues
+  debug: false
+
+  # How often the plugin saves data to disk
+  # Lower values = More frequent saves but higher server load
+  # Default: 300 (5 minutes)
+  save-interval: 300
+
+# ======================================
+# ANIMATION SETTINGS
+# ======================================
 animations:
-  particle-update-interval: 5 # Ticks between particle updates
-  default-type: "HORIZONTAL" # Default animation type for new lootboxes
+  # How often particles are updated (in ticks)
+  # 20 ticks = 1 second
+  # Lower values = Smoother animations but higher server load
+  particle-update-interval: 5
+
+  # Default animation type for new lootboxes
+  # Available types:
+  # - HORIZONTAL: Items spin horizontally
+  # - CIRCLE: Items spin in a circle
+  default-type: "HORIZONTAL"
+
   particles:
+    # Enable/disable particle effects
     enabled: true
+
+    # Maximum number of particle effects per lootbox
+    # Higher values may impact performance
     max-per-lootbox: 3
 
-# Supported plugins integration
+# ======================================
+# PLUGIN INTEGRATIONS
+# ======================================
 integrations:
-  oraxen:
-    enabled: true
-  luckperms:
-    enabled: true
+  # Oraxen integration for custom items
+  # Requires Oraxen plugin to be installed
+  oraxen: true
+
+  # LuckPerms integration for permissions
+  # Requires LuckPerms plugin to be installed
+  luckperms: true
+
+  # Economy integration
   economy:
-    plugin: "Vault" # Supported: Vault, PlayerPoints
+    # Available economy plugins:
+    # - VAULT: Use Vault-compatible economy plugins
+    # - PLAYER_POINTS: Use PlayerPoints plugin
+    type: "VAULT"
+
+    # Enable/disable economy features
     enabled: true
 
-# API settings
-api:
-  enabled: true
-  url: "https://api.rabbittale.co/lootbox"
-  timeout: 5000 # Connection timeout in milliseconds
+# ======================================
+# Need help? Join our Discord!
+# https://discord.gg/RfBydgJpmU
+# ======================================

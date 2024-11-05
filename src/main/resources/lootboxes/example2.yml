@@ -1,141 +1,184 @@
+# ===========================================
+# LOOTBOX CONFIGURATION DOCUMENTATION
+# ===========================================
+
+# Unique identifier for the lootbox
+# Must be unique across all lootboxes
+# Used in commands and API
 id: example2
-displayName: <gradient:red:gold>⚔ Epic Rewards ⚔</gradient>
+
+# Display name of the lootbox
+# Supports MiniMessage format (<color>, <gradient>, etc.)
+# Examples:
+# - "<red>Basic Lootbox"
+# - "<gradient:red:gold>Epic Rewards</gradient>"
+# - "<rainbow>Special Box</rainbow>"
+displayName: <gradient:red:gold>Epic Rewards</gradient>
+
+# Lore shown when hovering over the lootbox
+# Supports MiniMessage format
+# Each line is a new element in the list
+# Use '' for empty lines
 lore:
-- <gray>• Virtual items
-- <gray>• Custom weapons
-- <gray>• Rare roles
-- ''
-- <gold>Good luck!
+  - <gray> • Virtual items
+  - <gray> • Custom weapons
+  - <gray> • Rare roles
+  - ''  # Empty line
+  - <gold>Good luck!
+
+# Animation type when opening the lootbox
+# Available types:
+# - HORIZONTAL (default sliding animation)
+# - CIRCLE (items rotate in a circle)
 animationType: CIRCLE
+
+# Counter for how many times this lootbox has been opened
+# Auto-incremented by the plugin
 openedCount: 0
+
+# List of possible rewards
+# Each reward must have a unique ID within the lootbox
 items:
+  # Example of a virtual currency reward
   '0':
+    # Unique identifier for this reward
     id: virtual-gold
-    chance: 20.0
+    # Chance of getting this reward (percentage)
+    chance: 35.0
+    # Rarity affects the display and particles
+    # Available: COMMON, UNCOMMON, RARE, EPIC, LEGENDARY
     rarity: COMMON
+    # Item shown in the animation and given to player
     item:
-      type: GOLD_INGOT
+      type: GOLD_INGOT  # Minecraft material type
       amount: 32
       meta:
-        display-name: "<yellow>Virtual Gold"
+        display-name: "<yellow>Pouch of gold"
         lore:
-        - "<gray>Adds <yellow>1000 coins"
-        - "<gray>to your balance"
-        - ""
-        - "<yellow>Click to claim!"
+          - "<gold>1000 <white>gold"
+    # Actions executed when this reward is won
     action:
-      type: COMMAND
+      type: COMMAND  # Execute commands
       commands:
-        - "eco give {player} 1000"
+        - "eco give {player} 1000"  # {player} is replaced with winner's name
 
+  # Example of a temporary permission reward (role)
   '1':
     id: vip-role
-    chance: 15.0
+    chance: 25.0
     rarity: UNCOMMON
     item:
       type: NAME_TAG
       meta:
-        display-name: "<aqua>VIP Role (7 days)"
+        display-name: "<white>[<green>VIP<white>] <gray>Role (7 days)"
         lore:
-        - "<gray>Grants <aqua>VIP"
-        - "<gray>rank for 7 days"
-        - ""
-        - "<yellow>Click to activate!"
-        glow: true
+          - "<white>[<green>VIP<white>] <gray>rank for 7 days"
+        glow: true  # Adds enchant glint
     action:
-      type: PERMISSION
-      group: vip
-      duration: 7d
+      type: PERMISSION  # Grant temporary permissions
+      group: vip  # LuckPerms group name
+      duration: 7d  # Duration format: d(days), h(hours), m(minutes)
 
+  # Example of a custom item with enchants
   '2':
     id: special-elytra
-    chance: 10.0
+    chance: 20.0
     rarity: RARE
     item:
       type: ELYTRA
       meta:
         display-name: "<light_purple>Wings of Freedom"
         lore:
-        - "<gray>Legendary wings that grant"
-        - "<gray>unlimited flight"
-        enchants:
-          PROTECTION_ENVIRONMENTAL: 4
-          DURABILITY: 3
+          - "<gray>Legendary wings that grant"
+          - "<gray>unlimited flight"
+        enchants:  # Standard Minecraft enchantments
+          PROTECTION_ENVIRONMENTAL: 4  # Protection IV
+          DURABILITY: 3  # Unbreaking III
         glow: true
 
+  # Example of a longer duration role reward
   '3':
     id: mvp-role
-    chance: 5.0
+    chance: 15.0
     rarity: EPIC
     item:
       type: TOTEM_OF_UNDYING
       meta:
-        display-name: "<gold>MVP++ Role (30 days)"
+        display-name: "<white>[<gold>MVP<red>++<white>] <gray>Role (30 days)"
         lore:
-        - "<gray>Grants <gold>MVP++"
-        - "<gray>rank for 30 days"
-        - ""
-        - "<red>Very rare reward!"
+          - "<white>[<gold>MVP<red>++<white>] <gray>rank for 30 days"
         glow: true
     action:
       type: PERMISSION
       group: mvp++
       duration: 30d
 
+  # Example of a permanent permission reward
   '4':
-    id: xp-boost
-    chance: 20.0
-    rarity: COMMON
-    item:
-      type: EXPERIENCE_BOTTLE
-      amount: 16
-      meta:
-        display-name: "<green>XP Boost"
-        lore:
-        - "<gray>Grants <green>2x XP"
-        - "<gray>for 30 minutes"
-        - ""
-        - "<yellow>Click to activate!"
-    action:
-      type: XP_BOOST
-      multiplier: 2.0
-      duration: 30m
-
-  '5':
     id: owner-role
-    chance: 0.5
+    chance: 0.5  # Very rare: 0.5%
     rarity: LEGENDARY
     item:
       type: DRAGON_EGG
       meta:
-        display-name: "<rainbow>Owner Role (Permanent)</rainbow>"
+        display-name: "<white>[<dark_red><bold>Owner</bold><white>] <gray>Role (Permanent)"
         lore:
-        - "<gray>Grants <red>Owner"
-        - "<gray>rank permanently!"
-        - ""
-        - "<red>Extremely rare reward!"
+          - "<white>[<dark_red><bold>Owner</bold><white>] <gray>rank <gray>permanent"
         glow: true
     action:
       type: PERMISSION
       group: owner
-      duration: permanent
+      duration: permanent  # Permanent permission
 
-  '6':
+  # Example of an Oraxen custom item
+  # This item will be displayed as barrier block (unknown item)
+  '5':
     id: excalibur-sword
-    chance: 10.0
-    rarity: RARE
-    oraxen_item: excalibur
-
-  '7':
-    id: dragon-sword
-    chance: 3.5
-    rarity: EPIC
-    oraxen_item: dragon_sword
-
-  '8':
-    id: god-sword
-    chance: 1.0
+    chance: 0.5
     rarity: LEGENDARY
-    oraxen_item: god_sword
+    oraxen_item: excalibur  # Oraxen item ID
 
+# List of placed lootbox locations
+# Automatically managed by the plugin
 locations: {}
+
+# Optional key requirement
+# If present, requires a key to open
+# Example:
+#key_required: true
+#key:
+#  material: TRIPWIRE_HOOK
+#  name: "<gold>Epic Key"
+#  lore:
+#    - "<gray>Use this to open"
+#    - "<gray>the Epic Rewards box!"
+
+# Additional examples of reward types:
+#
+# Multi-command reward:
+#   action:
+#     type: COMMAND
+#     commands:
+#       - "give {player} diamond 64"
+#       - "eco give {player} 5000"
+#       - "broadcast {player} won the jackpot!"
+#
+# Custom item with NBT:
+#   item:
+#     type: PLAYER_HEAD
+#     meta:
+#       display-name: "<rainbow>Rainbow Head</rainbow>"
+#       skull-texture: "eyJ0ZXh0dXJlcyI6ey..."
+#
+# Random amount reward:
+#   item:
+#     type: DIAMOND
+#     amount: 5-10  # Random amount between 5 and 10
+#
+# Multiple actions:
+#   action:
+#     - type: COMMAND
+#       commands: ["eco give {player} 1000"]
+#     - type: PERMISSION
+#       group: vip
+#       duration: 7d

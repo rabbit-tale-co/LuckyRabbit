@@ -1,119 +1,222 @@
+# ===========================================
+# BASIC LOOTBOX CONFIGURATION DOCUMENTATION
+# ===========================================
+
+# Unique identifier for the lootbox
+# Must be unique across all lootboxes
+# Used in commands like /lb give <player> example
 id: example
+
+# Display name shown in inventory and when hovering
+# Supports MiniMessage format for colors and effects
+# Examples:
+# - Simple gradient: <gradient:gold:yellow>Example Lootbox</gradient>
+# - Rainbow text: <rainbow>Example Box</rainbow>
+# - Basic color: <gold>Example Box</gold>
 displayName: <gradient:gold:yellow>Example Lootbox</gradient>
+
+# Lore shown when hovering over the lootbox
+# Each line supports MiniMessage format
+# Use empty string ('') for blank lines
 lore:
 - <gray>This is an example lootbox
 - <gray>Contains various rewards
-- ''
+- ''  # Empty line for spacing
 - <yellow>From common to legendary items!
+
+# Animation type when opening the lootbox
+# Available types:
+# - HORIZONTAL (default side-scrolling)
+# - CIRCLE (rotating circle)
 animationType: HORIZONTAL
+
+# Tracks how many times this lootbox has been opened
+# Automatically updated by the plugin
 openedCount: 0
+
+# List of all possible rewards
+# Organized by rarity tiers for better readability
 items:
-  # Common Items (50-60% total)
+  # =====================
+  # COMMON TIER (60% total chance)
+  # Basic resources and materials
+  # =====================
+
   '0':
+    id: common-stone  # Unique identifier for this reward
+    chance: 15.0     # 15% chance to get this reward
+    rarity: COMMON   # Affects particles and display
     item:
-      type: STONE
-      amount: 32
-    id: common-stone
-    chance: 15.0
-    rarity: COMMON
+      type: STONE    # Minecraft material type
+      amount: 32     # Amount to give
+
   '1':
-    item:
-      type: COAL
-      amount: 16
     id: common-coal
     chance: 15.0
     rarity: COMMON
-  '2':
     item:
-      type: OAK_LOG
-      amount: 32
+      type: COAL
+      amount: 16
+
+  '2':
     id: common-logs
     chance: 15.0
     rarity: COMMON
-  '3':
     item:
-      type: IRON_INGOT
-      amount: 8
+      type: OAK_LOG
+      amount: 32
+
+  '3':
     id: common-iron
     chance: 15.0
     rarity: COMMON
-
-  # Uncommon Items (25% total)
-  '4':
     item:
-      type: GOLD_INGOT
+      type: IRON_INGOT
       amount: 8
+
+  # =====================
+  # UNCOMMON TIER (25% total chance)
+  # Better resources and valuable materials
+  # =====================
+
+  '4':
     id: uncommon-gold
     chance: 8.0
     rarity: UNCOMMON
-  '5':
     item:
-      type: DIAMOND
-      amount: 3
+      type: GOLD_INGOT
+      amount: 8
+
+  '5':
     id: uncommon-diamonds
     chance: 8.0
     rarity: UNCOMMON
-  '6':
     item:
-      type: EMERALD
-      amount: 5
+      type: DIAMOND
+      amount: 3
+
+  '6':
     id: uncommon-emeralds
     chance: 9.0
     rarity: UNCOMMON
-
-  # Rare Items (15% total)
-  '7':
     item:
-      type: NETHERITE_INGOT
-      amount: 1
+      type: EMERALD
+      amount: 5
+
+  # =====================
+  # RARE TIER (15% total chance)
+  # Valuable and hard-to-get items
+  # =====================
+
+  '7':
     id: rare-netherite
     chance: 5.0
     rarity: RARE
-  '8':
     item:
-      type: ENCHANTED_GOLDEN_APPLE
-      amount: 2
+      type: NETHERITE_INGOT
+      amount: 1
+
+  '8':
     id: rare-gapple
     chance: 5.0
     rarity: RARE
-  '9':
     item:
-      type: DIAMOND_BLOCK
+      type: ENCHANTED_GOLDEN_APPLE
       amount: 2
+
+  '9':
     id: rare-diamond-blocks
     chance: 5.0
     rarity: RARE
-
-  # Epic Items (7% total)
-  '10':
     item:
-      type: ELYTRA
-      amount: 1
+      type: DIAMOND_BLOCK
+      amount: 2
+
+  # =====================
+  # EPIC TIER (7% total chance)
+  # End-game and special items
+  # =====================
+
+  '10':
     id: epic-elytra
     chance: 4.0
     rarity: EPIC
-  '11':
     item:
-      type: BEACON
+      type: ELYTRA
       amount: 1
+
+  '11':
     id: epic-beacon
     chance: 3.0
     rarity: EPIC
-
-  # Legendary Items (3% total)
-  '12':
     item:
-      type: DRAGON_EGG
+      type: BEACON
       amount: 1
+
+  # =====================
+  # LEGENDARY TIER (3% total chance)
+  # Extremely rare and valuable items
+  # =====================
+
+  '12':
     id: legendary-dragon-egg
     chance: 1.5
     rarity: LEGENDARY
-  '13':
     item:
-      type: NETHER_STAR
+      type: DRAGON_EGG
       amount: 1
+
+  '13':
     id: legendary-nether-star
     chance: 1.5
     rarity: LEGENDARY
+    item:
+      type: NETHER_STAR
+      amount: 1
 
+# List of placed lootbox locations
+# Automatically managed by the plugin
 locations: {}
+
+# Note on chances:
+# Total chances add up to 100%:
+# - Common: 60% (15% × 4)
+# - Uncommon: 25% (8% + 8% + 9%)
+# - Rare: 15% (5% × 3)
+# - Epic: 7% (4% + 3%)
+# - Legendary: 3% (1.5% × 2)
+
+# Additional features you can add:
+#
+# Key requirement:
+#key_required: true
+#key:
+#  material: TRIPWIRE_HOOK
+#  name: "<yellow>Basic Key"
+#  lore:
+#    - "<gray>Use this to open"
+#    - "<gray>the Example Lootbox"
+#
+# Custom item meta:
+#item:
+#  type: DIAMOND_SWORD
+#  meta:
+#    display-name: "<blue>Special Sword"
+#    lore:
+#      - "<gray>A very special sword"
+#    enchants:
+#      DAMAGE_ALL: 5
+#      DURABILITY: 3
+#    glow: true
+#
+# Commands on win:
+#action:
+#  type: COMMAND
+#  commands:
+#    - "give {player} diamond 1"
+#    - "broadcast {player} won a diamond!"
+#
+# Random amount ranges:
+#item:
+#  type: DIAMOND
+#  amount: 1-5  # Random amount between 1 and 5
