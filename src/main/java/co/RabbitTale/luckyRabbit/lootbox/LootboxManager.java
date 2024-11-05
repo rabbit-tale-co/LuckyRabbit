@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
-import co.RabbitTale.luckyRabbit.api.LicenseManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,15 +21,20 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.api.FeatureManager;
+import co.RabbitTale.luckyRabbit.api.LicenseManager;
+import co.RabbitTale.luckyRabbit.commands.LootboxCommand;
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import io.th0rgal.oraxen.api.OraxenItems;
-import org.jetbrains.annotations.NotNull;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 
 public class LootboxManager {
 
@@ -46,10 +50,9 @@ public class LootboxManager {
 
     public void loadLootboxes() {
         File lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
-        Logger.info("Checking lootbox folder: " + lootboxFolder.getAbsolutePath());
 
         if (!lootboxFolder.exists()) {
-            Logger.info("Lootbox folder doesn't exist, creating...");
+            Logger.debug("Lootbox folder doesn't exist, creating...");
             if (!lootboxFolder.mkdirs()) {
                 Logger.error("Failed to create lootboxes directory!");
                 return;
@@ -63,7 +66,7 @@ public class LootboxManager {
             if (!file.exists()) {
                 try {
                     plugin.saveResource("lootboxes/" + fileName, false);
-                    Logger.info("Created " + fileName + " from resources");
+                    Logger.debug("Created " + fileName + " from resources");
                 } catch (IllegalArgumentException e) {
                     Logger.error("Resource not found: " + fileName);
                 } catch (Exception e) {
@@ -97,8 +100,8 @@ public class LootboxManager {
             }
         }
 
-        Logger.info("Total lootboxes loaded: " + lootboxes.size());
-        Logger.info("Lootbox IDs: " + String.join(", ", lootboxes.keySet()));
+        Logger.debug("Total lootboxes loaded: " + lootboxes.size());
+        Logger.debug("Lootbox IDs: " + String.join(", ", lootboxes.keySet()));
     }
 
     public void createLootbox(String name, AnimationType animationType) {
@@ -132,7 +135,7 @@ public class LootboxManager {
 
         // Save the new lootbox
         saveLootbox(lootbox);
-        Logger.info("Created new lootbox: " + id + " with display name: " + name);
+        Logger.success("Created new lootbox: " + id + " with display name: " + name);
     }
 
     private @NotNull
@@ -149,21 +152,14 @@ public class LootboxManager {
         return cleanName;
     }
 
-    private void spawnEntity(String id, Location location) {
-        Lootbox lootbox = lootboxes.get(id);
-        if (lootbox == null) {
-            return;
-        }
-
-        LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
-        entities.put(entity.getUniqueId(), entity);
-    }
-
     public void deleteLootbox(String id) {
         Lootbox lootbox = lootboxes.get(id);
         if (lootbox == null) {
             throw new IllegalArgumentException("Lootbox with ID " + id + " does not exist!");
         }
+
+        // Store the display name before deletion
+        Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
 
         // Remove all entities
         for (Location location : lootbox.getLocations()) {
@@ -184,6 +180,18 @@ public class LootboxManager {
         File file = new File(plugin.getDataFolder(), "lootboxes/" + id + ".yml");
         if (file.exists() && !file.delete()) {
             Logger.error("Failed to delete lootbox file: " + id);
+        }
+
+        Component message = Component.text("Lootbox ")
+                .color(LootboxCommand.SUCCESS_COLOR)
+                .append(displayName)
+                .append(Component.text(" has been deleted")
+                        .color(LootboxCommand.SUCCESS_COLOR));
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission("luckyrabbit.admin")) {
+                player.sendMessage(message);
+            }
         }
     }
 
@@ -210,6 +218,17 @@ public class LootboxManager {
 
         lootbox.addItem(lootboxItem);
         saveLootbox(lootbox);
+
+        Component message = Component.text("Added item to ")
+                .color(LootboxCommand.SUCCESS_COLOR)
+                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                .append(Component.text(" (")
+                        .color(LootboxCommand.DESCRIPTION_COLOR))
+                .append(Component.text(item.getType().toString())
+                        .color(LootboxCommand.ITEM_COLOR))
+                .append(Component.text(")")
+                        .color(LootboxCommand.DESCRIPTION_COLOR));
+        player.sendMessage(message);
     }
 
     public void removeItem(Player player, String id) {
@@ -225,6 +244,17 @@ public class LootboxManager {
 
         lootbox.removeItem(item);
         saveLootbox(lootbox);
+
+        Component message = Component.text("Removed item from ")
+                .color(LootboxCommand.SUCCESS_COLOR)
+                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                .append(Component.text(" (")
+                        .color(LootboxCommand.DESCRIPTION_COLOR))
+                .append(Component.text(item.getType().toString())
+                        .color(LootboxCommand.ITEM_COLOR))
+                .append(Component.text(")")
+                        .color(LootboxCommand.DESCRIPTION_COLOR));
+        player.sendMessage(message);
     }
 
     public void placeLootbox(Player player, String id) {
@@ -254,6 +284,13 @@ public class LootboxManager {
         // Save location
         lootbox.addLocation(location);
         saveLootbox(lootbox);
+
+        Component message = Component.text("Successfully placed ")
+                .color(LootboxCommand.SUCCESS_COLOR)
+                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                .append(Component.text(" at your location")
+                        .color(LootboxCommand.SUCCESS_COLOR));
+        player.sendMessage(message);
     }
 
     public void saveLootbox(Lootbox lootbox) {
@@ -264,28 +301,24 @@ public class LootboxManager {
         }
 
         File file = new File(plugin.getDataFolder(), "lootboxes/" + lootbox.getId() + ".yml");
-        YamlConfiguration config = new YamlConfiguration();
 
-        // Save basic lootbox info
-        config.set("id", lootbox.getId());
-        config.set("displayName", lootbox.getDisplayName());  // Save original formatted name
-        config.set("lore", lootbox.getLore());
-        config.set("animationType", lootbox.getAnimationType().name());
+        // Load existing config first to preserve format
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        // Only update the locations and openedCount, preserve everything else
         config.set("openedCount", lootbox.getOpenCount());
-
-        // Save items
-        ConfigurationSection itemsSection = config.createSection("items");
-        int index = 0;
-        for (LootboxItem item : lootbox.getItems().values()) {
-            ConfigurationSection itemSection = itemsSection.createSection(String.valueOf(index++));
-            item.save(itemSection);
-        }
 
         // Save locations
         ConfigurationSection locationsSection = config.createSection("locations");
         int locIndex = 0;
         for (Location location : lootbox.getLocations()) {
-            locIndex = getIndex(locIndex, locationsSection, location);
+            ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
+            locationSection.set("world", location.getWorld().getName());
+            locationSection.set("x", location.getX());
+            locationSection.set("y", location.getY());
+            locationSection.set("z", location.getZ());
+            locationSection.set("yaw", location.getYaw());
+            locationSection.set("pitch", location.getPitch());
         }
 
         try {
@@ -307,7 +340,7 @@ public class LootboxManager {
     }
 
     public void saveAll() {
-        // Save only modified lootboxes, skip examples if they haven't been modified
+        // Save all lootboxes
         for (Lootbox lootbox : lootboxes.values()) {
             if (!isExampleLootbox(lootbox.getId()) || lootbox.hasBeenModified()) {
                 saveLootbox(lootbox);
@@ -317,24 +350,6 @@ public class LootboxManager {
 
     private boolean isExampleLootbox(String id) {
         return id.equals("example") || id.equals("example2");
-    }
-
-    public void removeAllEntities() {
-        // Remove all lootbox entities
-        for (LootboxEntity entity : entities.values()) {
-            entity.remove();
-        }
-        entities.clear();
-
-        // Unforce-load chunks
-        for (Lootbox lootbox : lootboxes.values()) {
-            for (Location location : lootbox.getLocations()) {
-                Chunk chunk = location.getChunk();
-                if (chunk.isForceLoaded()) {
-                    chunk.setForceLoaded(false);
-                }
-            }
-        }
     }
 
     public Lootbox getLootbox(String id) {
@@ -367,7 +382,7 @@ public class LootboxManager {
         File exampleFile = new File(lootboxFolder, "example.yml");
         if (!exampleFile.exists()) {
             plugin.saveResource("lootboxes/example.yml", false);
-            Logger.info("Created example.yml from resources");
+            Logger.debug("Created example.yml from resources");
         }
 
         // Get all yml files
@@ -394,7 +409,7 @@ public class LootboxManager {
                 if (isExampleLootbox(id)) {
                     Lootbox lootbox = Lootbox.fromConfig(config);
                     lootboxes.put(id, lootbox);
-                    Logger.info("Loaded example lootbox: " + id);
+                    Logger.debug("Loaded example lootbox: " + id);
                 }
             } catch (Exception e) {
                 Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
@@ -403,25 +418,25 @@ public class LootboxManager {
 
         // Sort remaining files by last modified date (newest first)
         List<File> customFiles = Arrays.stream(files)
-            .filter(file -> {
-                try {
-                    YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-                    String id = config.getString("id");
-                    assert id != null;
-                    return !isExampleLootbox(id);
-                } catch (Exception e) {
-                    return false;
-                }
-            })
-            .sorted((f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()))
-            .toList();
+                .filter(file -> {
+                    try {
+                        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+                        String id = config.getString("id");
+                        assert id != null;
+                        return !isExampleLootbox(id);
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .sorted((f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()))
+                .toList();
 
         // Load custom lootboxes up to the limit
         int loadedCustom = 0;
         for (File file : customFiles) {
             if (loadedCustom >= maxLootboxes) {
-                Logger.warning("Skipping remaining lootboxes due to " +
-                    (isTrial ? "trial" : "free version") + " limitations");
+                Logger.warning("Skipping remaining lootboxes due to "
+                        + (isTrial ? "trial" : "free version") + " limitations");
                 break;
             }
 
@@ -448,15 +463,68 @@ public class LootboxManager {
 
         int totalLoaded = lootboxes.size();
         int exampleCount = (int) lootboxes.values().stream()
-            .filter(lb -> isExampleLootbox(lb.getId()))
-            .count();
+                .filter(lb -> isExampleLootbox(lb.getId()))
+                .count();
 
         Logger.info(String.format("Loaded %d lootboxes (%d custom, %d example) in %s mode",
-            totalLoaded, loadedCustom, exampleCount, isTrial ? "trial" : "free"));
+                totalLoaded, loadedCustom, exampleCount, isTrial ? "trial" : "free"));
 
         if (loadedCustom >= maxLootboxes) {
             Logger.warning(String.format("Reached %s mode limit of %d custom lootboxes",
-                isTrial ? "trial" : "free", maxLootboxes));
+                    isTrial ? "trial" : "free", maxLootboxes));
+        }
+    }
+
+    public void respawnEntities() {
+        // First load all chunks where lootboxes should be
+        for (Lootbox lootbox : lootboxes.values()) {
+            for (Location location : lootbox.getLocations()) {
+                Chunk chunk = location.getChunk();
+                if (!chunk.isLoaded()) {
+                    chunk.load();
+                }
+                chunk.setForceLoaded(true);
+            }
+        }
+
+        // Wait a bit to ensure chunks are loaded
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            // Remove any existing lootbox entities first
+            for (Entity entity : plugin.getServer().getWorlds().stream()
+                    .flatMap(world -> world.getEntities().stream())
+                    .filter(entity -> entity instanceof ArmorStand
+                    && entity.hasMetadata("LootboxEntity"))
+                    .toList()) {
+                entity.remove();
+            }
+
+            // Spawn new entities
+            for (Lootbox lootbox : lootboxes.values()) {
+                for (Location location : lootbox.getLocations()) {
+                    LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
+                    entities.put(entity.getUniqueId(), entity);
+                }
+            }
+
+            Logger.info("Respawned " + entities.size() + " lootbox entities");
+        }, 20L); // Wait 1 second after loading chunks
+    }
+
+    public void cleanup() {
+        // Remove all entities and unforce chunks
+        for (LootboxEntity entity : entities.values()) {
+            entity.remove();
+        }
+        entities.clear();
+
+        // Unforce-load chunks
+        for (Lootbox lootbox : lootboxes.values()) {
+            for (Location location : lootbox.getLocations()) {
+                Chunk chunk = location.getChunk();
+                if (chunk.isForceLoaded()) {
+                    chunk.setForceLoaded(false);
+                }
+            }
         }
     }
 }

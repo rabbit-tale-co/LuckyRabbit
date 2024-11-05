@@ -6,18 +6,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.utils.Logger;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 public class UserManager {
+
     private final LuckyRabbit plugin;
     private final Map<UUID, FileConfiguration> userConfigs;
     private final File userDirectory;
@@ -86,18 +83,6 @@ public class UserManager {
         int current = getKeys(uuid, lootboxId);
         setKeys(uuid, lootboxId, current + amount);
 
-        Player target = Bukkit.getPlayer(uuid);
-        if (target != null) {
-            Component message = Component.text("You received ")
-                .color(NamedTextColor.GRAY)
-                .append(Component.text(amount + " key(s)")
-                    .color(NamedTextColor.GOLD))
-                .append(Component.text(" for lootbox ")
-                    .color(NamedTextColor.GRAY))
-                .append(Component.text(lootbox.getDisplayName()));
-            target.sendMessage(message);
-        }
-
         Logger.debug("Added " + amount + " keys for " + uuid + " lootbox: " + lootboxId + " new total: " + (current + amount));
     }
 
@@ -112,7 +97,9 @@ public class UserManager {
         return getKeys(uuid, lootboxId) > 0;
     }
 
-    public void useKey(UUID uuid, String lootboxId) { removeKeys(uuid, lootboxId, 1); }
+    public void useKey(UUID uuid, String lootboxId) {
+        removeKeys(uuid, lootboxId, 1);
+    }
 
     public int getKeyCount(UUID uuid, String lootboxId) {
         return getKeys(uuid, lootboxId);
@@ -129,7 +116,9 @@ public class UserManager {
 
     private void saveUserConfig(UUID uuid) {
         FileConfiguration config = userConfigs.get(uuid);
-        if (config == null) return;
+        if (config == null) {
+            return;
+        }
 
         try {
             File userFile = new File(userDirectory, uuid.toString() + ".yml");

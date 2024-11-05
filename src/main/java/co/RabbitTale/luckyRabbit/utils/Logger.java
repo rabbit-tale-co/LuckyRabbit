@@ -1,13 +1,15 @@
 package co.RabbitTale.luckyRabbit.utils;
 
+import org.bukkit.Bukkit;
+
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.Bukkit;
 
 public class Logger {
     private static LuckyRabbit plugin;
+    private static boolean debugEnabled = false;
 
     private static final TextColor BLUE = TextColor.color(55, 89, 255);
     private static final TextColor WHITE = TextColor.color(255, 255, 255);
@@ -22,6 +24,11 @@ public class Logger {
 
     public static void init(LuckyRabbit instance) {
         plugin = instance;
+        debugEnabled = instance.getConfig().getBoolean("settings.debug", false);
+        if (debugEnabled) {
+            debug("Logger initialized with debug mode enabled");
+            debug("Debug setting from config: " + instance.getConfig().getBoolean("settings.debug", false));
+        }
     }
 
     private static String getCallerInfo() {
@@ -38,7 +45,7 @@ public class Logger {
     }
 
     private static Component getCallerComponent() {
-        if (plugin != null && plugin.getConfig().getBoolean("settings.debug", false)) {
+        if (debugEnabled) {
             return Component.text("[" + getCallerInfo() + "] ").color(DARK_GRAY);
         }
         return Component.empty();
@@ -89,7 +96,11 @@ public class Logger {
     }
 
     public static void debug(String message) {
-        if (plugin != null && plugin.getConfig().getBoolean("settings.debug", false)) {
+        if (plugin != null) {
+            debugEnabled = plugin.getConfig().getBoolean("settings.debug", false);
+        }
+
+        if (debugEnabled) {
             Bukkit.getConsoleSender().sendMessage(PREFIX.append(SEPARATOR)
                 .append(Component.text("DEBUG: ").color(DARK_GRAY))
                 .append(getCallerComponent())

@@ -33,9 +33,9 @@ public class LootboxTabCompleter implements TabCompleter {
 
         if (args.length == 1) {
             // Base commands
-            List<String> commands = new ArrayList<>(Arrays.asList("list", "help", "animations", "license"));
+            List<String> commands = new ArrayList<>(Arrays.asList("list", "help"));
             if (sender.hasPermission("luckyrabbit.admin")) {
-                commands.addAll(Arrays.asList("create", "delete", "item", "place", "key", "reload"));
+                commands.addAll(Arrays.asList("create", "delete", "item", "place", "key", "reload", "animations", "license"));
             }
             return filterCompletions(commands, args[0]);
         }
