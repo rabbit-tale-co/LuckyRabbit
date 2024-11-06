@@ -35,7 +35,7 @@ public class Lootbox {
         String id = config.getString("id");
         String displayName = config.getString("displayName", id);
         AnimationType animationType = AnimationType.valueOf(
-            config.getString("animationType", "HORIZONTAL").toUpperCase()
+                config.getString("animationType", "HORIZONTAL").toUpperCase()
         );
 
         Lootbox lootbox = new Lootbox(id, displayName, animationType);

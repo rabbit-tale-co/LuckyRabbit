@@ -68,14 +68,14 @@ public record LootboxAPI(LuckyRabbit plugin) {
      * @param chance Drop chance (0-100)
      * @param rarity Item rarity
      */
-    public void addItem(String id, ItemStack item, double chance, String rarity) {
-        LootboxItem lootboxItem = new LootboxItem(item, UUID.randomUUID().toString(), chance, rarity);
-        Lootbox lootbox = plugin.getLootboxManager().getLootbox(id);
-        if (lootbox != null) {
-            lootbox.addItem(lootboxItem);
-            plugin.getLootboxManager().saveLootbox(lootbox);
-        }
-    }
+//    public void addItem(String id, ItemStack item, double chance, String rarity) {
+//        LootboxItem lootboxItem = new LootboxItem(item, UUID.randomUUID().toString(), chance, rarity);
+//        Lootbox lootbox = plugin.getLootboxManager().getLootbox(id);
+//        if (lootbox != null) {
+//            lootbox.addItem(lootboxItem);
+//            plugin.getLootboxManager().saveLootbox(lootbox);
+//        }
+//    }
 
     /**
      * Place a lootbox at a location

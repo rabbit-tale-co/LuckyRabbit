@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import co.RabbitTale.luckyRabbit.lootbox.items.MinecraftLootboxItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -213,7 +214,7 @@ public class LootboxManager {
         if (oraxenId != null) {
             lootboxItem = new OraxenLootboxItem(item, oraxenId);
         } else {
-            lootboxItem = new LootboxItem(item);
+            lootboxItem = new MinecraftLootboxItem(item);
         }
 
         lootbox.addItem(lootboxItem);
@@ -326,17 +327,6 @@ public class LootboxManager {
         } catch (IOException e) {
             Logger.error("Failed to save lootbox: " + lootbox.getId(), e);
         }
-    }
-
-    static int getIndex(int index, ConfigurationSection locationsSection, Location location) {
-        ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(index++));
-        locationSection.set("world", location.getWorld().getName());
-        locationSection.set("x", location.getX());
-        locationSection.set("y", location.getY());
-        locationSection.set("z", location.getZ());
-        locationSection.set("yaw", location.getYaw());
-        locationSection.set("pitch", location.getPitch());
-        return index;
     }
 
     public void saveAll() {
@@ -493,7 +483,7 @@ public class LootboxManager {
             for (Entity entity : plugin.getServer().getWorlds().stream()
                     .flatMap(world -> world.getEntities().stream())
                     .filter(entity -> entity instanceof ArmorStand
-                    && entity.hasMetadata("LootboxEntity"))
+                            && entity.hasMetadata("LootboxEntity"))
                     .toList()) {
                 entity.remove();
             }

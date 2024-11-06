@@ -112,16 +112,16 @@ public class LootboxListGUI implements GUI {
         // Always show navigation buttons
         // Previous button (disabled if on first page)
         inventory.setItem(PREV_BUTTON_SLOT, createNavigationButton("Previous Page",
-            Material.ARROW, currentPage > 0));
+                Material.ARROW, currentPage > 0));
 
         // Close button
         inventory.setItem(CLOSE_BUTTON_SLOT, createNavigationButton("Close",
-            Material.BARRIER, true));
+                Material.BARRIER, true));
 
         // Next button (disabled if on last page)
         boolean hasNextPage = (currentPage + 1) * PAGE_SIZE < lootboxes.size();
         inventory.setItem(NEXT_BUTTON_SLOT, createNavigationButton("Next Page",
-            Material.ARROW, hasNextPage));
+                Material.ARROW, hasNextPage));
 
         // Update title with current page
         int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
@@ -144,16 +144,16 @@ public class LootboxListGUI implements GUI {
 
         if (enabled) {
             meta.displayName(Component.text(name)
-                .color(NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false));
+                    .color(NamedTextColor.YELLOW)
+                    .decoration(TextDecoration.ITALIC, false));
         } else {
             meta.displayName(Component.text(name)
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
+                    .color(NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false));
             // Add "disabled" lore
             meta.lore(List.of(Component.text("Not available")
-                .color(NamedTextColor.RED)
-                .decoration(TextDecoration.ITALIC, false)));
+                    .color(NamedTextColor.RED)
+                    .decoration(TextDecoration.ITALIC, false)));
         }
 
         item.setItemMeta(meta);

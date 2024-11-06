@@ -1,9 +1,7 @@
 package co.RabbitTale.luckyRabbit.lootbox.rewards;
 
-import lombok.Getter;
 import net.kyori.adventure.text.format.TextColor;
 
-@Getter
 public enum RewardRarity {
     COMMON("Common", TextColor.color(180, 180, 180)),
     UNCOMMON("Uncommon", TextColor.color(120, 230, 120)),
@@ -19,4 +17,11 @@ public enum RewardRarity {
         this.color = color;
     }
 
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public TextColor getColor() {
+        return color;
+    }
 }

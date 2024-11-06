@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 
 public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardAction.ActionType type,
-        List<String> commands, String group, String duration) {
+                           List<String> commands, String group, String duration) {
 
     public static RewardAction fromConfig(ConfigurationSection config) {
         if (config == null) {
@@ -36,6 +36,16 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
             case COMMAND -> {
                 if (commands != null) {
                     for (String command : commands) {
+                        // Check if it's an economy command
+                        if (command.startsWith("eco ")) {
+                            // Check if Vault is installed
+                            if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
+                                Logger.warning("Attempted to execute economy command but Vault is not installed!");
+                                Logger.warning("Command: " + command);
+                                continue;
+                            }
+                        }
+
                         String processedCommand = command.replace("{player}", player.getName());
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
                         Logger.debug("Executing command: " + processedCommand);
@@ -48,7 +58,7 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
                     if (duration != null && duration.equalsIgnoreCase("permanent")) {
                         command = "lp user " + player.getName() + " parent add " + group;
                     } else {
-                        command = "lp user " + player.getName() + " parent addtemp " + group + " " + duration + "accumulate";
+                        command = "lp user " + player.getName() + " parent addtemp " + group + " " + duration + " accumulate";
                     }
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                     Logger.debug("Executing permission command: " + command);

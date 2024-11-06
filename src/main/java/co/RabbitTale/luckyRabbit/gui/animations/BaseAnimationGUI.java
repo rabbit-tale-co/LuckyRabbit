@@ -78,7 +78,7 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
 
     private Reward convertToReward(LootboxItem item) {
         return new Reward(
-                item.getItem(),
+                item,
                 item.getChance(),
                 RewardRarity.valueOf(item.getRarity().toUpperCase()),
                 item.getAction()
@@ -184,51 +184,51 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                 // For virtual rewards, use display name and first lore line
                 if (meta != null && meta.hasLore() && !Objects.requireNonNull(meta.lore()).isEmpty()) {
                     String firstLoreLine = PlainTextComponentSerializer.plainText()
-                        .serialize(Objects.requireNonNull(meta.lore()).get(0));
+                            .serialize(Objects.requireNonNull(meta.lore()).get(0));
 
                     // Extract the actual reward from lore (e.g., "Adds 1000 coins" -> "1000 coins")
                     String reward = firstLoreLine.replaceFirst(".*?([0-9]+.*?)$", "$1");
 
                     // Use MiniMessage to parse the display name with color codes
                     rewardName = meta.hasDisplayName() ?
-                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                            .serialize(Objects.requireNonNull(meta.displayName()))) :
-                        Component.text(reward).color(NamedTextColor.YELLOW);
+                            MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                                    .serialize(Objects.requireNonNull(meta.displayName()))) :
+                            Component.text(reward).color(NamedTextColor.YELLOW);
                 } else {
                     rewardName = meta != null && meta.hasDisplayName() ?
-                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                            .serialize(Objects.requireNonNull(meta.displayName()))) :
-                        Component.text(rewardItem.getType().name());
+                            MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                                    .serialize(Objects.requireNonNull(meta.displayName()))) :
+                            Component.text(rewardItem.getType().name());
                 }
             } else {
                 // For physical items, use item display name with color support
                 rewardName = meta != null && meta.hasDisplayName() ?
-                    MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                        .serialize(Objects.requireNonNull(meta.displayName()))) :
-                    Component.text(rewardItem.getType().name());
+                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                                .serialize(Objects.requireNonNull(meta.displayName()))) :
+                        Component.text(rewardItem.getType().name());
             }
 
             // Message for winner
             Component winnerMessage = Component.text("You won ")
-                .color(DESCRIPTION_COLOR)
-                .append(rewardName)
-                .append(Component.text("!")
-                    .color(DESCRIPTION_COLOR));
+                    .color(DESCRIPTION_COLOR)
+                    .append(rewardName)
+                    .append(Component.text("!")
+                            .color(DESCRIPTION_COLOR));
             player.sendMessage(winnerMessage);
 
             // Global broadcast message
             Component broadcastMessage = Component.text("» ")
-                .color(SEPARATOR_COLOR)
-                .append(Component.text(player.getName())
-                    .color(TARGET_COLOR))
-                .append(Component.text(" has won ")
-                    .color(DESCRIPTION_COLOR))
-                .append(rewardName)
-                .append(Component.text(" from ")
-                    .color(DESCRIPTION_COLOR))
-                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
-                .append(Component.text("!")
-                    .color(DESCRIPTION_COLOR));
+                    .color(SEPARATOR_COLOR)
+                    .append(Component.text(player.getName())
+                            .color(TARGET_COLOR))
+                    .append(Component.text(" has won ")
+                            .color(DESCRIPTION_COLOR))
+                    .append(rewardName)
+                    .append(Component.text(" from ")
+                            .color(DESCRIPTION_COLOR))
+                    .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                    .append(Component.text("!")
+                            .color(DESCRIPTION_COLOR));
 
             // Broadcast to all players
             for (Player p : Bukkit.getOnlinePlayers()) {

@@ -19,7 +19,7 @@ public class Logger {
     private static final TextColor DARK_GRAY = TextColor.color(100, 100, 100);
     private static final TextColor INFO_COLOR = TextColor.color(42, 119, 255);
 
-    private static final Component PREFIX = Component.text("LuckyRabbitFoot").color(BLUE);
+    private static final Component PREFIX = Component.text("Lucky Rabbit").color(BLUE);
     private static final Component SEPARATOR = Component.text(" | ").color(NamedTextColor.GRAY);
 
     public static void init(LuckyRabbit instance) {

@@ -2,24 +2,15 @@ name: LuckyRabbit
 version: '${project.version}'
 main: co.RabbitTale.luckyRabbit.LuckyRabbit
 api-version: '1.20'
-depend: [Vault, Oraxen]
-softdepend: [LuckPerms]
-loadbefore: [RabbitValley]
 authors: [RabbitTale]
-description: Advanced lootbox system with animations and custom rewards
-website: https://rabbittale.co
-
+description: Advanced lootbox system with animations
+softdepend: [Oraxen, Vault]
 commands:
   lootbox:
-    description: Main command for managing lootboxes
-    usage: /lootbox
-    aliases: [lb, lbox]
-    permission: luckyrabbit.use
-
+    description: Main command for LuckyRabbit
+    aliases: [lb, luckyrabbit]
+    usage: /<command> [subcommand]
 permissions:
-  luckyrabbit.use:
-    description: Allows using basic lootbox commands
-    default: true
   luckyrabbit.admin:
     description: Gives access to all admin commands
     default: op
@@ -29,3 +20,4 @@ permissions:
       luckyrabbit.admin.item: true
       luckyrabbit.admin.place: true
       luckyrabbit.admin.key: true
+      luckyrabbit.admin.reload: true

@@ -35,9 +35,9 @@ public class LuckyRabbitFootAPIImpl {
         api.deleteLootbox(id);
     }
 
-    public void addItem(String id, ItemStack item, double chance, String rarity) {
-        api.addItem(id, item, chance, rarity);
-    }
+//    public void addItem(String id, ItemStack item, double chance, String rarity) {
+//        api.addItem(id, item, chance, rarity);
+//    }
 
     public void placeLootbox(String id, Location location) {
         api.placeLootbox(id, location);

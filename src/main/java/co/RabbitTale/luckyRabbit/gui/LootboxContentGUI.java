@@ -2,9 +2,7 @@ package co.RabbitTale.luckyRabbit.gui;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -26,10 +24,8 @@ import co.RabbitTale.luckyRabbit.gui.animations.PinPointSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.ThreeInRowSpinGUI;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
-import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
@@ -96,21 +92,17 @@ public class LootboxContentGUI implements GUI {
         ItemStack openButton = new ItemStack(Material.TRIPWIRE_HOOK);
         ItemMeta openMeta = openButton.getItemMeta();
         openMeta.displayName(Component.text("Open Lootbox")
-                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED)
-                .decoration(TextDecoration.ITALIC, false));
+                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED));
 
         List<Component> openLore = new ArrayList<>();
         openLore.add(Component.text("You have " + keyCount + " key(s)")
-                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED)
-                .decoration(TextDecoration.ITALIC, false));
+                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED));
         if (keyCount > 0) {
             openLore.add(Component.text("Click to open!")
-                    .color(NamedTextColor.YELLOW)
-                    .decoration(TextDecoration.ITALIC, false));
+                    .color(NamedTextColor.YELLOW));
         } else {
             openLore.add(Component.text("You need a key to open this lootbox!")
-                    .color(NamedTextColor.RED)
-                    .decoration(TextDecoration.ITALIC, false));
+                    .color(NamedTextColor.RED));
         }
         openMeta.lore(openLore);
         openButton.setItemMeta(openMeta);
@@ -121,42 +113,23 @@ public class LootboxContentGUI implements GUI {
     }
 
     private ItemStack createDisplayItem(LootboxItem item) {
-        ItemStack displayItem = item.getItem().clone();
+        // Get the display item with proper formatting from LootboxItem
+        ItemStack displayItem = item.getDisplayItem();
         ItemMeta meta = displayItem.getItemMeta();
 
-        // Get original lore and only make it gray if it doesn't have color formatting
-        List<Component> lore = meta.hasLore()
-                ? Objects.requireNonNull(meta.lore()).stream()
-                        .map(line -> {
-                            // Only apply gray color if the line doesn't have any formatting
-                            if (PlainTextComponentSerializer.plainText().serialize(line)
-                                    .equals(MiniMessage.miniMessage().serialize(line))) {
-                                return line.color(NamedTextColor.GRAY)
-                                        .decoration(TextDecoration.ITALIC, false);
-                            }
-                            // Keep original formatting but remove italic
-                            return line.decoration(TextDecoration.ITALIC, false);
-                        })
-                        .collect(Collectors.toList())
-                : new ArrayList<>();
+        if (meta != null) {
+            List<Component> lore = new ArrayList<>();
 
-        // Add rarity and chance info
-        lore.add(Component.empty());
+            // Get existing lore from the display item
+            if (meta.hasLore()) {
+                lore.addAll(meta.lore());
+            }
 
-        // Get rarity color from RewardRarity enum
-        RewardRarity rarity = RewardRarity.valueOf(item.getRarity().toUpperCase());
-        lore.add(Component.text("Rarity: ")
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text(rarity.getDisplayName())
-                        .color(rarity.getColor())
-                        .decoration(TextDecoration.ITALIC, false)));
+            // Add admin lore if needed
+            return adminLore(displayItem, meta, lore, player);
+        }
 
-        lore.add(Component.text(String.format("Chance: %.2f%%", item.getChance()))
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
-
-        return adminLore(displayItem, meta, lore, player);
+        return displayItem;
     }
 
     @NotNull
@@ -165,8 +138,7 @@ public class LootboxContentGUI implements GUI {
             lore.add(Component.empty());
             lore.add(MiniMessage.miniMessage().deserialize("<white>[<red><bold>Admin</bold><white>] ")
                     .append(Component.text("Shift + Left Click to remove")
-                            .color(NamedTextColor.RED)
-                            .decoration(TextDecoration.ITALIC, false)));
+                            .color(NamedTextColor.RED)));
         }
 
         meta.lore(lore);
@@ -178,8 +150,7 @@ public class LootboxContentGUI implements GUI {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text(name)
-                .color(NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false));
+                .color(NamedTextColor.YELLOW));
         item.setItemMeta(meta);
         return item;
     }
@@ -220,15 +191,15 @@ public class LootboxContentGUI implements GUI {
 
                     BaseAnimationGUI animationGUI = switch (lootbox.getAnimationType()) {
                         case PIN_POINT ->
-                            new PinPointSpinGUI(plugin, player, lootbox);
+                                new PinPointSpinGUI(plugin, player, lootbox);
                         case CIRCLE ->
-                            new CircleSpinGUI(plugin, player, lootbox);
+                                new CircleSpinGUI(plugin, player, lootbox);
                         case CASCADE ->
-                            new CascadeSpinGUI(plugin, player, lootbox);
+                                new CascadeSpinGUI(plugin, player, lootbox);
                         case THREE_IN_ROW ->
-                            new ThreeInRowSpinGUI(plugin, player, lootbox);
+                                new ThreeInRowSpinGUI(plugin, player, lootbox);
                         default ->
-                            new HorizontalSpinGUI(plugin, player, lootbox);
+                                new HorizontalSpinGUI(plugin, player, lootbox);
                     };
 
                     // Close inventory and show animation
