@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -85,9 +86,11 @@ public class LootboxEntity {
             armorStand.removeMetadata("LootboxEntity", plugin);
         }
 
-        // Add metadata with just the ID and log it
+        // Store both the lootbox ID and entity UUID in metadata
         armorStand.setMetadata("LootboxEntity", new FixedMetadataValue(plugin, lootboxId));
-        Logger.debug("Set metadata for lootbox: " + lootboxId);
+        armorStand.setMetadata("LootboxEntityUUID", new FixedMetadataValue(plugin, uniqueId.toString()));
+
+        Logger.debug("Set metadata for lootbox: " + lootboxId + " with UUID: " + uniqueId);
     }
 
     private void startAnimation() {
@@ -211,5 +214,24 @@ public class LootboxEntity {
         if (!armorStand.isDead()) {
             armorStand.remove();
         }
+    }
+
+    public void show(Player player) {
+        // Get lootbox ID from the armorstand's metadata
+        String lootboxId = armorStand.getMetadata("LootboxEntity").get(0).asString();
+
+        // Always show for admins, hide for non-admins if it's an example lootbox
+        if (plugin.getLootboxManager().isExampleLootbox(lootboxId) && !player.hasPermission("luckyrabbit.admin")) {
+            armorStand.setCustomNameVisible(false);
+            armorStand.setVisible(false);
+        } else {
+            // Show for admins and non-example lootboxes
+            armorStand.setCustomNameVisible(true);
+            armorStand.setVisible(true);
+        }
+    }
+
+    private boolean isExampleLootbox(String id) {
+        return plugin.getLootboxManager().isExampleLootbox(id);
     }
 }

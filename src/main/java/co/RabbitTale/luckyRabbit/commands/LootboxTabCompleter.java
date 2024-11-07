@@ -86,7 +86,11 @@ public class LootboxTabCompleter implements TabCompleter {
             }
             case "delete", "place" -> {
                 if (args.length == 2) {
-                    return filterCompletions(plugin.getLootboxManager().getLootboxNames(), args[1]);
+                    if (sender.hasPermission("luckyrabbit.admin")) {
+                        return filterCompletions(plugin.getLootboxManager().getLootboxNamesAdmin(), args[1]);
+                    } else {
+                        return filterCompletions(plugin.getLootboxManager().getLootboxNames(), args[1]);
+                    }
                 }
             }
             case "list" -> {

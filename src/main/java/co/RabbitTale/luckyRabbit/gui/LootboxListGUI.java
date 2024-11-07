@@ -1,6 +1,7 @@
 package co.RabbitTale.luckyRabbit.gui;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.Bukkit;
@@ -41,9 +42,16 @@ public class LootboxListGUI implements GUI {
         this.plugin = LuckyRabbit.getInstance();
         this.player = player;
 
-        // Create a sorted list of lootboxes (oldest first)
-        // If you want newest first, use Collections.reverse(sortedLootboxes);
-        this.lootboxes = new ArrayList<>(plugin.getLootboxManager().getAllLootboxes());
+        // Get appropriate lootbox collection based on permissions
+        Collection<Lootbox> lootboxCollection;
+        if (player.hasPermission("luckyrabbit.admin")) {
+            lootboxCollection = plugin.getLootboxManager().getAllLootboxesAdmin();
+        } else {
+            lootboxCollection = plugin.getLootboxManager().getAllLootboxes();
+        }
+
+        // Create a sorted list of lootboxes
+        this.lootboxes = new ArrayList<>(lootboxCollection);
 
         // Calculate total pages
         int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
@@ -59,10 +67,17 @@ public class LootboxListGUI implements GUI {
     }
 
     public static void openGUI(Player player, int page) {
+        Collection<Lootbox> lootboxes;
+        if (player.hasPermission("luckyrabbit.admin")) {
+            lootboxes = LuckyRabbit.getInstance().getLootboxManager().getAllLootboxesAdmin();
+        } else {
+            lootboxes = LuckyRabbit.getInstance().getLootboxManager().getAllLootboxes();
+        }
+
         LootboxListGUI gui = new LootboxListGUI(player);
 
         // Calculate total pages
-        int totalPages = Math.max(1, (int) Math.ceil(gui.lootboxes.size() / (double) PAGE_SIZE));
+        int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
 
         // Validate page number
         if (page < 1 || page > totalPages) {
@@ -171,7 +186,18 @@ public class LootboxListGUI implements GUI {
 
         List<Component> lore = new ArrayList<>();
 
-        // Add lore lines with MiniMessage parsing
+        // Add example lootbox indicator for admins
+        if (plugin.getLootboxManager().isExampleLootbox(lootbox.getId())) {
+            lore.add(Component.empty());
+            lore.add(Component.text("EXAMPLE LOOTBOX")
+                .color(NamedTextColor.GOLD)
+                .decoration(TextDecoration.BOLD, true));
+            lore.add(Component.text("Cannot be placed in world")
+                .color(NamedTextColor.GRAY));
+            lore.add(Component.empty());
+        }
+
+        // Add existing lore lines with MiniMessage parsing
         for (String loreLine : lootbox.getLore()) {
             lore.add(MiniMessage.miniMessage()
                     .deserialize(loreLine)
@@ -203,7 +229,9 @@ public class LootboxListGUI implements GUI {
                 .color(NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false));
 
-        return adminLore(item, meta, lore, player);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
 
     public void handleClick(InventoryClickEvent event) {

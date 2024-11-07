@@ -309,6 +309,12 @@ public class LootboxManager {
         lootbox.addLocation(location);
         saveLootbox(lootbox);
 
+        // Special message for example lootboxes
+        if (isExampleLootbox(lootbox.getId())) {
+            player.sendMessage(Component.text("Note: This is an example lootbox - only admins can open it!")
+                .color(LootboxCommand.INFO_COLOR));
+        }
+
         Component message = Component.text("Successfully placed ")
                 .color(LootboxCommand.SUCCESS_COLOR)
                 .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
@@ -361,7 +367,7 @@ public class LootboxManager {
         }
     }
 
-    private boolean isExampleLootbox(String id) {
+    public boolean isExampleLootbox(String id) {
         return id.equals("example") || id.equals("example2");
     }
 
@@ -370,10 +376,24 @@ public class LootboxManager {
     }
 
     public List<String> getLootboxNames() {
+        return new ArrayList<>(lootboxes.keySet().stream()
+            .filter(id -> !isExampleLootbox(id))
+            .toList());
+    }
+
+    public List<String> getLootboxNamesAdmin() {
         return new ArrayList<>(lootboxes.keySet());
     }
 
     public Collection<Lootbox> getAllLootboxes() {
+        // For non-admins, filter out example lootboxes
+        return Collections.unmodifiableCollection(lootboxes.values().stream()
+            .filter(lootbox -> !isExampleLootbox(lootbox.getId()))
+            .toList());
+    }
+
+    public Collection<Lootbox> getAllLootboxesAdmin() {
+        // For admins, show all lootboxes
         return Collections.unmodifiableCollection(lootboxes.values());
     }
 
@@ -549,5 +569,9 @@ public class LootboxManager {
                 }
             }
         }
+    }
+
+    public LootboxEntity getEntityById(UUID entityId) {
+        return entities.get(entityId);
     }
 }
