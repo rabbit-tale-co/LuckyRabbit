@@ -2,6 +2,8 @@ package co.RabbitTale.luckyRabbit.lootbox;
 
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
+import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
+import co.RabbitTale.luckyRabbit.api.FeatureManager;
 import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
@@ -108,6 +110,27 @@ public class Lootbox {
     public void setAnimationType(AnimationType animationType) {
         this.animationType = animationType;
         this.modified = true;
+    }
+
+    public void enforceAnimationRestrictions() {
+        if (id.startsWith("example")) {
+            return;
+        }
+
+        if (FeatureManager.canUseAnimation(animationType.name())) {
+            this.animationType = AnimationType.HORIZONTAL;
+        }
+    }
+
+    public void enforceItemRestrictions() {
+        if (FeatureManager.canUseOraxenItems() || FeatureManager.canExecuteCommands()) {
+            items.values().removeIf(item -> {
+                boolean isOraxenItem = item instanceof OraxenLootboxItem;
+                boolean hasCommandAction = item.getAction() != null;
+                return isOraxenItem || hasCommandAction;
+            });
+            modified = true;
+        }
     }
 
 }

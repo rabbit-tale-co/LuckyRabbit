@@ -94,6 +94,18 @@ public class LootboxManager {
 
                 // Create lootbox with the formatted display name
                 Lootbox lootbox = Lootbox.fromConfig(config);
+
+                // Enforce restrictions for non-example lootboxes
+                if (!isExampleLootbox(lootbox.getId())) {
+                    lootbox.enforceAnimationRestrictions();
+                    lootbox.enforceItemRestrictions();
+
+                    // Save if modifications were made
+                    if (lootbox.hasBeenModified()) {
+                        saveLootbox(lootbox);
+                    }
+                }
+
                 lootboxes.put(id, lootbox);
             } catch (Exception e) {
                 Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
@@ -106,6 +118,13 @@ public class LootboxManager {
     }
 
     public void createLootbox(String name, AnimationType animationType) {
+        // If free version, force HORIZONTAL animation
+        if (FeatureManager.canUseAnimation(animationType.name())) {
+            animationType = AnimationType.HORIZONTAL;
+            // Notify the admin
+            Logger.warning("Free version only supports HORIZONTAL animation. Animation type has been changed.");
+        }
+
         // Count existing custom lootboxes (excluding examples)
         long existingCustomLootboxes = lootboxes.values().stream()
                 .filter(lb -> !isExampleLootbox(lb.getId()))
@@ -196,40 +215,44 @@ public class LootboxManager {
         }
     }
 
-    public void addItem(Player player, String id) {
-        Lootbox lootbox = lootboxes.get(id);
+    public void addItem(Player player, String lootboxId, ItemStack item, String rarity, double chance) {
+        Lootbox lootbox = getLootbox(lootboxId);
         if (lootbox == null) {
-            throw new IllegalArgumentException("Lootbox with ID " + id + " does not exist!");
+            player.sendMessage(Component.text("Lootbox not found!")
+                .color(LootboxCommand.ERROR_COLOR));
+            return;
         }
 
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item.getType() == Material.AIR) {
-            throw new IllegalArgumentException("You must hold an item to add!");
-        }
-
-        // Check if it's an Oraxen item
+        // Check for Oraxen items
         String oraxenId = OraxenItems.getIdByItem(item);
-        LootboxItem lootboxItem;
+        if (oraxenId != null && FeatureManager.canUseOraxenItems()) {
+            player.sendMessage(Component.text("Oraxen items are only available in premium version!")
+                .color(LootboxCommand.ERROR_COLOR));
+            return;
+        }
 
+        // Create appropriate lootbox item
+        LootboxItem lootboxItem;
         if (oraxenId != null) {
             lootboxItem = new OraxenLootboxItem(item, oraxenId);
         } else {
             lootboxItem = new MinecraftLootboxItem(item);
         }
 
+        // Check for command actions if the item has any
+        if (lootboxItem.getAction() != null && FeatureManager.canExecuteCommands()) {
+            player.sendMessage(Component.text("Command rewards are only available in premium version!")
+                .color(LootboxCommand.ERROR_COLOR));
+            return;
+        }
+
+        // Add the item
         lootbox.addItem(lootboxItem);
         saveLootbox(lootbox);
 
-        Component message = Component.text("Added item to ")
-                .color(LootboxCommand.SUCCESS_COLOR)
-                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
-                .append(Component.text(" (")
-                        .color(LootboxCommand.DESCRIPTION_COLOR))
-                .append(Component.text(item.getType().toString())
-                        .color(LootboxCommand.ITEM_COLOR))
-                .append(Component.text(")")
-                        .color(LootboxCommand.DESCRIPTION_COLOR));
-        player.sendMessage(message);
+        // Notify the player
+        player.sendMessage(Component.text("Successfully added item to lootbox!")
+            .color(LootboxCommand.SUCCESS_COLOR));
     }
 
     public void removeItem(Player player, String id) {
@@ -434,6 +457,16 @@ public class LootboxManager {
                 YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
                 String id = config.getString("id");
                 Lootbox lootbox = Lootbox.fromConfig(config);
+
+                // Enforce restrictions
+                lootbox.enforceAnimationRestrictions();
+                lootbox.enforceItemRestrictions();
+
+                // Save if modifications were made
+                if (lootbox.hasBeenModified()) {
+                    saveLootbox(lootbox);
+                }
+
                 lootboxes.put(id, lootbox);
                 loadedCustom++;
             } catch (Exception e) {
@@ -496,7 +529,7 @@ public class LootboxManager {
                 }
             }
 
-            Logger.info("Respawned " + entities.size() + " lootbox entities");
+            Logger.debug("Respawned " + entities.size() + " lootbox entities");
         }, 20L); // Wait 1 second after loading chunks
     }
 

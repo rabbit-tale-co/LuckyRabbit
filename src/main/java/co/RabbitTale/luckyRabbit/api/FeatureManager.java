@@ -1,5 +1,6 @@
 package co.RabbitTale.luckyRabbit.api;
 
+import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -9,9 +10,11 @@ import net.kyori.adventure.text.Component;
 public class FeatureManager {
     private static LicenseManager licenseManager = null;
     private static String currentPlanType = "FREE";
+    private static LuckyRabbit plugin;
 
-    public FeatureManager(LicenseManager licenseManager) {
+    public FeatureManager(LicenseManager licenseManager, LuckyRabbit plugin) {
         FeatureManager.licenseManager = licenseManager;
+        FeatureManager.plugin = plugin;
         updatePlanType();
     }
 
@@ -23,6 +26,34 @@ public class FeatureManager {
         if (!newPlanType.equals(currentPlanType)) {
             notifyPlanChange(currentPlanType, newPlanType);
             currentPlanType = newPlanType;
+
+            // Schedule plugin reload on next tick to ensure all messages are sent
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                // Notify all admins about the reload
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.hasPermission("luckyrabbit.admin")) {
+                        player.sendMessage(Component.empty());
+                        player.sendMessage(Component.text("Reloading plugin to apply changes...")
+                            .color(LootboxCommand.INFO_COLOR));
+                        player.sendMessage(Component.empty());
+                    }
+                }
+
+                // Perform plugin reload
+                plugin.reload();
+
+                // Send confirmation message after reload
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.hasPermission("luckyrabbit.admin")) {
+                        player.sendMessage(Component.empty());
+                        player.sendMessage(Component.text("Plugin has been reloaded successfully!")
+                            .color(LootboxCommand.SUCCESS_COLOR));
+                        player.sendMessage(Component.text("All lootbox entities have been respawned.")
+                            .color(LootboxCommand.DESCRIPTION_COLOR));
+                        player.sendMessage(Component.empty());
+                    }
+                }
+            });
         }
     }
 
@@ -92,5 +123,21 @@ public class FeatureManager {
 
     public boolean canUseAdvancedFeatures() {
         return LicenseManager.isPremium() || LicenseManager.isTrialActive();
+    }
+
+    public static boolean canUseAnimation(String animationType) {
+        if (LicenseManager.isPremium() || LicenseManager.isTrialActive()) {
+            return false;
+        }
+        // Free version only allows HORIZONTAL animation
+        return !"HORIZONTAL".equalsIgnoreCase(animationType);
+    }
+
+    public static boolean canUseOraxenItems() {
+        return !LicenseManager.isPremium() && !LicenseManager.isTrialActive();
+    }
+
+    public static boolean canExecuteCommands() {
+        return !LicenseManager.isPremium() && !LicenseManager.isTrialActive();
     }
 }

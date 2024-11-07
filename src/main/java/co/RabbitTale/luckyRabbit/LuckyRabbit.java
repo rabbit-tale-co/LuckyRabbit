@@ -60,7 +60,7 @@ public class LuckyRabbit extends JavaPlugin {
         // Initialize managers
         this.configManager = new ConfigManager(this);
         this.licenseManager = new LicenseManager(this);
-        this.featureManager = new FeatureManager(licenseManager);
+        this.featureManager = new FeatureManager(licenseManager, this);
         this.lootboxManager = new LootboxManager(this);
         this.commandManager = new CommandManager(this);
         this.listenerManager = new ListenerManager(this);
@@ -214,6 +214,7 @@ public class LuckyRabbit extends JavaPlugin {
 
     /**
      * Checks if economy features are available
+     *
      * @return true if economy is set up and ready to use
      */
     public boolean hasEconomy() {
@@ -240,6 +241,7 @@ public class LuckyRabbit extends JavaPlugin {
 
     /**
      * Checks if Oraxen is available
+     *
      * @return true if Oraxen is hooked and ready to use
      */
     public boolean hasOraxen() {
