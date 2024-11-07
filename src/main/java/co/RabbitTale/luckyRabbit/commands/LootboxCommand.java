@@ -74,18 +74,12 @@ public class LootboxCommand implements CommandExecutor {
                     if (args.length == 2) {
                         try {
                             int page = Integer.parseInt(args[1]);
-                            // Open GUI with specific page
                             LootboxListGUI.openGUI(player, page);
                         } catch (NumberFormatException e) {
                             player.sendMessage(Component.text("Invalid page number!", ERROR_COLOR));
                         }
-                    } else {// Show list command help
-                        List<Component> usage = LootboxTabCompleter.getCommandUsage("list");
-                        player.sendMessage(Component.empty());
-                        for (Component line : usage) {
-                            player.sendMessage(line);
-                        }
-                        player.sendMessage(Component.empty());
+                    } else {
+                        LootboxListGUI.openGUI(player, 1);
                     }
                 }
                 case "create" -> handleCreate(player, args);

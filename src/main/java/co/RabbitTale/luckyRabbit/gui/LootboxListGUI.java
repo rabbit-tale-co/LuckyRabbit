@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -21,8 +22,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-
-import static co.RabbitTale.luckyRabbit.gui.LootboxContentGUI.adminLore;
 
 public class LootboxListGUI implements GUI {
 
@@ -98,19 +97,7 @@ public class LootboxListGUI implements GUI {
     }
 
     private void updateInventory() {
-        inventory.clear();
-
-        // Add glass pane border
-        for (int i = 0; i < ROWS * 9; i++) {
-            // First and last row
-            if (i < 9 || i >= (ROWS - 1) * 9) {
-                inventory.setItem(i, createBorderItem());
-            }
-            // Side borders
-            else if (i % 9 == 0 || i % 9 == 8) {
-                inventory.setItem(i, createBorderItem());
-            }
-        }
+        GUIUtils.setupBorder(inventory, ROWS);
 
         // Add lootbox items
         int startIndex = currentPage * PAGE_SIZE;
@@ -124,55 +111,18 @@ public class LootboxListGUI implements GUI {
             inventory.setItem(slot, createLootboxItem(lootbox));
         }
 
-        // Always show navigation buttons
-        // Previous button (disabled if on first page)
-        inventory.setItem(PREV_BUTTON_SLOT, createNavigationButton("Previous Page",
-                Material.ARROW, currentPage > 0));
+        // Add navigation buttons
+        GUIUtils.setupNavigationButtons(inventory, currentPage, lootboxes.size(),
+            PAGE_SIZE, PREV_BUTTON_SLOT, NEXT_BUTTON_SLOT);
 
-        // Close button
-        inventory.setItem(CLOSE_BUTTON_SLOT, createNavigationButton("Close",
-                Material.BARRIER, true));
-
-        // Next button (disabled if on last page)
-        boolean hasNextPage = (currentPage + 1) * PAGE_SIZE < lootboxes.size();
-        inventory.setItem(NEXT_BUTTON_SLOT, createNavigationButton("Next Page",
-                Material.ARROW, hasNextPage));
+        // Add close button
+        inventory.setItem(CLOSE_BUTTON_SLOT, GUIUtils.createNavigationButton("Close", Material.BARRIER, true));
 
         // Update title with current page
         int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
         player.openInventory(Bukkit.createInventory(this, ROWS * 9,
                 Component.text("Lootboxes (Page " + (currentPage + 1) + "/" + totalPages + ")")));
         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
-    }
-
-    private ItemStack createBorderItem() {
-        ItemStack item = new ItemStack(Material.GRAY_STAINED_GLASS_PANE); // Changed to dark gray
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private ItemStack createNavigationButton(String name, Material material, boolean enabled) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        if (enabled) {
-            meta.displayName(Component.text(name)
-                    .color(NamedTextColor.YELLOW)
-                    .decoration(TextDecoration.ITALIC, false));
-        } else {
-            meta.displayName(Component.text(name)
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false));
-            // Add "disabled" lore
-            meta.lore(List.of(Component.text("Not available")
-                    .color(NamedTextColor.RED)
-                    .decoration(TextDecoration.ITALIC, false)));
-        }
-
-        item.setItemMeta(meta);
-        return item;
     }
 
     private ItemStack createLootboxItem(Lootbox lootbox) {
