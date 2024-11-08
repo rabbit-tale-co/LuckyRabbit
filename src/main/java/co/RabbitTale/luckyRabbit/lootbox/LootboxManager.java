@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import co.RabbitTale.luckyRabbit.lootbox.items.MinecraftLootboxItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
@@ -31,6 +31,7 @@ import co.RabbitTale.luckyRabbit.commands.LootboxCommand;
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
+import co.RabbitTale.luckyRabbit.lootbox.items.MinecraftLootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -42,6 +43,7 @@ public class LootboxManager {
     private final LuckyRabbit plugin;
     private final Map<String, Lootbox> lootboxes;
     private final Map<UUID, LootboxEntity> entities;
+    private int respawnTaskId = -1;
 
     public LootboxManager(LuckyRabbit plugin) {
         this.plugin = plugin;
@@ -519,41 +521,80 @@ public class LootboxManager {
     }
 
     public void respawnEntities() {
-        // First load all chunks where lootboxes should be
+        // Add a respawning flag to prevent multiple concurrent respawns
+        if (plugin.getServer().getScheduler().isCurrentlyRunning(respawnTaskId)) {
+            Logger.debug("Respawn task already running, skipping...");
+            return;
+        }
+
+        int totalLocations = 0;
+        Map<Chunk, Boolean> chunksToLoad = new HashMap<>();
+
+        // First count valid locations and identify chunks to load
         for (Lootbox lootbox : lootboxes.values()) {
-            for (Location location : lootbox.getLocations()) {
-                Chunk chunk = location.getChunk();
-                if (!chunk.isLoaded()) {
-                    chunk.load();
+            List<Location> locations = lootbox.getLocations();
+            if (locations != null && !locations.isEmpty()) {
+                for (Location location : locations) {
+                    if (location != null && location.getWorld() != null) {
+                        totalLocations++;
+                        Chunk chunk = location.getChunk();
+                        chunksToLoad.put(chunk, !chunk.isLoaded());
+                    }
                 }
-                chunk.setForceLoaded(true);
             }
         }
 
+        if (totalLocations == 0) {
+            Logger.debug("No lootbox locations to respawn");
+            return;
+        }
+
+        // Load necessary chunks
+        chunksToLoad.forEach((chunk, needsLoading) -> {
+            if (needsLoading) {
+                chunk.load();
+            }
+            chunk.setForceLoaded(true);
+        });
+
         // Wait a bit to ensure chunks are loaded
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        int finalTotalLocations = totalLocations;
+        respawnTaskId = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             // Remove any existing lootbox entities first
-            for (Entity entity : plugin.getServer().getWorlds().stream()
-                    .flatMap(world -> world.getEntities().stream())
+            for (World world : plugin.getServer().getWorlds()) {
+                world.getEntities().stream()
                     .filter(entity -> entity instanceof ArmorStand
                             && entity.hasMetadata("LootboxEntity"))
-                    .toList()) {
-                entity.remove();
+                    .forEach(Entity::remove);
             }
 
+            // Clear existing entities map
+            entities.clear();
+
             // Spawn new entities
+            int respawnedCount = 0;
             for (Lootbox lootbox : lootboxes.values()) {
                 for (Location location : lootbox.getLocations()) {
-                    LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
-                    entities.put(entity.getUniqueId(), entity);
+                    if (location != null && location.getWorld() != null) {
+                        LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
+                        entities.put(entity.getUniqueId(), entity);
+                        respawnedCount++;
+                    }
                 }
             }
 
-            Logger.debug("Respawned " + entities.size() + " lootbox entities");
-        }, 20L); // Wait 1 second after loading chunks
+            Logger.debug("Respawned " + respawnedCount + " lootbox entities (from " + finalTotalLocations + " valid locations)");
+            respawnTaskId = -1;
+        }, 20L).getTaskId(); // Store the task ID
     }
 
     public void cleanup() {
+        // Cancel any pending respawn task
+        if (respawnTaskId != -1) {
+            plugin.getServer().getScheduler().cancelTask(respawnTaskId);
+            respawnTaskId = -1;
+        }
+
         // Remove all entities and unforce chunks
         for (LootboxEntity entity : entities.values()) {
             entity.remove();

@@ -1,9 +1,13 @@
 package co.RabbitTale.luckyRabbit;
 
-import co.RabbitTale.luckyRabbit.api.*;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import co.RabbitTale.luckyRabbit.api.FeatureManager;
+import co.RabbitTale.luckyRabbit.api.LicenseManager;
+import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPI;
+import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIImpl;
+import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIProvider;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
 import co.RabbitTale.luckyRabbit.listeners.ListenerManager;

@@ -1,5 +1,6 @@
 package co.RabbitTale.luckyRabbit.api;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -64,9 +65,41 @@ public class LicenseManager {
         String ip = plugin.getServer().getIp();
         int port = plugin.getServer().getPort();
 
-        // Log the values for debugging
-        Logger.debug("Server IP from config: " + ip);
-        Logger.debug("Server port from config: " + port);
+        // Block localhost and invalid IPs
+        if (ip.isEmpty() || ip.equals("0.0.0.0") || ip.equals("127.0.0.1") || ip.equals("localhost")) {
+            try {
+                // Try to get the server's public IP
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.ipify.org"))
+                        .timeout(Duration.ofSeconds(5))
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    String publicIp = response.body().trim();
+                    // Verify it's not a localhost IP
+                    if (!publicIp.startsWith("127.") && !publicIp.equals("0.0.0.0")) {
+                        ip = publicIp;
+                    } else {
+                        Logger.error("Invalid public IP detected: " + publicIp);
+                        return null;
+                    }
+                } else {
+                    Logger.error("Failed to get public IP, status code: " + response.statusCode());
+                    return null;
+                }
+            } catch (IOException | InterruptedException e) {
+                Logger.error("Failed to get server IP", e);
+                return null;
+            }
+        }
+
+        // Additional validation
+        if (ip.startsWith("127.") || ip.equals("localhost")) {
+            Logger.error("Invalid server IP detected: " + ip);
+            return null;
+        }
 
         return ip + ":" + port;
     }
@@ -88,7 +121,6 @@ public class LicenseManager {
                 requestBody.addProperty("license_key", licenseKey);
                 requestBody.addProperty("server_ip", serverIp);
 
-                Logger.debug("Sending license verification request...");
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(apiUrl + "/license/verify"))
                         .header("Content-Type", "application/json")
@@ -96,11 +128,14 @@ public class LicenseManager {
                         .build();
 
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                Logger.debug("License API Response: " + response.body());
+                JsonObject jsonResponse = parseJsonResponse(response.body());
+                if (jsonResponse == null) {
+                    Logger.warning("License verification failed: Invalid JSON response");
+                    isPremium = false;
+                    checkTrialStatus();
+                    return;
+                }
 
-                JsonObject jsonResponse = new Gson().fromJson(response.body(), JsonObject.class);
-
-                boolean wasPremium = isPremium;
                 isPremium = jsonResponse.get("valid").getAsBoolean();
                 String message = jsonResponse.get("message").getAsString();
 
@@ -110,28 +145,21 @@ public class LicenseManager {
                 if (isPremium) {
                     Logger.success("License verified successfully: " + message);
                     isTrialActive = false;
-                    if (!wasPremium) {
-                        Logger.debug("Updating plan type due to premium activation");
-                        FeatureManager.updatePlanType();
-                    }
+                    FeatureManager.updatePlanType();
                 } else {
                     Logger.warning("License verification failed: " + message);
-                    if (wasPremium) {
-                        Logger.debug("Updating plan type due to premium deactivation");
-                        FeatureManager.updatePlanType();
-                    }
-                    Logger.debug("Checking trial status after failed verification");
+                    FeatureManager.updatePlanType();
                     checkTrialStatus();
                 }
 
             } catch (Exception e) {
                 Logger.error("Failed to verify license", e);
-                Logger.debug("Exception details: " + e.getMessage());
                 isPremium = false;
                 checkTrialStatus();
             }
         });
     }
+
 
     public static void checkTrialStatus() {
         Logger.debug("Starting trial status check...");
@@ -217,6 +245,16 @@ public class LicenseManager {
         }
         return isTrialActive;
     }
+
+    private JsonObject parseJsonResponse(String responseBody) {
+        try {
+            return new Gson().fromJson(responseBody, JsonObject.class);
+        } catch (Exception e) {
+            Logger.error("Failed to parse JSON response", e);
+            return null;
+        }
+    }
+
 
     public boolean hasFullAccess() {
         return isPremium || isTrialActive;

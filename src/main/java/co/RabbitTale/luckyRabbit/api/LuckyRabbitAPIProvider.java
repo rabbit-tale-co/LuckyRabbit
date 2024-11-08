@@ -23,7 +23,7 @@ public class LuckyRabbitAPIProvider {
      * @param apiInstance API implementation instance
      */
     public static void setAPI(LuckyRabbitAPI apiInstance) {
-        if (api != null) {
+        if (api != null && apiInstance != api) {
             throw new IllegalStateException("API is already initialized!");
         }
         api = apiInstance;
