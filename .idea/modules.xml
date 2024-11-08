@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/LuckyRabbitAPI.iml" filepath="$PROJECT_DIR$/LuckyRabbitAPI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/LuckyRabbit.iml" filepath="$PROJECT_DIR$/LuckyRabbit.iml" />
     </modules>
   </component>
 </project>
