@@ -4,6 +4,8 @@ main: co.RabbitTale.luckyRabbit.LuckyRabbit
 api-version: '1.20'
 authors: [RabbitTale]
 description: Advanced lootbox system with animations
+website: https://rabbittale.co
+
 softdepend: [Oraxen, Vault]
 commands:
   lootbox:

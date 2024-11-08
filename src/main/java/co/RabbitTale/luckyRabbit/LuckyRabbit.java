@@ -1,11 +1,9 @@
 package co.RabbitTale.luckyRabbit;
 
-import org.bukkit.plugin.java.JavaPlugin;
+import co.RabbitTale.luckyRabbit.api.*;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
-import co.RabbitTale.luckyRabbit.api.LicenseManager;
-import co.RabbitTale.luckyRabbit.api.LootboxAPI;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
 import co.RabbitTale.luckyRabbit.listeners.ListenerManager;
@@ -28,7 +26,7 @@ public class LuckyRabbit extends JavaPlugin {
     @Getter
     private ListenerManager listenerManager;
     @Getter
-    private LootboxAPI api;
+    private LuckyRabbitAPI api;
     @Getter
     private UserManager userManager;
     @Getter
@@ -42,6 +40,15 @@ public class LuckyRabbit extends JavaPlugin {
     @Getter
     private boolean oraxenHooked = false;
 
+    // TODO: make more lootbox animations (PARTICLES)
+    // TODO: add more lootbox animations (SPIN)
+    // TODO: add option to change lang (even by API calls from other plugins)
+    // TODO: add option to de-place de-spawn or some shit placed lootbox entity
+    // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)
+    // TODO: make some commands available for console (keys, licence, reload, animations)
+    // TODO: web editor (manage lootboxes and items via web dashboard) will auto calculate % of items, will show list of lootboxes with items inside ect.
+    // TODO: make better message when changing tier (from Trial to free -> display info to buy license)
+    // TODO: add special animation and sound when user win legendary item
     @Override
     public void onEnable() {
         instance = this;
@@ -64,7 +71,8 @@ public class LuckyRabbit extends JavaPlugin {
         this.lootboxManager = new LootboxManager(this);
         this.commandManager = new CommandManager(this);
         this.listenerManager = new ListenerManager(this);
-        this.api = new LootboxAPI(this);
+        this.api = new LuckyRabbitAPIImpl(this);
+        LuckyRabbitAPIProvider.setAPI(this.api);
         this.userManager = new UserManager(this);
 
         // Load configurations
@@ -117,6 +125,9 @@ public class LuckyRabbit extends JavaPlugin {
 
         // Respawn all lootbox entities
         lootboxManager.respawnEntities();
+
+        // Initialize API
+        LuckyRabbitAPIProvider.setAPI(this.api);
 
         // Log debug mode status
         boolean debugMode = getConfig().getBoolean("settings.debug", false);

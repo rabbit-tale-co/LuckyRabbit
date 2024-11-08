@@ -27,6 +27,7 @@
         </repository>
         <repository>
             <id>oraxen</id>
+            <name>Oraxen Repository</name>
             <url>https://repo.oraxen.com/releases</url>
         </repository>
         <repository>
@@ -51,7 +52,7 @@
         <dependency>
             <groupId>io.th0rgal</groupId>
             <artifactId>oraxen</artifactId>
-            <version>1.182.0</version>
+            <version>1.183.0</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
