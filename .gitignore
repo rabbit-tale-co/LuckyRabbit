@@ -25,3 +25,9 @@ replay_pid*
 
 /.idea
 /target
+
+# Ignoruj wszystkie pliki zaczynające się od "original"
+original-*
+
+# Wyjątek - nie ignoruj plików zaczynających się od "LuckyRabbit"
+!LuckyRabbit-*
