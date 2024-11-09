@@ -3,7 +3,6 @@ package co.RabbitTale.luckyRabbit.lootbox.items;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.bukkit.configuration.ConfigurationSection;
@@ -163,24 +162,36 @@ public abstract class LootboxItem {
             ConfigurationSection itemSection = originalConfig != null ?
                 originalConfig.getConfigurationSection("item") : null;
 
-            if (itemSection != null && itemSection.contains("meta")) {
-                ConfigurationSection metaSection = itemSection.getConfigurationSection("meta");
-                if (metaSection != null) {
-                    // Set display name from config with MiniMessage formatting
-                    if (metaSection.contains("display-name")) {
-                        String displayName = metaSection.getString("display-name");
-                        if (displayName != null) {
-                            meta.displayName(MiniMessage.miniMessage().deserialize(displayName)
-                                .decoration(TextDecoration.ITALIC, false));
-                        }
-                    }
+            if (itemSection != null) {
+                // Get amount range if specified
+                String amountStr = itemSection.getString("amount");
+                if (amountStr != null && amountStr.contains("-")) {
+                    lore.add(Component.text("Amount: " + amountStr)
+                        .color(NamedTextColor.GRAY)
+                        .decoration(TextDecoration.ITALIC, false));
+                    lore.add(Component.empty());
+                }
 
-                    // Set lore from config with MiniMessage formatting
-                    if (metaSection.contains("lore")) {
-                        List<String> configLore = metaSection.getStringList("lore");
-                        for (String line : configLore) {
-                            lore.add(MiniMessage.miniMessage().deserialize(line)
-                                .decoration(TextDecoration.ITALIC, false));
+                // Add configured meta
+                if (itemSection.contains("meta")) {
+                    ConfigurationSection metaSection = itemSection.getConfigurationSection("meta");
+                    if (metaSection != null) {
+                        // Set display name from config with MiniMessage formatting
+                        if (metaSection.contains("display-name")) {
+                            String displayName = metaSection.getString("display-name");
+                            if (displayName != null) {
+                                meta.displayName(MiniMessage.miniMessage().deserialize(displayName)
+                                    .decoration(TextDecoration.ITALIC, false));
+                            }
+                        }
+
+                        // Set lore from config with MiniMessage formatting
+                        if (metaSection.contains("lore")) {
+                            List<String> configLore = metaSection.getStringList("lore");
+                            for (String line : configLore) {
+                                lore.add(MiniMessage.miniMessage().deserialize(line)
+                                    .decoration(TextDecoration.ITALIC, false));
+                            }
                         }
                     }
                 }

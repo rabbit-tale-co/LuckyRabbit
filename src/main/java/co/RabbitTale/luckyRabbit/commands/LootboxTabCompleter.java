@@ -64,7 +64,11 @@ public class LootboxTabCompleter implements TabCompleter {
                             .collect(Collectors.toList()), args[2]);
                 }
                 if (args.length == 4) {
-                    return filterCompletions(plugin.getLootboxManager().getLootboxNames(), args[3]);
+                    if (sender.hasPermission("luckyrabbit.admin")) {
+                        return filterCompletions(plugin.getLootboxManager().getLootboxNamesAdmin(), args[3]);
+                    } else {
+                        return filterCompletions(plugin.getLootboxManager().getLootboxNames(), args[3]);
+                    }
                 }
                 if (args.length == 5) {
                     return filterCompletions(Arrays.asList("1", "5", "10", "25", "50", "100"), args[4]);

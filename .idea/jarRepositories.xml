@@ -46,5 +46,10 @@
       <option name="name" value="Oraxen Repository" />
       <option name="url" value="https://repo.oraxen.com/releases" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="papermc-repo-old" />
+      <option name="name" value="papermc-repo-old" />
+      <option name="url" value="https://papermc.io/repo/repository/maven-public/" />
+    </remote-repository>
   </component>
 </project>

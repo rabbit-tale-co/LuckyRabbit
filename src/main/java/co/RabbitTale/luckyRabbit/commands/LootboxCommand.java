@@ -46,13 +46,12 @@ public class LootboxCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("This command can only be used by players!");
-            return true;
-        }
-
         if (args.length == 0) {
-            showHelp(player, 1);
+            if (sender instanceof Player) {
+                showHelp((Player) sender, 1);
+            } else {
+                showConsoleHelp(sender);
+            }
             return true;
         }
 
@@ -60,67 +59,305 @@ public class LootboxCommand implements CommandExecutor {
         try {
             switch (subCommand) {
                 case "help" -> {
-                    int page = 1;
-                    if (args.length > 1) {
-                        try {
-                            page = Integer.parseInt(args[1]);
-                        } catch (NumberFormatException ignored) {
-                            // Use default page 1 if invalid number
+                    if (sender instanceof Player) {
+                        int page = 1;
+                        if (args.length > 1) {
+                            try {
+                                page = Integer.parseInt(args[1]);
+                            } catch (NumberFormatException ignored) {
+                                // Use default page 1 if invalid number
+                            }
                         }
-                    }
-                    showHelp(player, page);
-                }
-                case "list" -> {
-                    if (args.length == 2) {
-                        try {
-                            int page = Integer.parseInt(args[1]);
-                            LootboxListGUI.openGUI(player, page);
-                        } catch (NumberFormatException e) {
-                            player.sendMessage(Component.text("Invalid page number!", ERROR_COLOR));
-                        }
+                        showHelp((Player) sender, page);
                     } else {
-                        LootboxListGUI.openGUI(player, 1);
+                        showConsoleHelp(sender);
                     }
                 }
-                case "create" -> handleCreate(player, args);
-                case "delete" -> handleDelete(player, args);
-                case "item" -> {
-                    if (args.length == 1) {
-                        List<Component> usage = LootboxTabCompleter.getCommandUsage("item");
-                        player.sendMessage(Component.empty());
-                        for (Component line : usage) {
-                            player.sendMessage(line);
-                        }
-                        player.sendMessage(Component.empty());
-                    } else {
-                        handleItem(player, args);
-                    }
-                }
-                case "place" -> handlePlace(player, args);
                 case "key" -> {
                     if (args.length == 1) {
                         List<Component> usage = LootboxTabCompleter.getCommandUsage("key");
-                        player.sendMessage(Component.empty());
+                        sender.sendMessage(Component.empty());
                         for (Component line : usage) {
-                            player.sendMessage(line);
+                            sender.sendMessage(line);
                         }
-                        player.sendMessage(Component.empty());
+                        sender.sendMessage(Component.empty());
                     } else {
-                        handleKey(player, args);
+                        handleKey(sender, args);
                     }
                 }
-                case "reload" -> handleReload(player);
-                case "animations" -> showAnimations(player);
-                case "license" -> showLicenseInfo(player);
-                default -> showHelp(player, 1);
+                case "reload" -> handleReload(sender);
+                case "animations" -> showAnimations(sender);
+                case "license" -> showLicenseInfo(sender);
+                default -> {
+                    if (!(sender instanceof Player player)) {
+                        sender.sendMessage(Component.text("This command can only be used by players!")
+                                .color(ERROR_COLOR));
+                        return true;
+                    }
+                    // Handle player-only commands
+                    handlePlayerCommands(player, subCommand, args);
+                }
             }
         } catch (Exception e) {
             Logger.error("Error executing command: " + subCommand, e);
-            player.sendMessage(Component.text("An error occurred while executing the command!")
+            sender.sendMessage(Component.text("An error occurred while executing the command!")
                     .color(ERROR_COLOR));
         }
 
         return true;
+    }
+
+    // New method for console help
+    private void showConsoleHelp(CommandSender sender) {
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("=== LuckyRabbit Console Commands ===").color(INFO_COLOR));
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("» /lb key add/remove <player> <id> <amount>").color(COMMAND_COLOR));
+        sender.sendMessage(Component.text("» /lb reload").color(COMMAND_COLOR));
+        sender.sendMessage(Component.text("» /lb license").color(COMMAND_COLOR));
+        sender.sendMessage(Component.text("» /lb animations").color(COMMAND_COLOR));
+        sender.sendMessage(Component.empty());
+    }
+
+    // Modified methods to accept CommandSender instead of Player
+    private void handleKey(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("luckyrabbit.admin.key")) {
+            sender.sendMessage(Component.text("You don't have permission to manage keys!")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        if (args.length < 5) {
+            sender.sendMessage(Component.text("Usage: /lootbox key <add/remove> <player> <id> <amount>")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+        Player target = Bukkit.getPlayer(args[2]);
+        String id = args[3];
+        int amount;
+
+        try {
+            amount = Integer.parseInt(args[4]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(Component.text("Invalid amount! Please enter a number.")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        if (target == null) {
+            sender.sendMessage(Component.text("Player not found!")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        // Get lootbox to access formatted name
+        Lootbox lootbox = plugin.getLootboxManager().getLootbox(id);
+        if (lootbox == null) {
+            sender.sendMessage(Component.text("Lootbox not found: " + id)
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        // Parse the formatted display name
+        Component lootboxName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
+
+        switch (action) {
+            case "add" -> {
+                plugin.getUserManager().addKeys(target.getUniqueId(), id, amount);
+                // Message for admin
+                Component adminMessage = Component.text("You gave ")
+                    .color(DESCRIPTION_COLOR)
+                    .append(Component.text(amount + "x ", ITEM_COLOR))
+                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
+                    .append(lootboxName)
+                    .append(Component.text(" to ", DESCRIPTION_COLOR))
+                    .append(Component.text(target.getName(), TARGET_COLOR));
+                sender.sendMessage(adminMessage);
+
+                // Message for target player
+                Component targetMessage = Component.text("You received ")
+                    .color(DESCRIPTION_COLOR)
+                    .append(Component.text(amount + "x ", ITEM_COLOR))
+                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
+                    .append(lootboxName);
+                target.sendMessage(targetMessage);
+            }
+            case "remove" -> {
+                plugin.getUserManager().removeKeys(target.getUniqueId(), id, amount);
+                Component message = Component.text("Successfully removed ")
+                    .color(SUCCESS_COLOR)
+                    .append(Component.text(amount + "x ", ITEM_COLOR))
+                    .append(Component.text("key(s) for ", SUCCESS_COLOR))
+                    .append(lootboxName)
+                    .append(Component.text(" from ", SUCCESS_COLOR))
+                    .append(Component.text(target.getName(), TARGET_COLOR));
+                sender.sendMessage(message);
+            }
+            default -> sender.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
+                    .color(ERROR_COLOR));
+        }
+    }
+
+    private void handleReload(CommandSender sender) {
+        if (!sender.hasPermission("luckyrabbit.admin.reload")) {
+            sender.sendMessage(Component.text("You don't have permission to reload the plugin!")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        try {
+            // Save current data
+            plugin.getUserManager().saveAllUsers();
+            plugin.getLootboxManager().saveAll();
+
+            // Reload the plugin
+            plugin.reload();
+
+            // Send success message with current mode
+            String planType = LicenseManager.isPremium() ? "PREMIUM" :
+                             LicenseManager.isTrialActive() ? "TRIAL" : "FREE";
+            int maxLootboxes = FeatureManager.getMaxLootboxes();
+
+            sender.sendMessage(Component.empty());
+            sender.sendMessage(Component.text("Plugin reloaded successfully!", SUCCESS_COLOR));
+            sender.sendMessage(Component.text()
+                .append(Component.text("Running in ", DESCRIPTION_COLOR))
+                .append(Component.text(planType, planType.equals("PREMIUM") ? SUCCESS_COLOR :
+                                              planType.equals("TRIAL") ? INFO_COLOR : ERROR_COLOR))
+                .append(Component.text(" mode", DESCRIPTION_COLOR))
+                .build());
+            sender.sendMessage(Component.text()
+                .append(Component.text("Maximum lootboxes allowed: ", DESCRIPTION_COLOR))
+                .append(Component.text(maxLootboxes == -1 ? "Unlimited" : String.valueOf(maxLootboxes),
+                        maxLootboxes == -1 ? SUCCESS_COLOR : INFO_COLOR))
+                .build());
+            sender.sendMessage(Component.empty());
+        } catch (Exception e) {
+            sender.sendMessage(Component.text("An error occurred while reloading: " + e.getMessage())
+                    .color(ERROR_COLOR));
+            Logger.error("Error during reload:", e);
+        }
+    }
+
+    private void showAnimations(CommandSender sender) {
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("Available Animations:")
+            .color(INFO_COLOR));
+
+        sender.sendMessage(Component.text()
+            .append(Component.text("» ", SEPARATOR_COLOR))
+            .append(Component.text("HORIZONTAL", ACTION_COLOR))
+            .append(Component.text(" - ", SEPARATOR_COLOR))
+            .append(Component.text("Classic horizontal spin animation", DESCRIPTION_COLOR))
+            .build());
+
+        sender.sendMessage(Component.text()
+            .append(Component.text("» ", SEPARATOR_COLOR))
+            .append(Component.text("CIRCLE", ACTION_COLOR))
+            .append(Component.text(" - ", SEPARATOR_COLOR))
+            .append(Component.text("Items spin in a circle pattern", DESCRIPTION_COLOR))
+            .build());
+
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("More animations coming soon!", INFO_COLOR));
+        sender.sendMessage(Component.empty());
+    }
+
+    private void showLicenseInfo(CommandSender sender) {
+        if (!sender.hasPermission("luckyrabbit.admin")) {
+            sender.sendMessage(Component.text("You don't have permission to view license info!")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        String licenseKey = plugin.getConfig().getString("license-key", "");
+        boolean isPremium = LicenseManager.isPremium();
+        boolean isTrial = LicenseManager.isTrialActive();
+
+        // Header
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("License Information")
+                .color(INFO_COLOR));
+
+        // Status with proper color formatting
+        Component statusText = Component.text()
+            .append(Component.text("» ", SEPARATOR_COLOR))
+            .append(Component.text("Status: ", DESCRIPTION_COLOR))
+            .append(Component.text(isPremium ? "PREMIUM" : isTrial ? "TRIAL" : "FREE")
+                .color(isPremium ? SUCCESS_COLOR : isTrial ? INFO_COLOR : ERROR_COLOR)
+                .decorate(net.kyori.adventure.text.format.TextDecoration.BOLD))
+            .build();
+        sender.sendMessage(statusText);
+
+        // License Key
+        if (!licenseKey.isEmpty()) {
+            Component keyMessage = Component.text("» ", SEPARATOR_COLOR)
+                    .append(Component.text("License Key: ", DESCRIPTION_COLOR))
+                    .append(Component.text(licenseKey, TARGET_COLOR));
+
+            Component copyButton = Component.text(" [Copy]", SUCCESS_COLOR)
+                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(licenseKey))
+                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                            Component.text("Click to copy license key")));
+
+            sender.sendMessage(keyMessage.append(copyButton));
+        } else {
+            sender.sendMessage(Component.text("» ", SEPARATOR_COLOR)
+                    .append(Component.text("License Key: ", DESCRIPTION_COLOR))
+                    .append(Component.text("Not set", ERROR_COLOR)));
+        }
+
+        // Features
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("Features:", INFO_COLOR));
+
+        // Max Lootboxes
+        int maxLootboxes = FeatureManager.getMaxLootboxes();
+        sender.sendMessage(Component.text("» ", SEPARATOR_COLOR)
+                .append(Component.text("Max Lootboxes: ", DESCRIPTION_COLOR))
+                .append(Component.text(maxLootboxes == -1 ? "Unlimited" : String.valueOf(maxLootboxes),
+                        maxLootboxes == -1 ? SUCCESS_COLOR : INFO_COLOR)));
+
+        // Custom Animations
+        boolean customAnimations = plugin.getFeatureManager().canUseCustomAnimations();
+        sender.sendMessage(Component.text("» ", SEPARATOR_COLOR)
+                .append(Component.text("Custom Animations: ", DESCRIPTION_COLOR))
+                .append(Component.text(customAnimations ? "Yes" : "No",
+                        customAnimations ? SUCCESS_COLOR : ERROR_COLOR)));
+
+        // Advanced Features
+        boolean advancedFeatures = plugin.getFeatureManager().canUseAdvancedFeatures();
+        sender.sendMessage(Component.text("» ", SEPARATOR_COLOR)
+                .append(Component.text("Advanced Features: ", DESCRIPTION_COLOR))
+                .append(Component.text(advancedFeatures ? "Yes" : "No",
+                        advancedFeatures ? SUCCESS_COLOR : ERROR_COLOR)));
+
+        sender.sendMessage(Component.empty());
+    }
+
+    // New method to handle player-only commands
+    private void handlePlayerCommands(Player player, String subCommand, String[] args) {
+        switch (subCommand) {
+            case "list" -> {
+                if (args.length == 2) {
+                    try {
+                        int page = Integer.parseInt(args[1]);
+                        LootboxListGUI.openGUI(player, page);
+                    } catch (NumberFormatException e) {
+                        player.sendMessage(Component.text("Invalid page number!", ERROR_COLOR));
+                    }
+                } else {
+                    LootboxListGUI.openGUI(player, 1);
+                }
+            }
+            case "create" -> handleCreate(player, args);
+            case "delete" -> handleDelete(player, args);
+            case "item" -> handleItem(player, args);
+            case "place" -> handlePlace(player, args);
+            default -> showHelp(player, 1);
+        }
     }
 
     private void handleCreate(Player player, String[] args) {
@@ -261,160 +498,18 @@ public class LootboxCommand implements CommandExecutor {
         plugin.getLootboxManager().placeLootbox(player, id);
     }
 
-    private void handleKey(Player player, String[] args) {
-        if (!player.hasPermission("luckyrabbit.admin.key")) {
-            player.sendMessage(Component.text("You don't have permission to manage keys!")
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        if (args.length < 5) {
-            player.sendMessage(Component.text("Usage: /lootbox key <add/remove> <player> <id> <amount>")
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        String action = args[1].toLowerCase();
-        Player target = Bukkit.getPlayer(args[2]);
-        String id = args[3];
-        int amount;
-
-        try {
-            amount = Integer.parseInt(args[4]);
-        } catch (NumberFormatException e) {
-            player.sendMessage(Component.text("Invalid amount! Please enter a number.")
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        if (target == null) {
-            player.sendMessage(Component.text("Player not found!")
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        // Get lootbox to access formatted name
-        Lootbox lootbox = plugin.getLootboxManager().getLootbox(id);
-        if (lootbox == null) {
-            player.sendMessage(Component.text("Lootbox not found: " + id)
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        // Parse the formatted display name
-        Component lootboxName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
-
-        switch (action) {
-            case "add" -> {
-                plugin.getUserManager().addKeys(target.getUniqueId(), id, amount);
-                // Message for admin
-                Component adminMessage = Component.text("You gave ")
-                    .color(DESCRIPTION_COLOR)
-                    .append(Component.text(amount + "x ", ITEM_COLOR))
-                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
-                    .append(lootboxName)
-                    .append(Component.text(" to ", DESCRIPTION_COLOR))
-                    .append(Component.text(target.getName(), TARGET_COLOR));
-                player.sendMessage(adminMessage);
-
-                // Message for target player
-                Component targetMessage = Component.text("You received ")
-                    .color(DESCRIPTION_COLOR)
-                    .append(Component.text(amount + "x ", ITEM_COLOR))
-                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
-                    .append(lootboxName);
-                target.sendMessage(targetMessage);
-            }
-            case "remove" -> {
-                plugin.getUserManager().removeKeys(target.getUniqueId(), id, amount);
-                Component message = Component.text("Successfully removed ")
-                    .color(SUCCESS_COLOR)
-                    .append(Component.text(amount + "x ", ITEM_COLOR))
-                    .append(Component.text("key(s) for ", SUCCESS_COLOR))
-                    .append(lootboxName)
-                    .append(Component.text(" from ", SUCCESS_COLOR))
-                    .append(Component.text(target.getName(), TARGET_COLOR));
-                player.sendMessage(message);
-            }
-            default -> player.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
-                    .color(ERROR_COLOR));
-        }
-    }
-
-    private void handleReload(Player player) {
-        if (!player.hasPermission("luckyrabbit.admin.reload")) {
-            player.sendMessage(Component.text("You don't have permission to reload the plugin!")
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        try {
-            // Save current data
-            plugin.getUserManager().saveAllUsers();
-            plugin.getLootboxManager().saveAll();
-
-            // Reload the plugin
-            plugin.reload();
-
-            // Send success message with current mode
-            String planType = LicenseManager.isPremium() ? "PREMIUM" :
-                             LicenseManager.isTrialActive() ? "TRIAL" : "FREE";
-            int maxLootboxes = FeatureManager.getMaxLootboxes();
-
-            player.sendMessage(Component.empty());
-            player.sendMessage(Component.text("Plugin reloaded successfully!", SUCCESS_COLOR));
-            player.sendMessage(Component.text()
-                .append(Component.text("Running in ", DESCRIPTION_COLOR))
-                .append(Component.text(planType, planType.equals("PREMIUM") ? SUCCESS_COLOR :
-                                              planType.equals("TRIAL") ? INFO_COLOR : ERROR_COLOR))
-                .append(Component.text(" mode", DESCRIPTION_COLOR))
-                .build());
-            player.sendMessage(Component.text()
-                .append(Component.text("Maximum lootboxes allowed: ", DESCRIPTION_COLOR))
-                .append(Component.text(maxLootboxes == -1 ? "Unlimited" : String.valueOf(maxLootboxes),
-                        maxLootboxes == -1 ? SUCCESS_COLOR : INFO_COLOR))
-                .build());
-            player.sendMessage(Component.empty());
-        } catch (Exception e) {
-            player.sendMessage(Component.text("An error occurred while reloading: " + e.getMessage())
-                    .color(ERROR_COLOR));
-            Logger.error("Error during reload:", e);
-        }
-    }
-
-    private void showAnimations(Player player) {
-        player.sendMessage(Component.empty());
-        player.sendMessage(Component.text("Available Animations:")
-            .color(INFO_COLOR));
-
-        // Only show supported animations
-        player.sendMessage(Component.text()
-            .append(Component.text("» ", SEPARATOR_COLOR))
-            .append(Component.text("HORIZONTAL", ACTION_COLOR))
-            .append(Component.text(" - ", SEPARATOR_COLOR))
-            .append(Component.text("Classic horizontal spin animation", DESCRIPTION_COLOR))
-            .build());
-
-        player.sendMessage(Component.text()
-            .append(Component.text("» ", SEPARATOR_COLOR))
-            .append(Component.text("CIRCLE", ACTION_COLOR))
-            .append(Component.text(" - ", SEPARATOR_COLOR))
-            .append(Component.text("Items spin in a circle pattern", DESCRIPTION_COLOR))
-            .build());
-
-        player.sendMessage(Component.empty());
-        player.sendMessage(Component.text("More animations coming soon!", INFO_COLOR));
-        player.sendMessage(Component.empty());
-    }
-
     private void showHelp(Player player, int page) {
         List<Component> commands = new ArrayList<>();
 
-        // Basic commands
+        // Basic commands - only show list and help for regular players
         commands.add(createCommandComponent("/lb list", "View list of lootboxes", null));
         commands.add(createCommandComponent("/lb help [page]", "Show this help menu", null));
-        commands.add(createCommandComponent("/lb animations", "Show available animations", null));
-        commands.add(createCommandComponent("/lb license", "Show license information", null));
+
+        // Only show animations and license commands for admins
+        if (player.hasPermission("luckyrabbit.admin")) {
+            commands.add(createCommandComponent("/lb animations", "Show available animations", null));
+            commands.add(createCommandComponent("/lb license", "Show license information", null));
+        }
 
         if (player.hasPermission("luckyrabbit.admin")) {
             // Admin commands with colored parameters
@@ -569,77 +664,5 @@ public class LootboxCommand implements CommandExecutor {
             commandComponent = commandComponent.append(Component.text(" ", COMMAND_COLOR));
         }
         return commandComponent;
-    }
-
-    private void showLicenseInfo(Player player) {
-        if (!player.hasPermission("luckyrabbit.admin")) {
-            player.sendMessage(Component.text("You don't have permission to view license info!")
-                    .color(ERROR_COLOR));
-            return;
-        }
-
-        String licenseKey = plugin.getConfig().getString("license-key", "");
-        boolean isPremium = LicenseManager.isPremium();
-        boolean isTrial = LicenseManager.isTrialActive();
-
-        // Header
-        player.sendMessage(Component.empty());
-        player.sendMessage(Component.text("License Information")
-                .color(INFO_COLOR));
-
-        // Status with proper color formatting
-        Component statusText = Component.text()
-            .append(Component.text("» ", SEPARATOR_COLOR))
-            .append(Component.text("Status: ", DESCRIPTION_COLOR))
-            .append(Component.text(isPremium ? "PREMIUM" : isTrial ? "TRIAL" : "FREE")
-                .color(isPremium ? SUCCESS_COLOR : isTrial ? INFO_COLOR : ERROR_COLOR)
-                .decorate(net.kyori.adventure.text.format.TextDecoration.BOLD))
-            .build();
-        player.sendMessage(statusText);
-
-        // License Key
-        if (!licenseKey.isEmpty()) {
-            Component keyMessage = Component.text("» ", SEPARATOR_COLOR)
-                    .append(Component.text("License Key: ", DESCRIPTION_COLOR))
-                    .append(Component.text(licenseKey, TARGET_COLOR));
-
-            Component copyButton = Component.text(" [Copy]", SUCCESS_COLOR)
-                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(licenseKey))
-                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                            Component.text("Click to copy license key")));
-
-            player.sendMessage(keyMessage.append(copyButton));
-        } else {
-            player.sendMessage(Component.text("» ", SEPARATOR_COLOR)
-                    .append(Component.text("License Key: ", DESCRIPTION_COLOR))
-                    .append(Component.text("Not set", ERROR_COLOR)));
-        }
-
-        // Features
-        player.sendMessage(Component.empty());
-        player.sendMessage(Component.text("Features:", INFO_COLOR));
-
-        // Max Lootboxes
-        int maxLootboxes = FeatureManager.getMaxLootboxes();
-        player.sendMessage(Component.text("» ", SEPARATOR_COLOR)
-                .append(Component.text("Max Lootboxes: ", DESCRIPTION_COLOR))
-                .append(Component.text(maxLootboxes == -1 ? "Unlimited" : String.valueOf(maxLootboxes),
-                        maxLootboxes == -1 ? SUCCESS_COLOR : INFO_COLOR)));
-
-        // Custom Animations
-        boolean customAnimations = plugin.getFeatureManager().canUseCustomAnimations();
-        player.sendMessage(Component.text("» ", SEPARATOR_COLOR)
-                .append(Component.text("Custom Animations: ", DESCRIPTION_COLOR))
-                .append(Component.text(customAnimations ? "Yes" : "No",
-                        customAnimations ? SUCCESS_COLOR : ERROR_COLOR)));
-
-        // Advanced Features
-        boolean advancedFeatures = plugin.getFeatureManager().canUseAdvancedFeatures();
-        player.sendMessage(Component.text("» ", SEPARATOR_COLOR)
-                .append(Component.text("Advanced Features: ", DESCRIPTION_COLOR))
-                .append(Component.text(advancedFeatures ? "Yes" : "No",
-                        advancedFeatures ? SUCCESS_COLOR : ERROR_COLOR)));
-
-        player.sendMessage(Component.empty());
     }
 }

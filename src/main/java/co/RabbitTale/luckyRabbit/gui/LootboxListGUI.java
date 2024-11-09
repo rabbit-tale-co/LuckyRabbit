@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -17,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -111,9 +111,11 @@ public class LootboxListGUI implements GUI {
             inventory.setItem(slot, createLootboxItem(lootbox));
         }
 
-        // Add navigation buttons
-        GUIUtils.setupNavigationButtons(inventory, currentPage, lootboxes.size(),
-            PAGE_SIZE, PREV_BUTTON_SLOT, NEXT_BUTTON_SLOT);
+        // Add navigation buttons - always show them, just like in LootboxContentGUI
+        inventory.setItem(PREV_BUTTON_SLOT, GUIUtils.createNavigationButton("Previous Page",
+            Material.ARROW, currentPage > 0));
+        inventory.setItem(NEXT_BUTTON_SLOT, GUIUtils.createNavigationButton("Next Page",
+            Material.ARROW, (currentPage + 1) * PAGE_SIZE < lootboxes.size()));
 
         // Add close button
         inventory.setItem(CLOSE_BUTTON_SLOT, GUIUtils.createNavigationButton("Close", Material.BARRIER, true));

@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 
-import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -25,10 +23,12 @@ import co.RabbitTale.luckyRabbit.gui.animations.CircleSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.HorizontalSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.PinPointSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.ThreeInRowSpinGUI;
+import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 

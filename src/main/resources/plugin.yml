@@ -1,7 +1,7 @@
 name: LuckyRabbit
 version: '${project.version}'
 main: co.RabbitTale.luckyRabbit.LuckyRabbit
-api-version: '1.20'
+api-version: '1.19'
 authors: [RabbitTale]
 description: Advanced lootbox system with animations
 website: https://rabbittale.co

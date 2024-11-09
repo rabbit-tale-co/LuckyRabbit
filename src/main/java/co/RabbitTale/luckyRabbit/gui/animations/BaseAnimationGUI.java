@@ -8,24 +8,27 @@ import java.util.Random;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.DESCRIPTION_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.SEPARATOR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.TARGET_COLOR;
 import co.RabbitTale.luckyRabbit.gui.LootboxGUI;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.Reward;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
-import net.kyori.adventure.text.format.TextColor;
+import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-
-import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
 
 public abstract class BaseAnimationGUI extends LootboxGUI {
 
@@ -36,7 +39,6 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     protected int currentStep = 0;
     protected int totalSteps;
     protected List<Integer> delays;
-    protected boolean isShuffling = true;
 
     protected BaseAnimationGUI(LuckyRabbit plugin, Player player, Lootbox lootbox, int guiSize) {
         super(plugin, Bukkit.createInventory(null, guiSize,
@@ -77,6 +79,38 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     }
 
     private Reward convertToReward(LootboxItem item) {
+        // Get the original item and check for amount range
+        ItemStack displayItem = item.getDisplayItem().clone();
+        String amountStr = String.valueOf(displayItem.getAmount());
+        int minAmount = displayItem.getAmount();
+        int maxAmount = displayItem.getAmount();
+
+        // Check if amount contains a range (e.g., "8-16")
+        if (amountStr.contains("-")) {
+            try {
+                String[] range = amountStr.split("-");
+                minAmount = Integer.parseInt(range[0]);
+                maxAmount = Integer.parseInt(range[1]);
+                // Generate random amount between min and max (inclusive)
+                int randomAmount = minAmount + new Random().nextInt(maxAmount - minAmount + 1);
+                displayItem.setAmount(randomAmount);
+            } catch (Exception e) {
+                Logger.error("Failed to parse item amount range: " + amountStr);
+            }
+        }
+
+        // Add amount range to lore if it's a range
+        if (minAmount != maxAmount) {
+            ItemMeta meta = displayItem.getItemMeta();
+            if (meta != null) {
+                List<Component> lore = meta.hasLore() ? new ArrayList<>(Objects.requireNonNull(meta.lore())) : new ArrayList<>();
+                lore.add(0, Component.text("Amount: " + minAmount + "-" + maxAmount)
+                        .color(NamedTextColor.GRAY));
+                meta.lore(lore);
+                displayItem.setItemMeta(meta);
+            }
+        }
+
         return new Reward(
                 item,
                 item.getChance(),
@@ -175,10 +209,35 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
 
         // Give reward after a short delay
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // Get reward name based on metadata
-            Component rewardName;
-            ItemStack rewardItem = finalReward.displayItem();
+            // Get reward item and prepare for giving
+            ItemStack rewardItem = finalReward.displayItem().clone();
             ItemMeta meta = rewardItem.getItemMeta();
+
+            // Initialize rewardName with a default value
+            Component rewardName = meta != null && meta.hasDisplayName() ?
+                    MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                            .serialize(Objects.requireNonNull(meta.displayName()))) :
+                    Component.text(rewardItem.getType().name());
+
+            // Check original config for amount range
+            ConfigurationSection itemSection = finalReward.item().getOriginalConfig() != null ?
+                finalReward.item().getOriginalConfig().getConfigurationSection("item") : null;
+
+            if (itemSection != null) {
+                String amountStr = itemSection.getString("amount");
+                if (amountStr != null && amountStr.contains("-")) {
+                    try {
+                        String[] range = amountStr.split("-");
+                        int min = Integer.parseInt(range[0]);
+                        int max = Integer.parseInt(range[1]);
+                        int randomAmount = min + new Random().nextInt(max - min + 1);
+                        rewardItem.setAmount(randomAmount);
+                        Logger.debug("Generated random amount: " + randomAmount + " (range: " + min + "-" + max + ")");
+                    } catch (Exception e) {
+                        Logger.error("Failed to parse item amount range: " + amountStr);
+                    }
+                }
+            }
 
             if (finalReward.action() != null) {
                 // For virtual rewards, use display name and first lore line
@@ -189,32 +248,42 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                     // Extract the actual reward from lore (e.g., "Adds 1000 coins" -> "1000 coins")
                     String reward = firstLoreLine.replaceFirst(".*?([0-9]+.*?)$", "$1");
 
-                    // Use MiniMessage to parse the display name with color codes
+                    // Update rewardName for virtual rewards
                     rewardName = meta.hasDisplayName() ?
                             MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
                                     .serialize(Objects.requireNonNull(meta.displayName()))) :
                             Component.text(reward).color(NamedTextColor.YELLOW);
-                } else {
-                    rewardName = meta != null && meta.hasDisplayName() ?
-                            MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                                    .serialize(Objects.requireNonNull(meta.displayName()))) :
-                            Component.text(rewardItem.getType().name());
+
+                    // Execute the action
+                    finalReward.action().execute(player);
                 }
             } else {
-                // For physical items, use item display name with color support
-                rewardName = meta != null && meta.hasDisplayName() ?
-                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                                .serialize(Objects.requireNonNull(meta.displayName()))) :
-                        Component.text(rewardItem.getType().name());
-            }
+                // For physical items, clean the lore and give the item
+                if (meta != null && meta.hasLore()) {
+                    List<Component> lore = new ArrayList<>(Objects.requireNonNull(meta.lore()));
 
-            // Message for winner
-            Component winnerMessage = Component.text("You won ")
-                    .color(DESCRIPTION_COLOR)
-                    .append(rewardName)
-                    .append(Component.text("!")
-                            .color(DESCRIPTION_COLOR));
-            player.sendMessage(winnerMessage);
+                    // Remove amount range, chance and rarity lines
+                    lore.removeIf(line -> {
+                        String plainText = PlainTextComponentSerializer.plainText().serialize(line);
+                        return plainText.startsWith("Amount:") ||
+                               plainText.startsWith("Chance:") ||
+                               plainText.startsWith("Rarity:") ||
+                               plainText.isEmpty(); // Remove empty lines
+                    });
+
+                    // Remove any trailing empty lines
+                    while (!lore.isEmpty() && PlainTextComponentSerializer.plainText()
+                            .serialize(lore.get(lore.size() - 1)).isEmpty()) {
+                        lore.remove(lore.size() - 1);
+                    }
+
+                    meta.lore(lore);
+                    rewardItem.setItemMeta(meta);
+                }
+
+                // Give the cleaned item
+                player.getInventory().addItem(rewardItem);
+            }
 
             // Global broadcast message
             Component broadcastMessage = Component.text("» ")
@@ -223,8 +292,15 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                             .color(TARGET_COLOR))
                     .append(Component.text(" has won ")
                             .color(DESCRIPTION_COLOR))
-                    .append(rewardName)
-                    .append(Component.text(" from ")
+                    .append(Component.text(rewardItem.getAmount() + "x ")
+                            .color(ITEM_COLOR))
+                    .append(rewardName
+                            .color(ITEM_COLOR))
+                    .append(Component.text(" (")
+                            .color(DESCRIPTION_COLOR))
+                    .append(Component.text(finalReward.rarity().toString())
+                            .color(finalReward.rarity().getColor()))
+                    .append(Component.text(") from ")
                             .color(DESCRIPTION_COLOR))
                     .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
                     .append(Component.text("!")
@@ -235,9 +311,6 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                 p.sendMessage(broadcastMessage);
             }
 
-            // Give the reward
-            finalReward.give(player);
-
             // Increment open count and save
             lootbox.incrementOpenCount();
             plugin.getLootboxManager().saveLootbox(lootbox);
@@ -245,16 +318,6 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
             player.closeInventory();
             isProcessingReward = false;
         }, 20L);
-    }
-
-    // Helper class to get color from component
-    private static class TextColorGetter {
-        public static TextColor getColorFromComponent(Component component) {
-            if (component.color() != null) {
-                return component.color();
-            }
-            return NamedTextColor.YELLOW; // Default color
-        }
     }
 
     protected void playTickSound() {
