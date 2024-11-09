@@ -10,6 +10,7 @@ import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIImpl;
 import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIProvider;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
+import co.RabbitTale.luckyRabbit.listeners.EntityListener;
 import co.RabbitTale.luckyRabbit.listeners.ListenerManager;
 import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 import co.RabbitTale.luckyRabbit.user.UserManager;
@@ -49,7 +50,6 @@ public class LuckyRabbit extends JavaPlugin {
     // TODO: add option to change lang (even by API calls from other plugins)
     // TODO: add option to de-place de-spawn or some shit placed lootbox entity
     // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)
-    // TODO: make some commands available for console (keys, licence, reload, animations)
     // TODO: web editor (manage lootboxes and items via web dashboard) will auto calculate % of items, will show list of lootboxes with items inside ect.
     // TODO: make better message when changing tier (from Trial to free -> display info to buy license)
     // TODO: add special animation and sound when user win legendary item
@@ -140,6 +140,9 @@ public class LuckyRabbit extends JavaPlugin {
         } else {
             Logger.success("Plugin enabled successfully!");
         }
+
+        // Register listeners
+        getServer().getPluginManager().registerEvents(new EntityListener(this), this);
     }
 
     @Override

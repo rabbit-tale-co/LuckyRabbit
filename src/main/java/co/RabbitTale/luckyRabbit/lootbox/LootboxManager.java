@@ -615,4 +615,8 @@ public class LootboxManager {
     public LootboxEntity getEntityById(UUID entityId) {
         return entities.get(entityId);
     }
+
+    public Collection<LootboxEntity> getAllEntities() {
+        return Collections.unmodifiableCollection(entities.values());
+    }
 }

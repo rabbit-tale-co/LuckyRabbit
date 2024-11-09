@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
+import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.DESCRIPTION_COLOR;
@@ -206,6 +206,76 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         // Play winning sounds
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1.0f, 1.0f);
+
+        // Special effects for legendary items
+        if (finalReward.rarity() == RewardRarity.LEGENDARY) {
+            // Get the lootbox entity location
+            Location lootboxLocation = null;
+            for (LootboxEntity entity : plugin.getLootboxManager().getAllEntities()) {
+                if (entity.getLootboxId().equals(lootbox.getId())) {
+                    lootboxLocation = entity.getLocation();
+                    break;
+                }
+            }
+
+            // If we found the lootbox location, play effects there
+            if (lootboxLocation != null) {
+                final Location effectLocation = lootboxLocation.clone().add(0, 1, 0); // Slightly above the entity
+
+                // Play special sounds at entity location for everyone to hear
+                effectLocation.getWorld().playSound(effectLocation, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+                effectLocation.getWorld().playSound(effectLocation, Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 2.0f);
+                effectLocation.getWorld().playSound(effectLocation, Sound.ENTITY_WITHER_SPAWN, 0.3f, 2.0f);
+
+                // Create particle effects
+                new BukkitRunnable() {
+                    double y = 0;
+                    int ticks = 0;
+
+                    @Override
+                    public void run() {
+                        if (ticks >= 40) { // 2 seconds of effects
+                            this.cancel();
+                            return;
+                        }
+
+                        Location particleLoc = effectLocation.clone().add(0, y, 0);
+
+                        // Spiral effect
+                        double radius = 1.5;
+                        for (double degree = 0; degree < 360; degree += 20) {
+                            double radian = Math.toRadians(degree);
+                            double x = Math.cos(radian) * radius;
+                            double z = Math.sin(radian) * radius;
+
+                            Location spawnLoc = particleLoc.clone().add(x, 0, z);
+
+                            // Dragon breath particles rising up
+                            effectLocation.getWorld().spawnParticle(
+                                Particle.DRAGON_BREATH,
+                                spawnLoc,
+                                1, 0, 0, 0, 0
+                            );
+
+                            // End rod particles for extra effect
+                            effectLocation.getWorld().spawnParticle(
+                                Particle.END_ROD,
+                                spawnLoc,
+                                1, 0, 0, 0, 0.05
+                            );
+                        }
+
+                        // Lightning effect (visual only)
+                        if (ticks % 5 == 0) {
+                            effectLocation.getWorld().strikeLightningEffect(particleLoc);
+                        }
+
+                        y += 0.1;
+                        ticks++;
+                    }
+                }.runTaskTimer(plugin, 0L, 1L);
+            }
+        }
 
         // Give reward after a short delay
         Bukkit.getScheduler().runTaskLater(plugin, () -> {

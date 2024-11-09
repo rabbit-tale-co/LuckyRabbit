@@ -47,12 +47,24 @@ public class LootboxContentGUI implements GUI {
     private final Inventory inventory;
     private int currentPage = 0;
     private final List<LootboxItem> items;
+    private final boolean showBackButton;
+    private final boolean showOpenButton;
 
     public LootboxContentGUI(Player player, Lootbox lootbox) {
+        this(player, lootbox, true, false);
+    }
+
+    public LootboxContentGUI(Player player, Lootbox lootbox, boolean showBackButton) {
+        this(player, lootbox, showBackButton, true);
+    }
+
+    public LootboxContentGUI(Player player, Lootbox lootbox, boolean showBackButton, boolean showOpenButton) {
         this.plugin = LuckyRabbit.getInstance();
         this.player = player;
         this.lootbox = lootbox;
         this.items = new ArrayList<>(lootbox.getItems().values());
+        this.showBackButton = showBackButton;
+        this.showOpenButton = showOpenButton || player.hasPermission("luckyrabbit.admin");
 
         // Calculate total pages
         int totalPages = Math.max(1, (int) Math.ceil(items.size() / (double) PAGE_SIZE));
@@ -81,17 +93,21 @@ public class LootboxContentGUI implements GUI {
             inventory.setItem(slot, createDisplayItem(item));
         }
 
-        // Add navigation buttons - always show them
+        // Add navigation buttons
         inventory.setItem(PREV_PAGE_SLOT, GUIUtils.createNavigationButton("Previous Page",
             Material.ARROW, currentPage > 0));
         inventory.setItem(NEXT_PAGE_SLOT, GUIUtils.createNavigationButton("Next Page",
             Material.ARROW, (currentPage + 1) * PAGE_SIZE < items.size()));
 
-        // Add open button
-        updateOpenButton();
+        // Add open button only if allowed
+        if (showOpenButton) {
+            updateOpenButton();
+        }
 
-        // Add exit button
-        inventory.setItem(EXIT_BUTTON_SLOT, GUIUtils.createNavigationButton("Back to List", Material.BARRIER, true));
+        // Only add exit button if showing back button
+        if (showBackButton) {
+            inventory.setItem(EXIT_BUTTON_SLOT, GUIUtils.createNavigationButton("Back to List", Material.BARRIER, true));
+        }
 
         // Update title with current page - without color
         int totalPages = Math.max(1, (int) Math.ceil(items.size() / (double) PAGE_SIZE));
@@ -142,10 +158,10 @@ public class LootboxContentGUI implements GUI {
         } else if (slot == NEXT_PAGE_SLOT && (currentPage + 1) * PAGE_SIZE < items.size()) {
             currentPage++;
             updateInventory();
-        } else if (slot == EXIT_BUTTON_SLOT) {
+        } else if (slot == EXIT_BUTTON_SLOT && showBackButton) {
             player.closeInventory();
             LootboxListGUI.openGUI(player);
-        } else if (slot == OPEN_BUTTON_SLOT) {
+        } else if (slot == OPEN_BUTTON_SLOT && showOpenButton) {
             handleOpenButton();
         } else {
             // Calculate if click was in valid item area

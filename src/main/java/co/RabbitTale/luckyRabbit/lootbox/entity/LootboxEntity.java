@@ -234,4 +234,12 @@ public class LootboxEntity {
     private boolean isExampleLootbox(String id) {
         return plugin.getLootboxManager().isExampleLootbox(id);
     }
+
+    public String getLootboxId() {
+        return lootboxId;
+    }
+
+    public Location getLocation() {
+        return armorStand.getLocation();
+    }
 }
