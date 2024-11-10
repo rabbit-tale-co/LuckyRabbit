@@ -10,6 +10,7 @@ import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIImpl;
 import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIProvider;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
+import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
 import co.RabbitTale.luckyRabbit.listeners.EntityListener;
 import co.RabbitTale.luckyRabbit.listeners.ListenerManager;
 import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
@@ -38,6 +39,8 @@ public class LuckyRabbit extends JavaPlugin {
     private LicenseManager licenseManager;
     @Getter
     private FeatureManager featureManager;
+    @Getter
+    private CreatorEffects creatorEffects;
 
     @Getter
     private Economy economy = null;
@@ -52,7 +55,6 @@ public class LuckyRabbit extends JavaPlugin {
     // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)
     // TODO: web editor (manage lootboxes and items via web dashboard) will auto calculate % of items, will show list of lootboxes with items inside ect.
     // TODO: make better message when changing tier (from Trial to free -> display info to buy license)
-    // TODO: add special animation and sound when user win legendary item
     @Override
     public void onEnable() {
         instance = this;
@@ -78,6 +80,7 @@ public class LuckyRabbit extends JavaPlugin {
         this.api = new LuckyRabbitAPIImpl(this);
         LuckyRabbitAPIProvider.setAPI(this.api);
         this.userManager = new UserManager(this);
+        this.creatorEffects = new CreatorEffects(this);
 
         // Load configurations
         configManager.loadConfigs();

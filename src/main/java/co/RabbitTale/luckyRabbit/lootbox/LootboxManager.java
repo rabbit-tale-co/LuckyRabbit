@@ -22,6 +22,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.block.Block;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
@@ -221,7 +222,7 @@ public class LootboxManager {
         Lootbox lootbox = getLootbox(lootboxId);
         if (lootbox == null) {
             player.sendMessage(Component.text("Lootbox not found!")
-                .color(LootboxCommand.ERROR_COLOR));
+                    .color(LootboxCommand.ERROR_COLOR));
             return;
         }
 
@@ -229,7 +230,7 @@ public class LootboxManager {
         String oraxenId = OraxenItems.getIdByItem(item);
         if (oraxenId != null && FeatureManager.canUseOraxenItems()) {
             player.sendMessage(Component.text("Oraxen items are only available in premium version!")
-                .color(LootboxCommand.ERROR_COLOR));
+                    .color(LootboxCommand.ERROR_COLOR));
             return;
         }
 
@@ -244,7 +245,7 @@ public class LootboxManager {
         // Check for command actions if the item has any
         if (lootboxItem.getAction() != null && FeatureManager.canExecuteCommands()) {
             player.sendMessage(Component.text("Command rewards are only available in premium version!")
-                .color(LootboxCommand.ERROR_COLOR));
+                    .color(LootboxCommand.ERROR_COLOR));
             return;
         }
 
@@ -254,7 +255,7 @@ public class LootboxManager {
 
         // Notify the player
         player.sendMessage(Component.text("Successfully added item to lootbox!")
-            .color(LootboxCommand.SUCCESS_COLOR));
+                .color(LootboxCommand.SUCCESS_COLOR));
     }
 
     public void removeItem(Player player, String id) {
@@ -314,7 +315,7 @@ public class LootboxManager {
         // Special message for example lootboxes
         if (isExampleLootbox(lootbox.getId())) {
             player.sendMessage(Component.text("Note: This is an example lootbox - only admins can open it!")
-                .color(LootboxCommand.INFO_COLOR));
+                    .color(LootboxCommand.INFO_COLOR));
         }
 
         Component message = Component.text("Successfully placed ")
@@ -379,8 +380,8 @@ public class LootboxManager {
 
     public List<String> getLootboxNames() {
         return new ArrayList<>(lootboxes.keySet().stream()
-            .filter(id -> !isExampleLootbox(id))
-            .toList());
+                .filter(id -> !isExampleLootbox(id))
+                .toList());
     }
 
     public List<String> getLootboxNamesAdmin() {
@@ -390,8 +391,8 @@ public class LootboxManager {
     public Collection<Lootbox> getAllLootboxes() {
         // For non-admins, filter out example lootboxes
         return Collections.unmodifiableCollection(lootboxes.values().stream()
-            .filter(lootbox -> !isExampleLootbox(lootbox.getId()))
-            .toList());
+                .filter(lootbox -> !isExampleLootbox(lootbox.getId()))
+                .toList());
     }
 
     public Collection<Lootbox> getAllLootboxesAdmin() {
@@ -563,9 +564,9 @@ public class LootboxManager {
             // Remove any existing lootbox entities first
             for (World world : plugin.getServer().getWorlds()) {
                 world.getEntities().stream()
-                    .filter(entity -> entity instanceof ArmorStand
-                            && entity.hasMetadata("LootboxEntity"))
-                    .forEach(Entity::remove);
+                        .filter(entity -> entity instanceof ArmorStand
+                        && entity.hasMetadata("LootboxEntity"))
+                        .forEach(Entity::remove);
             }
 
             // Clear existing entities map
@@ -618,5 +619,35 @@ public class LootboxManager {
 
     public Collection<LootboxEntity> getAllEntities() {
         return Collections.unmodifiableCollection(entities.values());
+    }
+
+    public LootboxEntity getLootboxEntityAtTarget(Player player) {
+        // Get the target location the player is looking at
+        Location targetLoc = player.getTargetBlock(null, 5).getLocation().add(0.5, 0, 0.5);
+
+        // Check for entities near the target location
+        for (LootboxEntity entity : getAllEntities()) {
+            Location entityLoc = entity.getLocation();
+
+            // Check if locations are close enough (within 1 block)
+            if (entityLoc.getWorld().equals(targetLoc.getWorld()) &&
+                entityLoc.distance(targetLoc) <= 1.5) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    public void removeLootboxEntity(LootboxEntity entity) {
+        // Remove the entity but keep the lootbox data
+        entity.remove();
+        entities.remove(entity.getUniqueId());
+
+        // Remove location from lootbox
+        Lootbox lootbox = getLootbox(entity.getLootboxId());
+        if (lootbox != null) {
+            lootbox.removeLocation(entity.getLocation());
+            saveLootbox(lootbox);
+        }
     }
 }

@@ -6,6 +6,7 @@ authors: [RabbitTale]
 description: Advanced lootbox system with animations
 website: https://rabbittale.co
 
+depend: [ProtocolLib]
 softdepend: [Oraxen, Vault]
 commands:
   lootbox:

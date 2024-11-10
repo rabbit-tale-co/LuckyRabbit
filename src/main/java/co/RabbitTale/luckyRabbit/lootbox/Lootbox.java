@@ -1,16 +1,20 @@
 package co.RabbitTale.luckyRabbit.lootbox;
 
-import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
-import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
-import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
-import lombok.Getter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import co.RabbitTale.luckyRabbit.api.FeatureManager;
+import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
+import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
+import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
+import lombok.Getter;
 
 @Getter
 public class Lootbox {
@@ -131,6 +135,24 @@ public class Lootbox {
             });
             modified = true;
         }
+    }
+
+    public void removeLocation(Location location) {
+        if (locations == null) return;
+
+        // Remove the exact location if it exists
+        locations.remove(location);
+
+        // If not found, try to find a location that matches coordinates
+        locations.removeIf(loc ->
+            loc.getWorld().equals(location.getWorld()) &&
+            loc.getX() == location.getX() &&
+            loc.getY() == location.getY() &&
+            loc.getZ() == location.getZ()
+        );
+
+        // Mark as modified so it gets saved
+        modified = true;
     }
 
 }

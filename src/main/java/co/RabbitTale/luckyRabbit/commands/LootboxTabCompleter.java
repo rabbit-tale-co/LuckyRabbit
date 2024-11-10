@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
 import net.kyori.adventure.text.Component;
 
 public class LootboxTabCompleter implements TabCompleter {
@@ -34,10 +35,25 @@ public class LootboxTabCompleter implements TabCompleter {
         if (args.length == 1) {
             // Base commands
             List<String> commands = new ArrayList<>(Arrays.asList("list", "help"));
+            if (sender instanceof Player && CreatorEffects.isCreator(((Player) sender).getUniqueId())) {
+                commands.add("creator");
+            }
             if (sender.hasPermission("luckyrabbit.admin")) {
-                commands.addAll(Arrays.asList("create", "delete", "item", "place", "key", "reload", "animations", "license"));
+                commands.addAll(Arrays.asList("create", "delete", "item", "place", "remove", "key", "reload", "animations", "license"));
             }
             return filterCompletions(commands, args[0]);
+        }
+
+        if (args[0].equalsIgnoreCase("creator")) {
+            if (sender instanceof Player && CreatorEffects.isCreator(((Player) sender).getUniqueId())) {
+                if (args.length == 2) {
+                    return filterCompletions(List.of("particles"), args[1]);
+                }
+                if (args.length == 3 && args[1].equalsIgnoreCase("particles")) {
+                    return filterCompletions(List.of("toggle"), args[2]);
+                }
+            }
+            return completions;
         }
 
         if (!sender.hasPermission("luckyrabbit.admin")) {

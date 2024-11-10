@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
+import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -26,6 +28,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
 public class LootboxCommand implements CommandExecutor {
+
     private final LuckyRabbit plugin;
     public static final TextColor ERROR_COLOR = NamedTextColor.RED;
     public static final TextColor SUCCESS_COLOR = NamedTextColor.GREEN;
@@ -85,9 +88,12 @@ public class LootboxCommand implements CommandExecutor {
                         handleKey(sender, args);
                     }
                 }
-                case "reload" -> handleReload(sender);
-                case "animations" -> showAnimations(sender);
-                case "license" -> showLicenseInfo(sender);
+                case "reload" ->
+                    handleReload(sender);
+                case "animations" ->
+                    showAnimations(sender);
+                case "license" ->
+                    showLicenseInfo(sender);
                 default -> {
                     if (!(sender instanceof Player player)) {
                         sender.sendMessage(Component.text("This command can only be used by players!")
@@ -168,35 +174,36 @@ public class LootboxCommand implements CommandExecutor {
                 plugin.getUserManager().addKeys(target.getUniqueId(), id, amount);
                 // Message for admin
                 Component adminMessage = Component.text("You gave ")
-                    .color(DESCRIPTION_COLOR)
-                    .append(Component.text(amount + "x ", ITEM_COLOR))
-                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
-                    .append(lootboxName)
-                    .append(Component.text(" to ", DESCRIPTION_COLOR))
-                    .append(Component.text(target.getName(), TARGET_COLOR));
+                        .color(DESCRIPTION_COLOR)
+                        .append(Component.text(amount + "x ", ITEM_COLOR))
+                        .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
+                        .append(lootboxName)
+                        .append(Component.text(" to ", DESCRIPTION_COLOR))
+                        .append(Component.text(target.getName(), TARGET_COLOR));
                 sender.sendMessage(adminMessage);
 
                 // Message for target player
                 Component targetMessage = Component.text("You received ")
-                    .color(DESCRIPTION_COLOR)
-                    .append(Component.text(amount + "x ", ITEM_COLOR))
-                    .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
-                    .append(lootboxName);
+                        .color(DESCRIPTION_COLOR)
+                        .append(Component.text(amount + "x ", ITEM_COLOR))
+                        .append(Component.text("key(s) for ", DESCRIPTION_COLOR))
+                        .append(lootboxName);
                 target.sendMessage(targetMessage);
             }
             case "remove" -> {
                 plugin.getUserManager().removeKeys(target.getUniqueId(), id, amount);
                 Component message = Component.text("Successfully removed ")
-                    .color(SUCCESS_COLOR)
-                    .append(Component.text(amount + "x ", ITEM_COLOR))
-                    .append(Component.text("key(s) for ", SUCCESS_COLOR))
-                    .append(lootboxName)
-                    .append(Component.text(" from ", SUCCESS_COLOR))
-                    .append(Component.text(target.getName(), TARGET_COLOR));
+                        .color(SUCCESS_COLOR)
+                        .append(Component.text(amount + "x ", ITEM_COLOR))
+                        .append(Component.text("key(s) for ", SUCCESS_COLOR))
+                        .append(lootboxName)
+                        .append(Component.text(" from ", SUCCESS_COLOR))
+                        .append(Component.text(target.getName(), TARGET_COLOR));
                 sender.sendMessage(message);
             }
-            default -> sender.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
-                    .color(ERROR_COLOR));
+            default ->
+                sender.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
+                        .color(ERROR_COLOR));
         }
     }
 
@@ -216,23 +223,23 @@ public class LootboxCommand implements CommandExecutor {
             plugin.reload();
 
             // Send success message with current mode
-            String planType = LicenseManager.isPremium() ? "PREMIUM" :
-                             LicenseManager.isTrialActive() ? "TRIAL" : "FREE";
+            String planType = LicenseManager.isPremium() ? "PREMIUM"
+                    : LicenseManager.isTrialActive() ? "TRIAL" : "FREE";
             int maxLootboxes = FeatureManager.getMaxLootboxes();
 
             sender.sendMessage(Component.empty());
             sender.sendMessage(Component.text("Plugin reloaded successfully!", SUCCESS_COLOR));
             sender.sendMessage(Component.text()
-                .append(Component.text("Running in ", DESCRIPTION_COLOR))
-                .append(Component.text(planType, planType.equals("PREMIUM") ? SUCCESS_COLOR :
-                                              planType.equals("TRIAL") ? INFO_COLOR : ERROR_COLOR))
-                .append(Component.text(" mode", DESCRIPTION_COLOR))
-                .build());
+                    .append(Component.text("Running in ", DESCRIPTION_COLOR))
+                    .append(Component.text(planType, planType.equals("PREMIUM") ? SUCCESS_COLOR
+                            : planType.equals("TRIAL") ? INFO_COLOR : ERROR_COLOR))
+                    .append(Component.text(" mode", DESCRIPTION_COLOR))
+                    .build());
             sender.sendMessage(Component.text()
-                .append(Component.text("Maximum lootboxes allowed: ", DESCRIPTION_COLOR))
-                .append(Component.text(maxLootboxes == -1 ? "Unlimited" : String.valueOf(maxLootboxes),
-                        maxLootboxes == -1 ? SUCCESS_COLOR : INFO_COLOR))
-                .build());
+                    .append(Component.text("Maximum lootboxes allowed: ", DESCRIPTION_COLOR))
+                    .append(Component.text(maxLootboxes == -1 ? "Unlimited" : String.valueOf(maxLootboxes),
+                            maxLootboxes == -1 ? SUCCESS_COLOR : INFO_COLOR))
+                    .build());
             sender.sendMessage(Component.empty());
         } catch (Exception e) {
             sender.sendMessage(Component.text("An error occurred while reloading: " + e.getMessage())
@@ -244,21 +251,21 @@ public class LootboxCommand implements CommandExecutor {
     private void showAnimations(CommandSender sender) {
         sender.sendMessage(Component.empty());
         sender.sendMessage(Component.text("Available Animations:")
-            .color(INFO_COLOR));
+                .color(INFO_COLOR));
 
         sender.sendMessage(Component.text()
-            .append(Component.text("» ", SEPARATOR_COLOR))
-            .append(Component.text("HORIZONTAL", ACTION_COLOR))
-            .append(Component.text(" - ", SEPARATOR_COLOR))
-            .append(Component.text("Classic horizontal spin animation", DESCRIPTION_COLOR))
-            .build());
+                .append(Component.text("» ", SEPARATOR_COLOR))
+                .append(Component.text("HORIZONTAL", ACTION_COLOR))
+                .append(Component.text(" - ", SEPARATOR_COLOR))
+                .append(Component.text("Classic horizontal spin animation", DESCRIPTION_COLOR))
+                .build());
 
         sender.sendMessage(Component.text()
-            .append(Component.text("» ", SEPARATOR_COLOR))
-            .append(Component.text("CIRCLE", ACTION_COLOR))
-            .append(Component.text(" - ", SEPARATOR_COLOR))
-            .append(Component.text("Items spin in a circle pattern", DESCRIPTION_COLOR))
-            .build());
+                .append(Component.text("» ", SEPARATOR_COLOR))
+                .append(Component.text("CIRCLE", ACTION_COLOR))
+                .append(Component.text(" - ", SEPARATOR_COLOR))
+                .append(Component.text("Items spin in a circle pattern", DESCRIPTION_COLOR))
+                .build());
 
         sender.sendMessage(Component.empty());
         sender.sendMessage(Component.text("More animations coming soon!", INFO_COLOR));
@@ -283,12 +290,12 @@ public class LootboxCommand implements CommandExecutor {
 
         // Status with proper color formatting
         Component statusText = Component.text()
-            .append(Component.text("» ", SEPARATOR_COLOR))
-            .append(Component.text("Status: ", DESCRIPTION_COLOR))
-            .append(Component.text(isPremium ? "PREMIUM" : isTrial ? "TRIAL" : "FREE")
-                .color(isPremium ? SUCCESS_COLOR : isTrial ? INFO_COLOR : ERROR_COLOR)
-                .decorate(net.kyori.adventure.text.format.TextDecoration.BOLD))
-            .build();
+                .append(Component.text("» ", SEPARATOR_COLOR))
+                .append(Component.text("Status: ", DESCRIPTION_COLOR))
+                .append(Component.text(isPremium ? "PREMIUM" : isTrial ? "TRIAL" : "FREE")
+                        .color(isPremium ? SUCCESS_COLOR : isTrial ? INFO_COLOR : ERROR_COLOR)
+                        .decorate(net.kyori.adventure.text.format.TextDecoration.BOLD))
+                .build();
         sender.sendMessage(statusText);
 
         // License Key
@@ -352,11 +359,82 @@ public class LootboxCommand implements CommandExecutor {
                     LootboxListGUI.openGUI(player, 1);
                 }
             }
-            case "create" -> handleCreate(player, args);
-            case "delete" -> handleDelete(player, args);
-            case "item" -> handleItem(player, args);
-            case "place" -> handlePlace(player, args);
-            default -> showHelp(player, 1);
+            case "create" ->
+                handleCreate(player, args);
+            case "delete" ->
+                handleDelete(player, args);
+            case "item" ->
+                handleItem(player, args);
+            case "place" ->
+                handlePlace(player, args);
+            case "particles" -> {
+                // Only allow creators to use this command
+                if (!CreatorEffects.isCreator(player.getUniqueId())) {
+                    player.sendMessage(Component.text("This command is only for creators!")
+                            .color(ERROR_COLOR));
+                    return;
+                }
+
+                // Toggle particles visibility
+                boolean newState = plugin.getCreatorEffects().toggleParticlesVisibility(player);
+                player.sendMessage(Component.text("Creator particles are now ")
+                        .color(DESCRIPTION_COLOR)
+                        .append(Component.text(newState ? "visible" : "hidden")
+                                .color(newState ? SUCCESS_COLOR : ERROR_COLOR))
+                        .append(Component.text(" for you", DESCRIPTION_COLOR)));
+            }
+            case "creator" -> {
+                // Only allow creators to use this command
+                if (!CreatorEffects.isCreator(player.getUniqueId())) {
+                    player.sendMessage(Component.text("This command is only for creators!")
+                            .color(ERROR_COLOR));
+                    return;
+                }
+
+                if (args.length == 1) {
+                    showCreatorHelp(player);
+                    return;
+                }
+
+                String creatorAction = args[1].toLowerCase();
+                switch (creatorAction) {
+                    case "particles" -> {
+                        if (args.length > 2 && args[2].equalsIgnoreCase("toggle")) {
+                            boolean newState = plugin.getCreatorEffects().toggleParticlesVisibility(player);
+                            player.sendMessage(Component.text("Creator particles are now ")
+                                    .color(DESCRIPTION_COLOR)
+                                    .append(Component.text(newState ? "visible" : "hidden")
+                                            .color(newState ? SUCCESS_COLOR : ERROR_COLOR))
+                                    .append(Component.text(" for you", DESCRIPTION_COLOR)));
+                        } else {
+                            showCreatorHelp(player);
+                        }
+                    }
+                    default ->
+                        showCreatorHelp(player);
+                }
+            }
+            case "remove" -> {
+                if (!player.hasPermission("luckyrabbit.admin.remove")) {
+                    player.sendMessage(Component.text("You don't have permission to remove lootbox entities!")
+                        .color(ERROR_COLOR));
+                    return;
+                }
+
+                // If looking at a lootbox entity
+                LootboxEntity targetEntity = plugin.getLootboxManager().getLootboxEntityAtTarget(player);
+                if (targetEntity != null) {
+                    // Remove the entity but keep the lootbox data
+                    plugin.getLootboxManager().removeLootboxEntity(targetEntity);
+                    player.sendMessage(Component.text("Successfully removed lootbox entity!")
+                        .color(SUCCESS_COLOR));
+                } else {
+                    player.sendMessage(Component.text("You must be looking at a lootbox entity!")
+                        .color(ERROR_COLOR));
+                }
+            }
+            default ->
+                showHelp(player, 1);
         }
     }
 
@@ -369,9 +447,9 @@ public class LootboxCommand implements CommandExecutor {
 
         if (args.length < 2) {
             player.sendMessage(Component.text("Usage: ", DESCRIPTION_COLOR)
-                .append(Component.text("/lb ", SEPARATOR_COLOR))
-                .append(Component.text("create ", ACTION_COLOR))
-                .append(Component.text("<name>", ITEM_COLOR)));
+                    .append(Component.text("/lb ", SEPARATOR_COLOR))
+                    .append(Component.text("create ", ACTION_COLOR))
+                    .append(Component.text("<name>", ITEM_COLOR)));
             return;
         }
 
@@ -403,7 +481,7 @@ public class LootboxCommand implements CommandExecutor {
         try {
             plugin.getLootboxManager().createLootbox(name, animationType);
             player.sendMessage(Component.text("Successfully created lootbox: ", SUCCESS_COLOR)
-                .append(MiniMessage.miniMessage().deserialize(name)));
+                    .append(MiniMessage.miniMessage().deserialize(name)));
         } catch (IllegalStateException e) {
             // Handle limit reached error
             player.sendMessage(Component.empty());
@@ -465,7 +543,7 @@ public class LootboxCommand implements CommandExecutor {
                 ItemStack item = player.getInventory().getItemInMainHand();
                 if (item.getType().isAir()) {
                     player.sendMessage(Component.text("You must hold an item to add!")
-                        .color(ERROR_COLOR));
+                            .color(ERROR_COLOR));
                     return;
                 }
 
@@ -475,9 +553,11 @@ public class LootboxCommand implements CommandExecutor {
 
                 plugin.getLootboxManager().addItem(player, id, item, rarity, chance);
             }
-            case "remove" -> plugin.getLootboxManager().removeItem(player, id);
-            default -> player.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
-                    .color(ERROR_COLOR));
+            case "remove" ->
+                plugin.getLootboxManager().removeItem(player, id);
+            default ->
+                player.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
+                        .color(ERROR_COLOR));
         }
     }
 
@@ -514,22 +594,26 @@ public class LootboxCommand implements CommandExecutor {
         if (player.hasPermission("luckyrabbit.admin")) {
             // Admin commands with colored parameters
             commands.add(createCommandComponent("/lb create", "Create a new lootbox",
-                Map.of("<name>", ITEM_COLOR, "[animation]", NAME_COLOR)));
+                    Map.of("<name>", ITEM_COLOR, "[animation]", NAME_COLOR)));
             commands.add(createCommandComponent("/lb delete", "Delete a lootbox",
-                Map.of("<id>", ITEM_COLOR)));
+                    Map.of("<id>", ITEM_COLOR)));
             commands.add(createCommandComponent("/lb item add/remove", "Manage lootbox items",
-                Map.of("<id>", ITEM_COLOR)));
+                    Map.of("<id>", ITEM_COLOR)));
             commands.add(createCommandComponent("/lb place", "Place a lootbox",
-                Map.of("<id>", ITEM_COLOR)));
+                    Map.of("<id>", ITEM_COLOR)));
             commands.add(createCommandComponent("/lb key add/remove", "Manage lootbox keys",
-                Map.of("<player>", TARGET_COLOR, "<id>", ITEM_COLOR, "<amount>", NAME_COLOR)));
+                    Map.of("<player>", TARGET_COLOR, "<id>", ITEM_COLOR, "<amount>", NAME_COLOR)));
             commands.add(createCommandComponent("/lb reload", "Reload all configurations", null));
         }
 
         // Calculate total pages
         int totalPages = (int) Math.ceil(commands.size() / (double) ITEMS_PER_PAGE);
-        if (page < 1) page = 1;
-        if (page > totalPages) page = totalPages;
+        if (page < 1) {
+            page = 1;
+        }
+        if (page > totalPages) {
+            page = totalPages;
+        }
 
         // Calculate start and end index for current page
         int startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -538,11 +622,11 @@ public class LootboxCommand implements CommandExecutor {
         // Send header with page info
         player.sendMessage(Component.empty());
         player.sendMessage(Component.text()
-            .append(Component.text("=== ", SEPARATOR_COLOR))
-            .append(Component.text("LuckyRabbitFoot Help ", INFO_COLOR))
-            .append(Component.text("(Page " + page + "/" + totalPages + ") ", DESCRIPTION_COLOR))
-            .append(Component.text("===", SEPARATOR_COLOR))
-            .build());
+                .append(Component.text("=== ", SEPARATOR_COLOR))
+                .append(Component.text("LuckyRabbitFoot Help ", INFO_COLOR))
+                .append(Component.text("(Page " + page + "/" + totalPages + ") ", DESCRIPTION_COLOR))
+                .append(Component.text("===", SEPARATOR_COLOR))
+                .build());
         player.sendMessage(Component.empty());
 
         // Send commands for current page
@@ -555,16 +639,16 @@ public class LootboxCommand implements CommandExecutor {
         // Add navigation buttons if there are multiple pages
         if (totalPages > 1) {
             var navigationBuilder = Component.text()
-                .append(Component.text("=== ", SEPARATOR_COLOR));
+                    .append(Component.text("=== ", SEPARATOR_COLOR));
 
             // Previous page button
             if (page > 1) {
                 navigationBuilder.append(
-                    Component.text("[Previous] ", SUCCESS_COLOR)
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/lb help " + (page - 1)))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                            Component.text("Click to go to previous page")
-                        ))
+                        Component.text("[Previous] ", SUCCESS_COLOR)
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/lb help " + (page - 1)))
+                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                        Component.text("Click to go to previous page")
+                                ))
                 );
             }
 
@@ -574,11 +658,11 @@ public class LootboxCommand implements CommandExecutor {
             // Next page button
             if (page < totalPages) {
                 navigationBuilder.append(
-                    Component.text("[Next]", SUCCESS_COLOR)
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/lb help " + (page + 1)))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                            Component.text("Click to go to next page")
-                        ))
+                        Component.text("[Next]", SUCCESS_COLOR)
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/lb help " + (page + 1)))
+                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                        Component.text("Click to go to next page")
+                                ))
                 );
             }
 
@@ -605,11 +689,11 @@ public class LootboxCommand implements CommandExecutor {
                 } else if (part.startsWith("/lb")) {
                     // Color the base command with separator color
                     color = SEPARATOR_COLOR;
-                } else if (part.equals("add") || part.equals("remove") ||
-                          part.equals("create") || part.equals("delete") ||
-                          part.equals("place") || part.equals("reload") ||
-                          part.equals("list") || part.equals("help") ||
-                          part.equals("animations") || part.equals("license")) {
+                } else if (part.equals("add") || part.equals("remove")
+                        || part.equals("create") || part.equals("delete")
+                        || part.equals("place") || part.equals("reload")
+                        || part.equals("list") || part.equals("help")
+                        || part.equals("animations") || part.equals("license")) {
                     // Color action words
                     color = ACTION_COLOR;
                 } else {
@@ -646,17 +730,18 @@ public class LootboxCommand implements CommandExecutor {
         }
 
         return commandComponent
-            .append(Component.text(" » ", SEPARATOR_COLOR))  // Changed from " - " to " » "
-            .append(Component.text(description, DESCRIPTION_COLOR));
+                .append(Component.text(" » ", SEPARATOR_COLOR)) // Changed from " - " to " » "
+                .append(Component.text(description, DESCRIPTION_COLOR));
     }
 
-    private static @NotNull Component copyCommand(String command, Component commandComponent, String part, TextColor color, int i, String[] parts) {
+    private static @NotNull
+    Component copyCommand(String command, Component commandComponent, String part, TextColor color, int i, String[] parts) {
         commandComponent = commandComponent.append(
-            Component.text(part, color)
-                .clickEvent(net.kyori.adventure.text.event.ClickEvent.suggestCommand(command))
-                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                    Component.text("Click to copy command")
-                ))
+                Component.text(part, color)
+                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.suggestCommand(command))
+                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                Component.text("Click to copy command")
+                        ))
         );
 
         // Add space between parts
@@ -664,5 +749,25 @@ public class LootboxCommand implements CommandExecutor {
             commandComponent = commandComponent.append(Component.text(" ", COMMAND_COLOR));
         }
         return commandComponent;
+    }
+
+    private void showCreatorHelp(Player player) {
+        player.sendMessage(Component.empty());
+        player.sendMessage(Component.text("=== Creator Commands ===")
+                .color(INFO_COLOR));
+        player.sendMessage(Component.empty());
+
+        // Add creator commands with descriptions
+        Component particlesCommand = Component.text("» ", SEPARATOR_COLOR)
+                .append(Component.text("/lb ", SEPARATOR_COLOR))
+                .append(Component.text("creator ", ACTION_COLOR))
+                .append(Component.text("particles ", ITEM_COLOR))
+                .append(Component.text("toggle", TARGET_COLOR))
+                .append(Component.text(" - Toggle particle visibility", DESCRIPTION_COLOR));
+
+        player.sendMessage(particlesCommand);
+        // Add more creator commands here in the future
+
+        player.sendMessage(Component.empty());
     }
 }

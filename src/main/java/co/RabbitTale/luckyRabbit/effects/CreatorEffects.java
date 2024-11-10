@@ -1,11 +1,16 @@
 package co.RabbitTale.luckyRabbit.effects;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -14,7 +19,7 @@ import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.INFO_COLOR;
 import net.kyori.adventure.text.Component;
 
-public class CreatorEffects {
+public class CreatorEffects implements Listener {
 
     private static final List<UUID> CREATOR_UUIDS = List.of(
             UUID.fromString("0b348919-8719-4904-b0f7-5c1313ad125f"),
@@ -34,7 +39,10 @@ public class CreatorEffects {
 
     private final LuckyRabbit plugin;
     private int colorIndex = 0;
-    private double particleAngle = 0;
+    private double particleAngle1 = 0;
+    private double particleAngle2 = 0;
+
+    private final Map<UUID, Boolean> particlesEnabled = new HashMap<>();
 
     public CreatorEffects(LuckyRabbit plugin) {
         this.plugin = plugin;
@@ -55,26 +63,23 @@ public class CreatorEffects {
                 }
 
                 updateHatColor(player);
-                spawnParticles(player);
+                spawnDualRings(player);
 
                 colorIndex = (colorIndex + 1) % GLASS_COLORS.length;
-                particleAngle = (particleAngle + Math.PI / 16) % (Math.PI * 2);
+                particleAngle1 = (particleAngle1 + Math.PI / 64) % (Math.PI * 2);
+                particleAngle2 = (particleAngle2 - Math.PI / 64) % (Math.PI * 2);
             }
-        }.runTaskTimer(plugin, 0L, 5L); // Run every 5 ticks (4 times per second)
+        }.runTaskTimer(plugin, 0L, 5L);
     }
 
     private void updateHatColor(Player player) {
         ItemStack helmet = new ItemStack(GLASS_COLORS[colorIndex]);
         ItemMeta meta = helmet.getItemMeta();
-
-        // Use Adventure API for display name
         meta.displayName(Component.text("✦ Lucky Rabbit Creator ✦")
-                .color(INFO_COLOR)); // Gold color (similar to §6)
-
+                .color(INFO_COLOR));
         meta.setUnbreakable(true);
         helmet.setItemMeta(meta);
 
-        // Save previous helmet if exists and it's not a glass block
         ItemStack previousHelmet = player.getInventory().getHelmet();
         if (previousHelmet != null && !isStainedGlass(previousHelmet.getType())) {
             player.getInventory().addItem(previousHelmet);
@@ -87,28 +92,49 @@ public class CreatorEffects {
         return material.name().endsWith("STAINED_GLASS");
     }
 
-    private void spawnParticles(Player player) {
-        double radius = 0.8;
-        double height;
-        double particlesPerRing = 3;
+    private void spawnDualRings(Player player) {
+        Location loc = player.getLocation().add(0, 1.8, 0);
+        double radius = 0.7;
+        int particleCount = 30;
 
-        for (int i = 0; i < 2; i++) {
-            height = i * 0.5;
-            for (int j = 0; j < particlesPerRing; j++) {
-                double angle = particleAngle + (j * ((Math.PI * 2) / particlesPerRing));
-                double x = Math.cos(angle) * radius;
-                double z = Math.sin(angle) * radius;
+        spawnRing(player, loc, radius, particleCount, particleAngle1);
+        spawnRing(player, loc, radius, particleCount, particleAngle2);
+    }
 
-                player.getWorld().spawnParticle(
-                        Particle.SPELL_WITCH,
-                        player.getLocation().add(x, height, z),
-                        1, 0, 0, 0, 0
-                );
+    private void spawnRing(Player player, Location loc, double radius, int particleCount, double particleAngle) {
+        for (int i = 0; i < particleCount; i++) {
+            double angle = (2 * Math.PI / particleCount) * i + particleAngle;
+            double x = Math.cos(angle) * radius;
+            double z = Math.sin(angle) * radius;
+
+            spawnParticleForOthers(player, loc.clone().add(x, 0, z));
+        }
+    }
+
+    private void spawnParticleForOthers(Player player, Location location) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) {
+                // Other players always see particles
+                p.spawnParticle(Particle.PORTAL, location, 1, 0, 0, 0, 0);
+            } else if (particlesEnabled.getOrDefault(player.getUniqueId(), true)) {
+                // Owner only sees particles if enabled
+                p.spawnParticle(Particle.PORTAL, location, 1, 0, 0, 0, 0);
             }
         }
     }
 
     public static boolean isCreator(UUID uuid) {
         return CREATOR_UUIDS.contains(uuid);
+    }
+
+    public boolean toggleParticlesVisibility(Player player) {
+        if (!CREATOR_UUIDS.contains(player.getUniqueId())) {
+            return false;
+        }
+
+        boolean currentState = particlesEnabled.getOrDefault(player.getUniqueId(), true);
+        boolean newState = !currentState;
+        particlesEnabled.put(player.getUniqueId(), newState);
+        return newState;
     }
 }
