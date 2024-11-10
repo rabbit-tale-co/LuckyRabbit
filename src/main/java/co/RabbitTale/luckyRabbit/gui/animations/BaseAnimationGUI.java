@@ -9,7 +9,9 @@ import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -29,6 +31,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class BaseAnimationGUI extends LootboxGUI {
 
@@ -41,10 +44,15 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     protected List<Integer> delays;
 
     protected BaseAnimationGUI(LuckyRabbit plugin, Player player, Lootbox lootbox, int guiSize) {
-        super(plugin, Bukkit.createInventory(null, guiSize,
+        // First call super with temporary inventory
+        super(plugin, Bukkit.createInventory(null, guiSize, Component.empty()));
+
+        // Now create the proper inventory with this as holder
+        this.inventory = Bukkit.createInventory(this, guiSize,
                 Component.text("Opening: ")
                         .append(Component.text(PlainTextComponentSerializer.plainText()
-                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))))));
+                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName())))));
+
         this.player = player;
         this.lootbox = lootbox;
 
@@ -414,9 +422,20 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         }
     }
 
+    // Make sure the inventory is properly associated with this GUI
     @Override
-    public void handleClick(InventoryClickEvent event) {
-        event.setCancelled(true);
+    public @NotNull Inventory getInventory() {
+        if (inventory.getHolder() != this) {
+            // If somehow the holder is wrong, create a new inventory with correct holder
+            Component title = inventory.getViewers().isEmpty() ?
+                Component.text("Opening Lootbox") : // Default title if no viewers
+                inventory.getViewers().get(0).getOpenInventory().title(); // Get title from view
+
+            Inventory newInv = Bukkit.createInventory(this, inventory.getSize(), title);
+            newInv.setContents(inventory.getContents());
+            this.inventory = newInv;
+        }
+        return inventory;
     }
 
     // Abstract methods that must be implemented by specific animations

@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 public abstract class LootboxGUI implements InventoryHolder {
     protected final LuckyRabbit plugin;
-    protected final Inventory inventory;
+    protected Inventory inventory;
     protected boolean isFinished = false;
     protected boolean isProcessingReward = false;
 
@@ -20,14 +20,4 @@ public abstract class LootboxGUI implements InventoryHolder {
     public @NotNull Inventory getInventory() {
         return inventory;
     }
-
-    public boolean isFinished() {
-        return isFinished;
-    }
-
-    public boolean isProcessingReward() {
-        return isProcessingReward;
-    }
-
-    public abstract void handleClick(org.bukkit.event.inventory.InventoryClickEvent event);
 }
