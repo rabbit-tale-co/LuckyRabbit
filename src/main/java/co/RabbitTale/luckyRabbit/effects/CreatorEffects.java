@@ -1,25 +1,24 @@
 package co.RabbitTale.luckyRabbit.effects;
 
-import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 
-import java.util.List;
-import java.util.UUID;
-
+import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.INFO_COLOR;
+import net.kyori.adventure.text.Component;
 
 public class CreatorEffects {
 
     private static final List<UUID> CREATOR_UUIDS = List.of(
-            UUID.fromString("0b348919-8719-4904-b0f7-5c1313ad125f")
-            //UUID.fromString("another-uuid-here")
+            UUID.fromString("0b348919-8719-4904-b0f7-5c1313ad125f"),
+            UUID.fromString("cc112d91-7812-4695-aa72-ec0ce750a567")
     );
 
     private static final Material[] GLASS_COLORS = {
