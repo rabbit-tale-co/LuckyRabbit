@@ -22,7 +22,6 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.block.Block;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
@@ -342,17 +341,7 @@ public class LootboxManager {
         config.set("openedCount", lootbox.getOpenCount());
 
         // Save locations
-        ConfigurationSection locationsSection = config.createSection("locations");
-        int locIndex = 0;
-        for (Location location : lootbox.getLocations()) {
-            ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
-            locationSection.set("world", location.getWorld().getName());
-            locationSection.set("x", location.getX());
-            locationSection.set("y", location.getY());
-            locationSection.set("z", location.getZ());
-            locationSection.set("yaw", location.getYaw());
-            locationSection.set("pitch", location.getPitch());
-        }
+        getLootboxPosition(lootbox, config);
 
         try {
             config.save(file);
@@ -638,16 +627,80 @@ public class LootboxManager {
         return null;
     }
 
-    public void removeLootboxEntity(LootboxEntity entity) {
-        // Remove the entity but keep the lootbox data
+    public RemoveResult removeLootboxEntity(LootboxEntity entity) {
+        // Remove the entity
         entity.remove();
         entities.remove(entity.getUniqueId());
 
-        // Remove location from lootbox
+        // Get the lootbox and remove the location
         Lootbox lootbox = getLootbox(entity.getLootboxId());
         if (lootbox != null) {
-            lootbox.removeLocation(entity.getLocation());
-            saveLootbox(lootbox);
+            Location loc = entity.getLocation();
+
+            // Remove location from lootbox data
+            lootbox.removeLocation(loc);
+
+            // Save the updated lootbox file
+            File file = new File(plugin.getDataFolder(), "lootboxes/" + lootbox.getId() + ".yml");
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+            // Clear existing locations section and create new one if there are remaining locations
+            config.set("locations", null); // This removes the entire locations section
+
+            if (!lootbox.getLocations().isEmpty()) {
+                getEntityPos(lootbox, config);
+            }
+
+            try {
+                config.save(file);
+                Logger.debug("Removed lootbox location from " + lootbox.getId() + " at " +
+                    loc.getWorld().getName() + " " + loc.getX() + " " + loc.getY() + " " + loc.getZ());
+            } catch (IOException e) {
+                Logger.error("Failed to save lootbox after removing location: " + lootbox.getId(), e);
+            }
+
+            // Create components for success message
+            Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
+            Component locationText = Component.text("at ")
+                .color(LootboxCommand.DESCRIPTION_COLOR)
+                .append(Component.text(String.format("%.1f, %.1f, %.1f",
+                    loc.getX(), loc.getY(), loc.getZ()))
+                    .color(LootboxCommand.TARGET_COLOR));
+
+            return new RemoveResult(displayName, locationText);
         }
+        return null;
+    }
+
+    // Add this record to store the removal result
+    public record RemoveResult(Component displayName, Component locationText) {}
+
+    private void getLootboxPosition(Lootbox lootbox, YamlConfiguration config) {
+        getLootboxPostion(lootbox, config);
+    }
+
+    private void getLootboxPostion(Lootbox lootbox, YamlConfiguration config) {
+        getEntityPos(lootbox, config);
+    }
+
+    private void getEntityPos(Lootbox lootbox, YamlConfiguration config) {
+        // First, completely remove the old locations section
+        config.set("locations", null);
+
+        // Create empty or filled locations section
+        ConfigurationSection locationsSection = config.createSection("locations");
+
+        // Add remaining locations with fresh indices if any exist
+        if (!lootbox.getLocations().isEmpty()) {
+            int locIndex = 0;
+            for (Location location : lootbox.getLocations()) {
+                ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
+                locationSection.set("world", location.getWorld().getName());
+                locationSection.set("x", location.getX());
+                locationSection.set("y", location.getY());
+                locationSection.set("z", location.getZ());
+            }
+        }
+        // If no locations, the section will remain empty but exist
     }
 }

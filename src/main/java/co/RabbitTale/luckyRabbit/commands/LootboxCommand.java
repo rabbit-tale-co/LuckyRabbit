@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
+import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -424,10 +425,16 @@ public class LootboxCommand implements CommandExecutor {
                 // If looking at a lootbox entity
                 LootboxEntity targetEntity = plugin.getLootboxManager().getLootboxEntityAtTarget(player);
                 if (targetEntity != null) {
-                    // Remove the entity but keep the lootbox data
-                    plugin.getLootboxManager().removeLootboxEntity(targetEntity);
-                    player.sendMessage(Component.text("Successfully removed lootbox entity!")
-                        .color(SUCCESS_COLOR));
+                    // Remove the entity and get the result
+                    LootboxManager.RemoveResult result = plugin.getLootboxManager().removeLootboxEntity(targetEntity);
+                    if (result != null) {
+                        player.sendMessage(Component.text("Successfully removed ")
+                            .color(SUCCESS_COLOR)
+                            .append(result.displayName())
+                            .append(Component.text(" ")
+                                .color(SUCCESS_COLOR))
+                            .append(result.locationText()));
+                    }
                 } else {
                     player.sendMessage(Component.text("You must be looking at a lootbox entity!")
                         .color(ERROR_COLOR));

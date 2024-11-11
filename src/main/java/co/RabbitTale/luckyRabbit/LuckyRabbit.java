@@ -51,7 +51,6 @@ public class LuckyRabbit extends JavaPlugin {
     // TODO: make more lootbox animations (PARTICLES)
     // TODO: add more lootbox animations (SPIN)
     // TODO: add option to change lang (even by API calls from other plugins)
-    // TODO: add option to de-place de-spawn or some shit placed lootbox entity
     // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)
     // TODO: web editor (manage lootboxes and items via web dashboard) will auto calculate % of items, will show list of lootboxes with items inside ect.
     // TODO: make better message when changing tier (from Trial to free -> display info to buy license)

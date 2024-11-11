@@ -146,9 +146,9 @@ public class Lootbox {
         // If not found, try to find a location that matches coordinates
         locations.removeIf(loc ->
             loc.getWorld().equals(location.getWorld()) &&
-            loc.getX() == location.getX() &&
-            loc.getY() == location.getY() &&
-            loc.getZ() == location.getZ()
+            Math.abs(loc.getX() - location.getX()) < 0.1 && // Small delta for X and Z
+            Math.abs(loc.getY() - location.getY()) < 0.5 && // Medium delta for Y to account for small animations
+            Math.abs(loc.getZ() - location.getZ()) < 0.1
         );
 
         // Mark as modified so it gets saved
