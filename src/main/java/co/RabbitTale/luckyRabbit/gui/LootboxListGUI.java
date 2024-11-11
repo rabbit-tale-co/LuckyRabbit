@@ -23,6 +23,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
+
 public class LootboxListGUI implements GUI {
 
     private static final int ROWS = 5;
@@ -142,10 +144,10 @@ public class LootboxListGUI implements GUI {
         if (plugin.getLootboxManager().isExampleLootbox(lootbox.getId())) {
             lore.add(Component.empty());
             lore.add(Component.text("EXAMPLE LOOTBOX")
-                .color(NamedTextColor.GOLD)
+                .color(INFO_COLOR)
                 .decoration(TextDecoration.BOLD, true));
             lore.add(Component.text("Cannot be placed in world")
-                .color(NamedTextColor.GRAY));
+                .color(DESCRIPTION_COLOR));
             lore.add(Component.empty());
         }
 
@@ -157,22 +159,23 @@ public class LootboxListGUI implements GUI {
         }
 
         // Add statistics
+        // TODO: open count and items count make as separated color
         lore.add(Component.empty());
         lore.add(Component.text("Statistics:")
-                .color(NamedTextColor.GOLD)
+                .color(INFO_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("• Times opened: " + lootbox.getOpenCount())
-                .color(NamedTextColor.GRAY)
+        lore.add(Component.text("  • Times opened: " + lootbox.getOpenCount())
+                .color(DESCRIPTION_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("• Items available: " + lootbox.getItems().size())
-                .color(NamedTextColor.GRAY)
+        lore.add(Component.text("  • Items available: " + lootbox.getItems().size())
+                .color(DESCRIPTION_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
 
         // Add key count
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
         lore.add(Component.empty());
         lore.add(Component.text("Your keys: " + keyCount)
-                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED)
+                .color(keyCount > 0 ? ITEM_COLOR : ERROR_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
 
         // Add actions

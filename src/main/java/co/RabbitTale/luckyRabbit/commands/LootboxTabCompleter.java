@@ -39,9 +39,22 @@ public class LootboxTabCompleter implements TabCompleter {
                 commands.add("creator");
             }
             if (sender.hasPermission("luckyrabbit.admin")) {
-                commands.addAll(Arrays.asList("create", "delete", "item", "place", "remove", "key", "reload", "animations", "license"));
+                commands.addAll(Arrays.asList("create", "delete", "item", "entity", "key", "reload", "animations", "license"));
             }
             return filterCompletions(commands, args[0]);
+        }
+
+        if (args[0].equalsIgnoreCase("entity")) {
+            if (args.length == 2) {
+                return filterCompletions(Arrays.asList("spawn", "despawn"), args[1]);
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
+                if (sender.hasPermission("luckyrabbit.admin")) {
+                    return filterCompletions(plugin.getLootboxManager().getLootboxNamesAdmin(), args[2]);
+                } else {
+                    return filterCompletions(plugin.getLootboxManager().getLootboxNames(), args[2]);
+                }
+            }
         }
 
         if (args[0].equalsIgnoreCase("creator")) {
@@ -233,6 +246,37 @@ public class LootboxTabCompleter implements TabCompleter {
                     .append(Component.text("Lootbox ID", LootboxCommand.ITEM_COLOR)),
                 Component.text("- amount: ", LootboxCommand.DESCRIPTION_COLOR)
                     .append(Component.text("Number of keys to remove", LootboxCommand.NAME_COLOR))
+            );
+            case "entity" -> Arrays.asList(
+                Component.text("Available entity commands:", LootboxCommand.INFO_COLOR),
+                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("entity spawn ", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text("lootbox_id", LootboxCommand.ITEM_COLOR))
+                    .append(Component.text(" - Spawn a lootbox entity", LootboxCommand.DESCRIPTION_COLOR)),
+                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("entity despawn", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text(" - Remove the lootbox entity you're looking at", LootboxCommand.DESCRIPTION_COLOR)),
+                Component.text("\nType the command for more information", LootboxCommand.DESCRIPTION_COLOR)
+            );
+            case "entity spawn" -> Arrays.asList(
+                Component.text("Command: ", LootboxCommand.INFO_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("entity spawn ", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text("lootbox_id", LootboxCommand.ITEM_COLOR)),
+                Component.text("Spawns a lootbox entity at your location", LootboxCommand.DESCRIPTION_COLOR),
+                Component.text("Required:", LootboxCommand.INFO_COLOR),
+                Component.text("- lootbox_id: ", LootboxCommand.DESCRIPTION_COLOR)
+                    .append(Component.text("ID of the lootbox to spawn", LootboxCommand.ITEM_COLOR))
+            );
+            case "entity despawn" -> Arrays.asList(
+                Component.text("Command: ", LootboxCommand.INFO_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("entity despawn", LootboxCommand.ACTION_COLOR)),
+                Component.text("Removes the lootbox entity you're looking at", LootboxCommand.DESCRIPTION_COLOR),
+                Component.text("Note: ", LootboxCommand.INFO_COLOR)
+                    .append(Component.text("You must be looking at a lootbox entity", LootboxCommand.DESCRIPTION_COLOR))
             );
             // Add other command usages with similar color formatting
             default -> List.of(

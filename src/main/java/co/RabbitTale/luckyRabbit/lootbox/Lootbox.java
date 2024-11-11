@@ -138,7 +138,6 @@ public class Lootbox {
     }
 
     public void removeLocation(Location location) {
-        if (locations == null) return;
 
         // Remove the exact location if it exists
         locations.remove(location);

@@ -53,7 +53,6 @@ public class LuckyRabbit extends JavaPlugin {
     // TODO: add option to change lang (even by API calls from other plugins)
     // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)
     // TODO: web editor (manage lootboxes and items via web dashboard) will auto calculate % of items, will show list of lootboxes with items inside ect.
-    // TODO: make better message when changing tier (from Trial to free -> display info to buy license)
     @Override
     public void onEnable() {
         instance = this;
@@ -257,14 +256,5 @@ public class LuckyRabbit extends JavaPlugin {
         } catch (ClassNotFoundException e) {
             Logger.error("Failed to hook into Oraxen - custom items will use fallback items");
         }
-    }
-
-    /**
-     * Checks if Oraxen is available
-     *
-     * @return true if Oraxen is hooked and ready to use
-     */
-    public boolean hasOraxen() {
-        return this.oraxenHooked;
     }
 }

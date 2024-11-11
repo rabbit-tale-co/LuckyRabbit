@@ -17,6 +17,9 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;
 
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
+
 public class LootboxDeleteConfirmationGUI implements GUI {
     private final Inventory inventory;
     private final Player player;
@@ -39,7 +42,7 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         ItemStack lootboxItem = new ItemStack(Material.CHEST);
         ItemMeta meta = lootboxItem.getItemMeta();
         meta.displayName(Component.text("Delete: ")
-            .color(NamedTextColor.RED)
+            .color(ERROR_COLOR)
             .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
             .decoration(TextDecoration.ITALIC, false));
         lootboxItem.setItemMeta(meta);
@@ -49,7 +52,7 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         ItemStack confirm = new ItemStack(Material.LIME_WOOL);
         ItemMeta confirmMeta = confirm.getItemMeta();
         confirmMeta.displayName(Component.text("Confirm Delete")
-            .color(NamedTextColor.GREEN)
+            .color(ITEM_COLOR)
             .decoration(TextDecoration.ITALIC, false));
         confirm.setItemMeta(confirmMeta);
         inventory.setItem(11, confirm);
@@ -58,7 +61,7 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         ItemStack cancel = new ItemStack(Material.RED_WOOL);
         ItemMeta cancelMeta = cancel.getItemMeta();
         cancelMeta.displayName(Component.text("Cancel")
-            .color(NamedTextColor.RED)
+            .color(ERROR_COLOR)
             .decoration(TextDecoration.ITALIC, false));
         cancel.setItemMeta(cancelMeta);
         inventory.setItem(15, cancel);
@@ -73,7 +76,7 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         if (event.getSlot() == 11) { // Confirm
             LuckyRabbit.getInstance().getLootboxManager().deleteLootbox(lootbox.getId());
             player.sendMessage(Component.text("Lootbox deleted successfully!")
-                .color(NamedTextColor.GREEN));
+                .color(ITEM_COLOR));
             player.closeInventory();
             LootboxListGUI.openGUI(player);
         } else if (event.getSlot() == 15) { // Cancel

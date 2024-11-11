@@ -415,29 +415,64 @@ public class LootboxCommand implements CommandExecutor {
                         showCreatorHelp(player);
                 }
             }
-            case "remove" -> {
-                if (!player.hasPermission("luckyrabbit.admin.remove")) {
-                    player.sendMessage(Component.text("You don't have permission to remove lootbox entities!")
+            case "entity" -> {
+                if (!player.hasPermission("luckyrabbit.admin.entity")) {
+                    player.sendMessage(Component.text("You don't have permission to manage lootbox entities!")
                         .color(ERROR_COLOR));
                     return;
                 }
 
-                // If looking at a lootbox entity
-                LootboxEntity targetEntity = plugin.getLootboxManager().getLootboxEntityAtTarget(player);
-                if (targetEntity != null) {
-                    // Remove the entity and get the result
-                    LootboxManager.RemoveResult result = plugin.getLootboxManager().removeLootboxEntity(targetEntity);
-                    if (result != null) {
-                        player.sendMessage(Component.text("Successfully removed ")
-                            .color(SUCCESS_COLOR)
-                            .append(result.displayName())
-                            .append(Component.text(" ")
-                                .color(SUCCESS_COLOR))
-                            .append(result.locationText()));
+                if (args.length < 2) {
+                    // Show entity command help
+                    List<Component> usage = LootboxTabCompleter.getCommandUsage("entity");
+                    player.sendMessage(Component.empty());
+                    for (Component line : usage) {
+                        player.sendMessage(line);
                     }
-                } else {
-                    player.sendMessage(Component.text("You must be looking at a lootbox entity!")
-                        .color(ERROR_COLOR));
+                    player.sendMessage(Component.empty());
+                    return;
+                }
+
+                String action = args[1].toLowerCase();
+                switch (action) {
+                    case "spawn" -> {
+                        if (args.length < 3) {
+                            List<Component> usage = LootboxTabCompleter.getCommandUsage("entity spawn");
+                            player.sendMessage(Component.empty());
+                            for (Component line : usage) {
+                                player.sendMessage(line);
+                            }
+                            player.sendMessage(Component.empty());
+                            return;
+                        }
+                        String id = args[2];
+                        plugin.getLootboxManager().placeLootbox(player, id);
+                    }
+                    case "despawn" -> {
+                        LootboxEntity targetEntity = plugin.getLootboxManager().getLootboxEntityAtTarget(player);
+                        if (targetEntity != null) {
+                            LootboxManager.RemoveResult result = plugin.getLootboxManager().removeLootboxEntity(targetEntity);
+                            if (result != null) {
+                                player.sendMessage(Component.text("Successfully despawned ")
+                                    .color(SUCCESS_COLOR)
+                                    .append(result.displayName())
+                                    .append(Component.text(" ")
+                                        .color(SUCCESS_COLOR))
+                                    .append(result.locationText()));
+                            }
+                        } else {
+                            player.sendMessage(Component.text("You must be looking at a lootbox entity!")
+                                .color(ERROR_COLOR));
+                        }
+                    }
+                    default -> {
+                        List<Component> usage = LootboxTabCompleter.getCommandUsage("entity");
+                        player.sendMessage(Component.empty());
+                        for (Component line : usage) {
+                            player.sendMessage(line);
+                        }
+                        player.sendMessage(Component.empty());
+                    }
                 }
             }
             default ->
@@ -606,7 +641,7 @@ public class LootboxCommand implements CommandExecutor {
                     Map.of("<id>", ITEM_COLOR)));
             commands.add(createCommandComponent("/lb item add/remove", "Manage lootbox items",
                     Map.of("<id>", ITEM_COLOR)));
-            commands.add(createCommandComponent("/lb place", "Place a lootbox",
+            commands.add(createCommandComponent("/lb entity spawn/despawn", "Manage lootbox entities",
                     Map.of("<id>", ITEM_COLOR)));
             commands.add(createCommandComponent("/lb key add/remove", "Manage lootbox keys",
                     Map.of("<player>", TARGET_COLOR, "<id>", ITEM_COLOR, "<amount>", NAME_COLOR)));

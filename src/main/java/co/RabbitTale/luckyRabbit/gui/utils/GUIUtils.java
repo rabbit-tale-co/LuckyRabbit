@@ -10,6 +10,8 @@ import net.kyori.adventure.text.format.TextDecoration;
 
 import java.util.List;
 
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
+
 public class GUIUtils {
 
     public static void setupBorder(Inventory inventory, int rows) {
@@ -42,33 +44,18 @@ public class GUIUtils {
 
         if (enabled) {
             meta.displayName(Component.text(name)
-                    .color(NamedTextColor.YELLOW)
+                    .color(ITEM_COLOR)
                     .decoration(TextDecoration.ITALIC, false));
         } else {
             meta.displayName(Component.text(name)
-                    .color(NamedTextColor.GRAY)
+                    .color(DESCRIPTION_COLOR)
                     .decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(Component.text("Not available")
-                    .color(NamedTextColor.RED)
+                    .color(ERROR_COLOR)
                     .decoration(TextDecoration.ITALIC, false)));
         }
 
         item.setItemMeta(meta);
         return item;
-    }
-
-    public static void setupNavigationButtons(Inventory inventory, int currentPage, int totalItems,
-                                            int pageSize, int prevSlot, int nextSlot) {
-        boolean hasNextPage = (currentPage + 1) * pageSize < totalItems;
-
-        // Previous page button
-        if (currentPage > 0) {
-            inventory.setItem(prevSlot, createNavigationButton("Previous Page", Material.ARROW, true));
-        }
-
-        // Next page button
-        if (hasNextPage) {
-            inventory.setItem(nextSlot, createNavigationButton("Next Page", Material.ARROW, true));
-        }
     }
 }

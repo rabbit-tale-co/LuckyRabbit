@@ -49,7 +49,6 @@ public class GUIListener implements Listener {
             if (event.getWhoClicked() instanceof Player player) {
                 player.updateInventory();
             }
-            return;
         }
     }
 

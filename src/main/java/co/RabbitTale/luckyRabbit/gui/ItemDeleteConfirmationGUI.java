@@ -17,6 +17,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
 
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
+
 public class ItemDeleteConfirmationGUI implements GUI {
     private final Inventory inventory;
     private final Player player;
@@ -44,7 +47,7 @@ public class ItemDeleteConfirmationGUI implements GUI {
         ItemStack confirm = new ItemStack(Material.LIME_WOOL);
         ItemMeta confirmMeta = confirm.getItemMeta();
         confirmMeta.displayName(Component.text("Confirm Delete")
-            .color(NamedTextColor.GREEN)
+            .color(ITEM_COLOR)
             .decoration(TextDecoration.ITALIC, false));
         confirm.setItemMeta(confirmMeta);
         inventory.setItem(11, confirm);
@@ -53,7 +56,7 @@ public class ItemDeleteConfirmationGUI implements GUI {
         ItemStack cancel = new ItemStack(Material.RED_WOOL);
         ItemMeta cancelMeta = cancel.getItemMeta();
         cancelMeta.displayName(Component.text("Cancel")
-            .color(NamedTextColor.RED)
+            .color(ERROR_COLOR)
             .decoration(TextDecoration.ITALIC, false));
         cancel.setItemMeta(cancelMeta);
         inventory.setItem(15, cancel);
@@ -69,7 +72,7 @@ public class ItemDeleteConfirmationGUI implements GUI {
             lootbox.removeItem(item.getItem());
             LuckyRabbit.getInstance().getLootboxManager().saveLootbox(lootbox);
             player.sendMessage(Component.text("Item removed successfully!")
-                .color(NamedTextColor.GREEN));
+                .color(ITEM_COLOR));
             player.closeInventory();
             new LootboxContentGUI(player, lootbox).show();
         } else if (event.getSlot() == 15) { // Cancel

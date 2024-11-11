@@ -32,6 +32,8 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
+
 public class LootboxContentGUI implements GUI {
 
     private static final int ROWS = 5;
@@ -123,17 +125,18 @@ public class LootboxContentGUI implements GUI {
         ItemStack openButton = new ItemStack(Material.TRIPWIRE_HOOK);
         ItemMeta openMeta = openButton.getItemMeta();
         openMeta.displayName(Component.text("Open Lootbox")
-                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED));
+                .color(keyCount > 0 ? ITEM_COLOR : ERROR_COLOR));
 
         List<Component> openLore = new ArrayList<>();
         openLore.add(Component.text("You have " + keyCount + " key(s)")
-                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED));
+                .color(keyCount > 0 ? ITEM_COLOR : ERROR_COLOR));
         if (keyCount > 0) {
+            openLore.add(Component.empty());
             openLore.add(Component.text("Click to open!")
-                    .color(NamedTextColor.YELLOW));
+                    .color(INFO_COLOR));
         } else {
             openLore.add(Component.text("You need a key to open this lootbox!")
-                    .color(NamedTextColor.RED));
+                    .color(ERROR_COLOR));
         }
         openMeta.lore(openLore);
         openButton.setItemMeta(openMeta);
@@ -235,8 +238,8 @@ public class LootboxContentGUI implements GUI {
             // Add admin lore if needed
             if (player.hasPermission("luckyrabbit.admin")) {
                 lore.add(Component.empty());
-                lore.add(Component.text("[ADMIN] Shift + Left Click to remove")
-                    .color(NamedTextColor.RED)
+                lore.add(Component.text("ADMIN - Shift + Left Click to remove")
+                    .color(ERROR_COLOR)
                     .decoration(TextDecoration.ITALIC, false));
             }
 
@@ -254,7 +257,7 @@ public class LootboxContentGUI implements GUI {
             // Check if lootbox has items
             if (lootbox.getItems().isEmpty()) {
                 player.sendMessage(Component.text("This lootbox is empty!")
-                        .color(NamedTextColor.RED));
+                        .color(ERROR_COLOR));
                 return;
             }
 
@@ -281,12 +284,12 @@ public class LootboxContentGUI implements GUI {
                 // Refund the key and show error message
                 plugin.getUserManager().addKeys(player.getUniqueId(), lootbox.getId(), 1);
                 player.sendMessage(Component.text("Error opening lootbox: " + e.getMessage())
-                        .color(NamedTextColor.RED));
+                        .color(ERROR_COLOR));
             }
         } else {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             player.sendMessage(Component.text("You don't have a key for this lootbox!")
-                    .color(NamedTextColor.RED));
+                    .color(ERROR_COLOR));
         }
     }
 

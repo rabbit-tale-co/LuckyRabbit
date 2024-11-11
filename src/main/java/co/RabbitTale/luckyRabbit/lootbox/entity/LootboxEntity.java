@@ -26,6 +26,7 @@ public class LootboxEntity {
 
     private final LuckyRabbit plugin;
     private final ArmorStand armorStand;
+    @Getter
     private final String lootboxId;
     @Getter
     private final UUID uniqueId;
@@ -229,14 +230,6 @@ public class LootboxEntity {
             armorStand.setCustomNameVisible(true);
             armorStand.setVisible(true);
         }
-    }
-
-    private boolean isExampleLootbox(String id) {
-        return plugin.getLootboxManager().isExampleLootbox(id);
-    }
-
-    public String getLootboxId() {
-        return lootboxId;
     }
 
     public Location getLocation() {
