@@ -1,5 +1,8 @@
 package co.RabbitTale.luckyRabbit;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -64,9 +67,8 @@ public class LuckyRabbit extends JavaPlugin {
         // Initialize logger with debug setting
         Logger.init(this);
 
-        // Setup integrations
-        setupEconomy();
-        setupOraxen();
+        // Setup integrations and collect status
+        List<String> hookedPlugins = new ArrayList<>();
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
@@ -83,67 +85,69 @@ public class LuckyRabbit extends JavaPlugin {
         // Load configurations
         configManager.loadConfigs();
 
-        // Check license status first and display plan info
-        String licenseKey = getConfig().getString("license-key", "");
-        String planType;
-
-        // Wait for license check to complete
-        if (!licenseKey.isEmpty()) {
-            Logger.debug("Found license key, verifying...");
-            licenseManager.verifyLicense(licenseKey);
-            try {
-                Thread.sleep(1000); // Give time for async license check
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        } else {
-            Logger.debug("No license key found, checking trial status...");
-            LicenseManager.checkTrialStatus();
-        }
-
-        // Get plan type from FeatureManager
-        if (LicenseManager.isPremium()) {
-            planType = "PREMIUM";
-        } else if (LicenseManager.isTrialActive()) {
-            planType = "TRIAL";
-        } else {
-            planType = "FREE";
-        }
-
-        // Display startup banner with plan info
-        Logger.info("==========================================");
-        Logger.info("        LuckyRabbit v" + getDescription().getVersion());
-        Logger.info("        Running in " + planType + " mode");
-        Logger.info("==========================================");
-
         // Register commands and listeners
         commandManager.registerCommands();
         listenerManager.registerListeners();
 
-        // Load lootboxes based on plan
-        if (LicenseManager.isPremium()) {
-            lootboxManager.loadLootboxes();
-        } else {
-            Logger.warning("Running in limited mode. Some features are disabled.");
-            lootboxManager.loadLimitedLootboxes();
-        }
-
-        // Respawn all lootbox entities
-        lootboxManager.respawnEntities();
-
         // Initialize API
         LuckyRabbitAPIProvider.setAPI(this.api);
 
-        // Log debug mode status
-        boolean debugMode = getConfig().getBoolean("settings.debug", false);
-        if (debugMode) {
-            Logger.success("Plugin enabled successfully! - DEBUG");
-        } else {
-            Logger.success("Plugin enabled successfully!");
-        }
-
-        // Register listeners
+        // Register entity listener
         getServer().getPluginManager().registerEvents(new EntityListener(this), this);
+
+        // Check license and load lootboxes after all plugins are loaded
+        getServer().getScheduler().runTaskLater(this, () -> {
+            // Setup Vault
+            if (setupEconomy()) {
+                hookedPlugins.add("Vault Economy");
+            }
+
+            // Setup Oraxen with longer delay
+            if (setupOraxen()) {
+                hookedPlugins.add("Oraxen");
+            }
+
+            // Then check license
+            String licenseKey = getConfig().getString("license-key", "");
+            if (!licenseKey.isEmpty()) {
+                licenseManager.verifyLicense(licenseKey);
+            } else {
+                LicenseManager.checkTrialStatus();
+            }
+
+            // Get plan type
+            String planType;
+            if (LicenseManager.isPremium()) {
+                planType = "PREMIUM";
+            } else if (LicenseManager.isTrialActive()) {
+                planType = "TRIAL";
+            } else {
+                planType = "FREE";
+            }
+
+            boolean debugMode = getConfig().getBoolean("settings.debug", false);
+
+            // Display startup banner
+            Logger.info("==========================================");
+            Logger.info("        LuckyRabbit v" + getDescription().getVersion() + (debugMode ? " - DEBUG" : ""));
+            Logger.info("        Running in " + planType + " mode");
+            if (!hookedPlugins.isEmpty()) {
+                Logger.info("        Hooked plugins: " + String.join(", ", hookedPlugins));
+            }
+            Logger.info("==========================================");
+
+            // Load lootboxes based on plan
+            if (LicenseManager.isPremium()) {
+                lootboxManager.loadLootboxes();
+            } else {
+                Logger.warning("Running in limited mode. Some features are disabled.");
+                lootboxManager.loadLimitedLootboxes();
+            }
+
+            // Respawn entities
+            lootboxManager.respawnEntities();
+
+        }, 100L); // Increased delay to 5 seconds (100 ticks)
     }
 
     @Override
@@ -212,49 +216,44 @@ public class LuckyRabbit extends JavaPlugin {
     /**
      * Sets up the economy integration with Vault
      */
-    private void setupEconomy() {
+    private boolean setupEconomy() {
         if (getServer().getPluginManager().getPlugin("Vault") == null) {
             Logger.warning("Vault plugin not found - economy features will be disabled");
-            return;
+            return false;
         }
 
         try {
             RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
             if (rsp == null) {
                 Logger.warning("No economy plugin (like Essentials) found - economy features will be disabled");
-                return;
+                return false;
             }
             this.economy = rsp.getProvider();
             Logger.success("Successfully hooked into Vault economy!");
+            return true;
         } catch (NoClassDefFoundError e) {
             Logger.warning("Vault API not found - economy features will be disabled");
+            return false;
         }
-    }
-
-    /**
-     * Checks if economy features are available
-     *
-     * @return true if economy is set up and ready to use
-     */
-    public boolean hasEconomy() {
-        return this.economy != null;
     }
 
     /**
      * Sets up Oraxen integration
      */
-    private void setupOraxen() {
+    private boolean setupOraxen() {
         if (getServer().getPluginManager().getPlugin("Oraxen") == null) {
             Logger.warning("Oraxen plugin not found - custom items will use fallback items");
-            return;
+            return false;
         }
 
         try {
             Class.forName("io.th0rgal.oraxen.api.OraxenItems");
             this.oraxenHooked = true;
             Logger.success("Successfully hooked into Oraxen!");
+            return true;
         } catch (ClassNotFoundException e) {
             Logger.error("Failed to hook into Oraxen - custom items will use fallback items");
+            return false;
         }
     }
 }

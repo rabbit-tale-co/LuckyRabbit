@@ -6,13 +6,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardAction;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
+import co.RabbitTale.luckyRabbit.utils.Logger;
+import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -52,15 +53,20 @@ public abstract class LootboxItem {
         String oraxenId = section.getString("oraxen_item");
         if (oraxenId != null) {
             // Create Oraxen item
-            ItemStack placeholder = createPlaceholderItem(oraxenId);
+            ItemBuilder itemBuilder = OraxenItems.getItemById(oraxenId);
+            if (itemBuilder != null) {
+                ItemStack oraxenItem = itemBuilder.build();
 
-            // Apply any additional meta from config
-            ConfigurationSection itemSection = section.getConfigurationSection("item");
-            if (itemSection != null) {
-                applyItemMeta(placeholder, itemSection);
+                // Apply any additional meta from config
+                ConfigurationSection itemSection = section.getConfigurationSection("item");
+                if (itemSection != null) {
+                    applyItemMeta(oraxenItem, itemSection);
+                }
+
+                return new OraxenLootboxItem(oraxenItem, oraxenId, id, chance, rarity, section);
+            } else {
+                Logger.error("Failed to load Oraxen item: " + oraxenId);
             }
-
-            return new OraxenLootboxItem(placeholder, oraxenId, id, chance, rarity, section);
         }
 
         // If not Oraxen, create as Minecraft item
@@ -82,26 +88,11 @@ public abstract class LootboxItem {
         return new MinecraftLootboxItem(item, id, chance, rarity, action, section);
     }
 
-    private static ItemStack createPlaceholderItem(String oraxenId) {
-        ItemStack placeholder = new ItemStack(org.bukkit.Material.BARRIER);
-        ItemMeta meta = placeholder.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text("Oraxen Item: " + oraxenId)
-                .color(NamedTextColor.AQUA));
-            List<Component> lore = new ArrayList<>();
-            lore.add(Component.text("This item requires Oraxen plugin")
-                .color(NamedTextColor.GRAY));
-            lore.add(Component.text("Install Oraxen to see the actual item")
-                .color(NamedTextColor.GRAY));
-            meta.lore(lore);
-            placeholder.setItemMeta(meta);
-        }
-        return placeholder;
-    }
-
     protected static void applyItemMeta(ItemStack item, ConfigurationSection itemSection) {
         ItemMeta meta = item.getItemMeta();
-        if (meta == null) return;
+        if (meta == null) {
+            return;
+        }
 
         // Apply metadata from config
         if (itemSection.contains("meta")) {
@@ -112,7 +103,7 @@ public abstract class LootboxItem {
                     String displayName = metaSection.getString("display-name");
                     if (displayName != null) {
                         Component nameComponent = MiniMessage.miniMessage().deserialize(displayName)
-                            .decoration(TextDecoration.ITALIC, false);
+                                .decoration(TextDecoration.ITALIC, false);
                         meta.displayName(nameComponent);
                     }
                 }
@@ -121,31 +112,11 @@ public abstract class LootboxItem {
                 if (metaSection.contains("lore")) {
                     List<String> configLore = metaSection.getStringList("lore");
                     List<Component> lore = configLore.stream()
-                        .map(line -> MiniMessage.miniMessage().deserialize(line)
-                            .decoration(TextDecoration.ITALIC, false))
-                        .collect(Collectors.toList());
+                            .map(line -> MiniMessage.miniMessage().deserialize(line)
+                                    .decoration(TextDecoration.ITALIC, false))
+                            .collect(Collectors.toList());
                     meta.lore(lore);
                 }
-
-                // Add glow effect if specified
-                if (metaSection.getBoolean("glow", false)) {
-                    meta.addEnchant(Enchantment.LUCK, 1, true);
-                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                }
-            }
-        } else {
-            // If no meta section, use default colors
-            if (meta.hasDisplayName()) {
-                meta.displayName(Objects.requireNonNull(meta.displayName())
-                    .color(NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
-            }
-            if (meta.hasLore()) {
-                List<Component> lore = Objects.requireNonNull(meta.lore()).stream()
-                    .map(line -> line.color(NamedTextColor.GRAY)
-                        .decoration(TextDecoration.ITALIC, false))
-                    .collect(Collectors.toList());
-                meta.lore(lore);
             }
         }
 
@@ -158,69 +129,22 @@ public abstract class LootboxItem {
         if (meta != null) {
             List<Component> lore = new ArrayList<>();
 
-            // Get original meta from config if available
-            ConfigurationSection itemSection = originalConfig != null ?
-                originalConfig.getConfigurationSection("item") : null;
-
-            if (itemSection != null) {
-                // Get amount range if specified
-                String amountStr = itemSection.getString("amount");
-                if (amountStr != null && amountStr.contains("-")) {
-                    lore.add(Component.text("Amount: " + amountStr)
-                        .color(NamedTextColor.GRAY)
-                        .decoration(TextDecoration.ITALIC, false));
-                    lore.add(Component.empty());
-                }
-
-                // Add configured meta
-                if (itemSection.contains("meta")) {
-                    ConfigurationSection metaSection = itemSection.getConfigurationSection("meta");
-                    if (metaSection != null) {
-                        // Set display name from config with MiniMessage formatting
-                        if (metaSection.contains("display-name")) {
-                            String displayName = metaSection.getString("display-name");
-                            if (displayName != null) {
-                                meta.displayName(MiniMessage.miniMessage().deserialize(displayName)
-                                    .decoration(TextDecoration.ITALIC, false));
-                            }
-                        }
-
-                        // Set lore from config with MiniMessage formatting
-                        if (metaSection.contains("lore")) {
-                            List<String> configLore = metaSection.getStringList("lore");
-                            for (String line : configLore) {
-                                lore.add(MiniMessage.miniMessage().deserialize(line)
-                                    .decoration(TextDecoration.ITALIC, false));
-                            }
-                        }
-                    }
-                }
-            } else {
-                // If no config meta, use default colors
-                if (meta.hasDisplayName()) {
-                    meta.displayName(Objects.requireNonNull(meta.displayName())
-                        .color(NamedTextColor.WHITE)
-                        .decoration(TextDecoration.ITALIC, false));
-                }
-                if (meta.hasLore()) {
-                    lore.addAll(Objects.requireNonNull(meta.lore()).stream()
-                        .map(line -> line.color(NamedTextColor.GRAY)
-                            .decoration(TextDecoration.ITALIC, false))
-                        .toList());
-                }
+            // Preserve original lore if it exists (especially for Oraxen items)
+            if (meta.hasLore()) {
+                lore.addAll(Objects.requireNonNull(meta.lore()));
             }
 
             // Add rarity and chance information
             lore.add(Component.empty());
             lore.add(Component.text("Rarity: ")
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text(rarity)
-                    .color(RewardRarity.valueOf(rarity.toUpperCase()).getColor())
-                    .decoration(TextDecoration.ITALIC, false)));
+                    .color(NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false)
+                    .append(Component.text(rarity)
+                            .color(RewardRarity.valueOf(rarity.toUpperCase()).getColor())
+                            .decoration(TextDecoration.ITALIC, false)));
             lore.add(Component.text(String.format("Chance: %.1f%%", chance))
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
+                    .color(NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false));
 
             meta.lore(lore);
             displayItem.setItemMeta(meta);

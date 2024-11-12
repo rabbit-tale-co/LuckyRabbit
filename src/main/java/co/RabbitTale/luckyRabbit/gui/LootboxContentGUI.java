@@ -56,10 +56,6 @@ public class LootboxContentGUI implements GUI {
         this(player, lootbox, true, false);
     }
 
-    public LootboxContentGUI(Player player, Lootbox lootbox, boolean showBackButton) {
-        this(player, lootbox, showBackButton, true);
-    }
-
     public LootboxContentGUI(Player player, Lootbox lootbox, boolean showBackButton, boolean showOpenButton) {
         this.plugin = LuckyRabbit.getInstance();
         this.player = player;
