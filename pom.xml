@@ -6,7 +6,7 @@
 
     <groupId>co.RabbitTale</groupId>
     <artifactId>LuckyRabbit</artifactId>
-    <version>1.0.51 HOTFIX</version>
+    <version>1.0.6</version>
     <packaging>jar</packaging>
 
     <name>LuckyRabbit</name>

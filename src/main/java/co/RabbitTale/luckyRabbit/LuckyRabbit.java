@@ -51,7 +51,7 @@ public class LuckyRabbit extends JavaPlugin {
     @Getter
     private boolean oraxenHooked = false;
 
-    // TODO: make more lootbox animations (PARTICLES)
+    // TODO: make more lootbox animations (PARTICLES) -> lootbox/entity/lootboxEntity
     // TODO: add more lootbox animations (SPIN)
     // TODO: add option to change lang (even by API calls from other plugins)
     // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)

@@ -20,7 +20,7 @@ import lombok.Getter;
 public class Lootbox {
     private final String id;
     private final String displayName;
-    private final List<String> lore;
+    private List<String> lore;
     private final Map<String, LootboxItem> items;
     private final List<Location> locations;
     private AnimationType animationType;
@@ -152,6 +152,11 @@ public class Lootbox {
 
         // Mark as modified so it gets saved
         modified = true;
+    }
+
+    public void setLore(List<String> lore) {
+        this.lore = new ArrayList<>(lore);
+        this.modified = true;
     }
 
 }

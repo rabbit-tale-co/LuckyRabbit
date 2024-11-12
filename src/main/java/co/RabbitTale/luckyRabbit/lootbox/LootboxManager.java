@@ -153,10 +153,22 @@ public class LootboxManager {
 
         // Create new lootbox with the original formatted name
         Lootbox lootbox = new Lootbox(id, name, animationType);
+
+        // Set default lore
+        List<String> defaultLore = new ArrayList<>();
+        defaultLore.add("<gray>A mysterious lootbox");
+        defaultLore.add("<gray>Contains various rewards");
+        defaultLore.add("");
+        defaultLore.add("<yellow>Right-click to preview");
+        defaultLore.add("<yellow>Use a key to open");
+        lootbox.setLore(defaultLore);
+
+        // Add to loaded lootboxes
         lootboxes.put(id, lootbox);
 
-        // Save the new lootbox
+        // Save the lootbox (this will create the file with all sections)
         saveLootbox(lootbox);
+
         Logger.success("Created new lootbox: " + id + " with display name: " + name);
     }
 
@@ -217,44 +229,119 @@ public class LootboxManager {
         }
     }
 
-    public void addItem(Player player, String lootboxId, ItemStack item, String rarity, double chance) {
+    // TODO: add also parametr for ammount can be random using min-max or just max (maybe before rarity?)
+    public void addItem(Player player, @NotNull String lootboxId, @NotNull ItemStack item, String rarity, Double chance) {
+        // Walidacja parametrów
+        if (item.getType() == Material.AIR) {
+            throw new IllegalArgumentException("Item cannot be null or AIR");
+        }
+
         Lootbox lootbox = getLootbox(lootboxId);
         if (lootbox == null) {
-            player.sendMessage(Component.text("Lootbox not found!")
-                    .color(LootboxCommand.ERROR_COLOR));
+            if (player != null) {
+                player.sendMessage(Component.text("Lootbox not found!")
+                        .color(LootboxCommand.ERROR_COLOR));
+            }
             return;
         }
 
-        // Check for Oraxen items
+        // Sprawdź, czy to przedmiot Oraxen
         String oraxenId = OraxenItems.getIdByItem(item);
-        if (oraxenId != null && FeatureManager.canUseOraxenItems()) {
-            player.sendMessage(Component.text("Oraxen items are only available in premium version!")
-                    .color(LootboxCommand.ERROR_COLOR));
+        if (oraxenId != null && !FeatureManager.canUseOraxenItems()) {
+            if (player != null) {
+                player.sendMessage(Component.text("Oraxen items are only available in premium version!")
+                        .color(LootboxCommand.ERROR_COLOR));
+            }
             return;
         }
 
-        // Create appropriate lootbox item
-        LootboxItem lootboxItem;
-        if (oraxenId != null) {
-            lootboxItem = new OraxenLootboxItem(item, oraxenId);
+        Map<String, LootboxItem> existingItems = lootbox.getItems();
+        String finalRarity = rarity != null ? rarity.toUpperCase() : "COMMON";
+
+        double finalChance;
+        if (chance == null) {
+            // Calculate equal distribution for all items (including new one)
+            int totalItems = existingItems.size() + 1;
+            finalChance = 100.0 / totalItems;
+
+            // Create a new map for updated items
+            Map<String, LootboxItem> updatedItems = new HashMap<>();
+
+            // First, create the new item
+            String newItemId = "item-" + existingItems.size();
+            LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
+            updatedItems.put(newItemId, newItem);
+
+            // Then update all existing items with equal chance
+            for (LootboxItem existingItem : existingItems.values()) {
+                LootboxItem updatedItem = createUpdatedItem(existingItem, finalChance);
+                updatedItems.put(existingItem.getId(), updatedItem);
+            }
+
+            // Clear and update the lootbox items
+            existingItems.clear();
+            existingItems.putAll(updatedItems);
         } else {
-            lootboxItem = new MinecraftLootboxItem(item);
+            finalChance = chance;
+            double remainingChance = 100.0 - chance;
+            double totalExistingChance = existingItems.values().stream()
+                    .mapToDouble(LootboxItem::getChance)
+                    .sum();
+
+            if (totalExistingChance > 0) {
+                // Create a new map for updated items
+                Map<String, LootboxItem> updatedItems = new HashMap<>();
+
+                // Adjust existing items proportionally
+                for (Map.Entry<String, LootboxItem> entry : existingItems.entrySet()) {
+                    double newChance = (entry.getValue().getChance() / totalExistingChance) * remainingChance;
+                    LootboxItem updatedItem = createUpdatedItem(entry.getValue(), newChance);
+                    updatedItems.put(entry.getKey(), updatedItem);
+                }
+
+                // Create new item with specified chance
+                String newItemId = "item-" + existingItems.size();
+                LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
+                updatedItems.put(newItemId, newItem);
+
+                // Clear and update the lootbox items
+                existingItems.clear();
+                existingItems.putAll(updatedItems);
+            } else {
+                // If no existing items, just add the new one with specified chance
+                String newItemId = "item-" + existingItems.size();
+                LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
+                existingItems.put(newItemId, newItem);
+            }
         }
 
-        // Check for command actions if the item has any
-        if (lootboxItem.getAction() != null && FeatureManager.canExecuteCommands()) {
-            player.sendMessage(Component.text("Command rewards are only available in premium version!")
-                    .color(LootboxCommand.ERROR_COLOR));
-            return;
-        }
-
-        // Add the item
-        lootbox.addItem(lootboxItem);
+        // Save lootbox
         saveLootbox(lootbox);
 
-        // Notify the player
-        player.sendMessage(Component.text("Successfully added item to lootbox!")
-                .color(LootboxCommand.SUCCESS_COLOR));
+        // Show success message
+        if (player != null) {
+            player.sendMessage(Component.empty());
+            player.sendMessage(Component.text("Successfully added item to lootbox!")
+                    .color(LootboxCommand.SUCCESS_COLOR));
+            player.sendMessage(Component.text("Chance distribution updated:")
+                    .color(LootboxCommand.INFO_COLOR));
+
+            // Show all items with their chances
+            existingItems.values().forEach(existingItem ->
+                player.sendMessage(Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                    .append(Component.text(existingItem.getId() + ": ", LootboxCommand.DESCRIPTION_COLOR))
+                    .append(Component.text(String.format("%.1f%%", existingItem.getChance()))
+                        .color(LootboxCommand.TARGET_COLOR))));
+            player.sendMessage(Component.empty());
+        }
+    }
+
+    private LootboxItem createLootboxItem(ItemStack item, String oraxenId, String itemId, double chance, String rarity) {
+        if (oraxenId != null) {
+            return new OraxenLootboxItem(item, oraxenId, itemId, chance, rarity, null);
+        } else {
+            return new MinecraftLootboxItem(item, itemId, chance, rarity, null, null);
+        }
     }
 
     public void removeItem(Player player, String id) {
@@ -333,18 +420,55 @@ public class LootboxManager {
         }
 
         File file = new File(plugin.getDataFolder(), "lootboxes/" + lootbox.getId() + ".yml");
+        YamlConfiguration config = new YamlConfiguration();
 
-        // Load existing config first to preserve format
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        // Basic information
+        config.set("id", lootbox.getId());
+        config.set("displayName", lootbox.getDisplayName());
+        config.set("animationType", lootbox.getAnimationType().name());
 
-        // Only update the locations and openedCount, preserve everything else
+        // Default empty lore if not set
+        List<String> defaultLore = new ArrayList<>();
+        defaultLore.add("<gray>A mysterious lootbox");
+        defaultLore.add("<gray>Contains various rewards");
+        defaultLore.add("");
+        defaultLore.add("<yellow>Right-click to preview");
+        defaultLore.add("<yellow>Use a key to open");
+        config.set("lore", lootbox.getLore().isEmpty() ? defaultLore : lootbox.getLore());
+
+        // Create empty sections if they don't exist
+        config.createSection("items");
+        config.createSection("locations");
+
+        // Save items if any exist
+        if (!lootbox.getItems().isEmpty()) {
+            ConfigurationSection itemsSection = config.getConfigurationSection("items");
+            for (LootboxItem item : lootbox.getItems().values()) {
+                assert itemsSection != null;
+                item.save(itemsSection.createSection(item.getId()));
+            }
+        }
+
+        // Save locations if any exist
+        if (!lootbox.getLocations().isEmpty()) {
+            ConfigurationSection locationsSection = config.getConfigurationSection("locations");
+            int locIndex = 0;
+            for (Location location : lootbox.getLocations()) {
+                assert locationsSection != null;
+                ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
+                locationSection.set("world", location.getWorld().getName());
+                locationSection.set("x", location.getX());
+                locationSection.set("y", location.getY());
+                locationSection.set("z", location.getZ());
+            }
+        }
+
+        // Statistics
         config.set("openedCount", lootbox.getOpenCount());
-
-        // Save locations
-        getLootboxPosition(lootbox, config);
 
         try {
             config.save(file);
+            Logger.debug("Saved lootbox: " + lootbox.getId());
         } catch (IOException e) {
             Logger.error("Failed to save lootbox: " + lootbox.getId(), e);
         }
@@ -379,9 +503,9 @@ public class LootboxManager {
 
     public Collection<Lootbox> getAllLootboxes() {
         // For non-admins, filter out example lootboxes
-        return Collections.unmodifiableCollection(lootboxes.values().stream()
+        return lootboxes.values().stream()
                 .filter(lootbox -> !isExampleLootbox(lootbox.getId()))
-                .toList());
+                .toList();
     }
 
     public Collection<Lootbox> getAllLootboxesAdmin() {
@@ -429,70 +553,16 @@ public class LootboxManager {
                 if (id.isEmpty()) {
                     // If no ID in config, use filename without extension
                     id = file.getName().replace(".yml", "");
+                    config.set("id", id);
+                    config.save(file);
                 }
 
-                if (isExampleLootbox(id)) {
-                    Lootbox lootbox = Lootbox.fromConfig(config);
-                    lootboxes.put(id, lootbox);
-                    Logger.debug("Loaded example lootbox: " + id);
-                }
-            } catch (Exception e) {
-                Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
-            }
-        }
-
-        // Sort remaining files by last modified date (newest first)
-        List<File> customFiles = Arrays.stream(files)
-                .filter(file -> {
-                    try {
-                        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-                        String id = config.getString("id");
-                        assert id != null;
-                        return !isExampleLootbox(id);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                })
-                .sorted((f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()))
-                .toList();
-
-        // Load custom lootboxes up to the limit
-        int loadedCustom = 0;
-        for (File file : customFiles) {
-            if (loadedCustom >= maxLootboxes) {
-                Logger.warning("Skipping remaining lootboxes due to "
-                        + (isTrial ? "trial" : "free version") + " limitations");
-                break;
-            }
-
-            try {
-                YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-                String id = config.getString("id");
                 Lootbox lootbox = Lootbox.fromConfig(config);
-
-                // Enforce restrictions
-                lootbox.enforceAnimationRestrictions();
-                lootbox.enforceItemRestrictions();
-
-                // Save if modifications were made
-                if (lootbox.hasBeenModified()) {
-                    saveLootbox(lootbox);
-                }
-
                 lootboxes.put(id, lootbox);
-                loadedCustom++;
+                Logger.debug("Loaded lootbox: " + id);
             } catch (Exception e) {
                 Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
-            }
-        }
-
-        // Apply limitations to loaded custom lootboxes
-        for (Lootbox lootbox : lootboxes.values()) {
-            if (!isExampleLootbox(lootbox.getId()) && !plugin.getFeatureManager().canUseCustomAnimations()) {
-                if (lootbox.getAnimationType() != AnimationType.HORIZONTAL) {
-                    Logger.warning("Custom animations are not available in free version. Using default animation for " + lootbox.getId());
-                    lootbox.setAnimationType(AnimationType.HORIZONTAL);
-                }
+                e.printStackTrace();
             }
         }
 
@@ -500,11 +570,12 @@ public class LootboxManager {
         int exampleCount = (int) lootboxes.values().stream()
                 .filter(lb -> isExampleLootbox(lb.getId()))
                 .count();
+        int customCount = totalLoaded - exampleCount;
 
         Logger.info(String.format("Loaded %d lootboxes (%d custom, %d example) in %s mode",
-                totalLoaded, loadedCustom, exampleCount, isTrial ? "trial" : "free"));
+                totalLoaded, customCount, exampleCount, isTrial ? "trial" : "free"));
 
-        if (loadedCustom >= maxLootboxes) {
+        if (customCount >= maxLootboxes && maxLootboxes != -1) {
             Logger.warning(String.format("Reached %s mode limit of %d custom lootboxes",
                     isTrial ? "trial" : "free", maxLootboxes));
         }
@@ -702,5 +773,25 @@ public class LootboxManager {
             }
         }
         // If no locations, the section will remain empty but exist
+    }
+
+    private LootboxItem createUpdatedItem(LootboxItem existingItem, double newChance) {
+        return existingItem instanceof OraxenLootboxItem oraxenItem ?
+            new OraxenLootboxItem(
+                existingItem.getItem(),
+                oraxenItem.getOraxenId(),
+                existingItem.getId(),
+                newChance,
+                existingItem.getRarity(),
+                existingItem.getOriginalConfig()
+            ) :
+            new MinecraftLootboxItem(
+                existingItem.getItem(),
+                existingItem.getId(),
+                newChance,
+                existingItem.getRarity(),
+                existingItem.getAction(),
+                existingItem.getOriginalConfig()
+            );
     }
 }

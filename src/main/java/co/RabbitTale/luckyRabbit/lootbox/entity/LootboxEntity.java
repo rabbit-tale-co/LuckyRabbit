@@ -153,6 +153,7 @@ public class LootboxEntity {
                 particleTime += 0.15;
                 Location loc = armorStand.getLocation().add(0, 1.2, 0);
 
+                //TODO: add option to choose from preset animations (get from lootbox_id.yml (particle)
                 // Create perfect circle with more points
                 double radius = 0.4;
                 int points = 4;
