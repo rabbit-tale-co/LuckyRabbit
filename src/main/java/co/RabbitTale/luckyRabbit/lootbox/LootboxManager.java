@@ -38,6 +38,8 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
+
+
 public class LootboxManager {
 
     private final LuckyRabbit plugin;
@@ -257,12 +259,39 @@ public class LootboxManager {
 
         Map<String, LootboxItem> existingItems = lootbox.getItems();
         String finalRarity = rarity != null ? rarity.toUpperCase() : "COMMON";
+        Logger.debug("Final rarity: " + finalRarity);
+        Logger.debug("Set chance: " + chance);
 
         double finalChance;
+
+        // Check if total chance of player-setted items is already 100%
+        double totalPlayerSettedChance = existingItems.values().stream()
+                .filter(LootboxItem::isPlayerSetted)
+                .mapToDouble(LootboxItem::getChance)
+                .sum();
+                
+        if (chance != null) {
+            totalPlayerSettedChance += chance;
+        }
+        if (totalPlayerSettedChance >= 100.0) {
+            if (player != null) {
+                player.sendMessage(Component.text("Cannot add item! Total chance of player-setted items is already 100%")
+                        .color(LootboxCommand.ERROR_COLOR));
+            }
+            return;
+        }
         if (chance == null) {
             // Calculate equal distribution for all items (including new one)
             int totalItems = existingItems.size() + 1;
-            finalChance = 100.0 / totalItems;
+            double totalChance = 100.0;
+            for (LootboxItem existingItem : existingItems.values()) {
+                if (existingItem.isPlayerSetted()) {
+                    totalChance -= existingItem.getChance();
+                    totalItems--;
+                }
+            }
+            finalChance = totalChance / totalItems;
+            Logger.debug("Final chance: " + finalChance);
 
             // Create a new map for updated items
             Map<String, LootboxItem> updatedItems = new HashMap<>();
@@ -270,12 +299,20 @@ public class LootboxManager {
             // First, create the new item
             String newItemId = "item-" + existingItems.size();
             LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
+            newItem.setPlayerSetted(false);
             updatedItems.put(newItemId, newItem);
 
             // Then update all existing items with equal chance
             for (LootboxItem existingItem : existingItems.values()) {
-                LootboxItem updatedItem = createUpdatedItem(existingItem, finalChance);
+                LootboxItem updatedItem;
+                if (!existingItem.isPlayerSetted()) {
+                    updatedItem = createUpdatedItem(existingItem, finalChance);
+                }
+                else {
+                    updatedItem = createUpdatedItem(existingItem, existingItem.getChance());
+                }
                 updatedItems.put(existingItem.getId(), updatedItem);
+                Logger.debug("Updated item: " + existingItem.getId() + " to " + updatedItem.getChance());
             }
 
             // Clear and update the lootbox items
@@ -285,24 +322,40 @@ public class LootboxManager {
             finalChance = chance;
             double remainingChance = 100.0 - chance;
             double totalExistingChance = existingItems.values().stream()
+                    .filter(LootboxItem::isPlayerSetted)
                     .mapToDouble(LootboxItem::getChance)
                     .sum();
 
             if (totalExistingChance > 0) {
                 // Create a new map for updated items
                 Map<String, LootboxItem> updatedItems = new HashMap<>();
-
+                remainingChance = remainingChance - totalExistingChance;
+                Logger.debug("Remaining chance: " + remainingChance);
                 // Adjust existing items proportionally
-                for (Map.Entry<String, LootboxItem> entry : existingItems.entrySet()) {
-                    double newChance = (entry.getValue().getChance() / totalExistingChance) * remainingChance;
-                    LootboxItem updatedItem = createUpdatedItem(entry.getValue(), newChance);
-                    updatedItems.put(entry.getKey(), updatedItem);
-                }
-
+              
                 // Create new item with specified chance
                 String newItemId = "item-" + existingItems.size();
                 LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
+                newItem.setPlayerSetted(true);
                 updatedItems.put(newItemId, newItem);
+
+                for (Map.Entry<String, LootboxItem> entry : existingItems.entrySet()) {
+                    double newChance;
+                    if (entry.getValue().isPlayerSetted()) {
+                        newChance = entry.getValue().getChance();
+                    } else {
+                        newChance = remainingChance / existingItems.values().stream()
+                                .filter(lootItem -> !lootItem.isPlayerSetted())
+                                .count();
+                    }
+                    LootboxItem updatedItem = createUpdatedItem(entry.getValue(), newChance);
+                    updatedItem.setPlayerSetted(updatedItem.isPlayerSetted()); // Ensure the flag is preserved
+                    updatedItems.put(entry.getKey(), updatedItem);
+                    Logger.debug("Updated item: " + entry.getKey() + " to " + newChance);
+                }
+
+                // Create new item with specified chance
+             
 
                 // Clear and update the lootbox items
                 existingItems.clear();
@@ -311,6 +364,7 @@ public class LootboxManager {
                 // If no existing items, just add the new one with specified chance
                 String newItemId = "item-" + existingItems.size();
                 LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
+                newItem.setPlayerSetted(true);
                 existingItems.put(newItemId, newItem);
             }
         }
@@ -776,16 +830,18 @@ public class LootboxManager {
     }
 
     private LootboxItem createUpdatedItem(LootboxItem existingItem, double newChance) {
-        return existingItem instanceof OraxenLootboxItem oraxenItem ?
-            new OraxenLootboxItem(
+        LootboxItem updatedItem;
+        if (existingItem instanceof OraxenLootboxItem oraxenItem) {
+            updatedItem = new OraxenLootboxItem(
                 existingItem.getItem(),
                 oraxenItem.getOraxenId(),
                 existingItem.getId(),
                 newChance,
                 existingItem.getRarity(),
                 existingItem.getOriginalConfig()
-            ) :
-            new MinecraftLootboxItem(
+            );
+        } else {
+            updatedItem = new MinecraftLootboxItem(
                 existingItem.getItem(),
                 existingItem.getId(),
                 newChance,
@@ -793,5 +849,9 @@ public class LootboxManager {
                 existingItem.getAction(),
                 existingItem.getOriginalConfig()
             );
+        }
+        // Preserve the setPlayerSetted flag
+        updatedItem.setPlayerSetted(existingItem.isPlayerSetted());
+        return updatedItem;
     }
 }

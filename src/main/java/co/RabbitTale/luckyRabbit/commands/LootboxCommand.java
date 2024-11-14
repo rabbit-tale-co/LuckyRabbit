@@ -591,7 +591,7 @@ public class LootboxCommand implements CommandExecutor {
 
                 // Default values for rarity and chance
                 String rarity = args.length > 3 ? args[3].toUpperCase() : "COMMON";
-                double chance = args.length > 4 ? Double.parseDouble(args[4]) : 100.0;
+                Double chance = args.length > 4 ? Double.parseDouble(args[4]) : null;
 
                 plugin.getLootboxManager().addItem(player, id, item, rarity, chance);
             }

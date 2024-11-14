@@ -29,7 +29,7 @@ public abstract class LootboxItem {
     private final String rarity;
     private final RewardAction action;
     private final ConfigurationSection originalConfig;
-
+    private boolean playerSetted = false;
     public LootboxItem(ItemStack item, String id, double chance, String rarity, RewardAction action, ConfigurationSection originalConfig) {
         this.item = item;
         this.id = id;
@@ -37,6 +37,7 @@ public abstract class LootboxItem {
         this.rarity = rarity;
         this.action = action;
         this.originalConfig = originalConfig;
+        this.playerSetted = false;
     }
 
     public static LootboxItem fromConfig(ConfigurationSection section) {
@@ -159,6 +160,14 @@ public abstract class LootboxItem {
 
         // Let subclasses handle their specific save operations
         saveSpecific(config);
+    }
+
+    public boolean isPlayerSetted() {
+        return playerSetted;
+    }
+
+    public void setPlayerSetted(boolean playerSetted) {
+        this.playerSetted = playerSetted;
     }
 
     // Abstract method for subclass-specific save operations
