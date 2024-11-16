@@ -45,8 +45,8 @@ public class LicenseManager {
     private static boolean isPremium = false;
     private static boolean isTrialActive = false;
     private static long lastTrialCheck = 0;
-    private static final long TRIAL_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(1);
-    private static String accessKey = null;
+    private static final long TRIAL_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(10); // 10 minutes
+     private static String accessKey = null;
     @Getter
     private static boolean periodicChecksEnabled = true;
     @Getter
