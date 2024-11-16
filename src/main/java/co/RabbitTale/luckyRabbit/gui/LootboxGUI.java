@@ -5,12 +5,29 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
+/*
+ * LootboxGUI.java
+ *
+ * Abstract base class for lootbox-related GUIs.
+ * Provides common functionality for lootbox interfaces.
+ *
+ * Features:
+ * - Plugin instance access
+ * - Inventory management
+ * - State tracking for animations
+ */
 public abstract class LootboxGUI implements InventoryHolder {
     protected final LuckyRabbit plugin;
-    protected final Inventory inventory;
+    protected Inventory inventory;
     protected boolean isFinished = false;
     protected boolean isProcessingReward = false;
 
+    /**
+     * Creates a new lootbox GUI.
+     *
+     * @param plugin Plugin instance
+     * @param inventory Initial inventory
+     */
     public LootboxGUI(LuckyRabbit plugin, Inventory inventory) {
         this.plugin = plugin;
         this.inventory = inventory;
@@ -20,14 +37,4 @@ public abstract class LootboxGUI implements InventoryHolder {
     public @NotNull Inventory getInventory() {
         return inventory;
     }
-
-    public boolean isFinished() {
-        return isFinished;
-    }
-
-    public boolean isProcessingReward() {
-        return isProcessingReward;
-    }
-
-    public abstract void handleClick(org.bukkit.event.inventory.InventoryClickEvent event);
 }

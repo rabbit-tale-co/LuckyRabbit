@@ -10,9 +10,32 @@ import org.bukkit.entity.Player;
 
 import co.RabbitTale.luckyRabbit.utils.Logger;
 
-public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardAction.ActionType type,
-        List<String> commands, String group, String duration) {
+/*
+ * RewardAction.java
+ *
+ * Handles execution of additional actions when a reward is given.
+ * Supports command execution and permission management.
+ *
+ * Action Types:
+ * - COMMAND: Executes one or more console commands
+ * - PERMISSION: Manages LuckPerms group assignments
+ *
+ * Configuration Structure:
+ * type: COMMAND/PERMISSION
+ * commands:                  # For COMMAND type
+ *   - "eco give {player} 1000"
+ *   - "broadcast {player} won!"
+ * group: "vip"              # For PERMISSION type
+ * duration: "30d"           # For temporary permissions
+ */
+public record RewardAction(ActionType type, List<String> commands, String group, String duration) {
 
+    /**
+     * Creates a RewardAction from a configuration section.
+     *
+     * @param config Configuration section containing action data
+     * @return New RewardAction instance or null if invalid
+     */
     public static RewardAction fromConfig(ConfigurationSection config) {
         if (config == null) {
             return null;
@@ -31,11 +54,27 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
         return new RewardAction(type, commands, group, duration);
     }
 
+    /**
+     * Executes the action for a player. Handles both command execution and
+     * permission management.
+     *
+     * @param player Target player
+     */
     public void execute(Player player) {
         switch (type) {
             case COMMAND -> {
                 if (commands != null) {
                     for (String command : commands) {
+                        // Check if it's an economy command
+                        if (command.startsWith("eco ")) {
+                            // Check if Vault is installed
+                            if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
+                                Logger.warning("Attempted to execute economy command but Vault is not installed!");
+                                Logger.warning("Command: " + command);
+                                continue;
+                            }
+                        }
+
                         String processedCommand = command.replace("{player}", player.getName());
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
                         Logger.debug("Executing command: " + processedCommand);
@@ -48,7 +87,7 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
                     if (duration != null && duration.equalsIgnoreCase("permanent")) {
                         command = "lp user " + player.getName() + " parent add " + group;
                     } else {
-                        command = "lp user " + player.getName() + " parent addtemp " + group + " " + duration + "accumulate";
+                        command = "lp user " + player.getName() + " parent addtemp " + group + " " + duration + " accumulate";
                     }
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
                     Logger.debug("Executing permission command: " + command);
@@ -57,6 +96,11 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
         }
     }
 
+    /**
+     * Saves the action to a configuration section.
+     *
+     * @param config Configuration section to save to
+     */
     public void save(ConfigurationSection config) {
         config.set("type", type.name());
         if (commands != null && !commands.isEmpty()) {
@@ -70,6 +114,11 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
         }
     }
 
+    /**
+     * Serializes the action to a map for storage.
+     *
+     * @return Map containing action data
+     */
     public Map<String, Object> serialize() {
         Map<String, Object> data = new HashMap<>();
         data.put("type", type.name());
@@ -85,6 +134,10 @@ public record RewardAction(co.RabbitTale.luckyRabbit.lootbox.rewards.RewardActio
         return data;
     }
 
+    /**
+     * Available action types. COMMAND: Execute console commands PERMISSION:
+     * Manage LuckPerms groups
+     */
     public enum ActionType {
         COMMAND,
         PERMISSION

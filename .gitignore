@@ -25,3 +25,7 @@ replay_pid*
 
 /.idea
 /target
+
+original-*
+!LuckyRabbit-*
+src/main/resources/.env

@@ -6,6 +6,7 @@ import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 
 public class CommandManager {
+
     private final LuckyRabbit plugin;
 
     public CommandManager(LuckyRabbit plugin) {

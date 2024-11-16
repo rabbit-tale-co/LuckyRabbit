@@ -48,7 +48,7 @@ items:
     rarity: COMMON   # Affects particles and display
     item:
       type: STONE    # Minecraft material type
-      amount: 32     # Amount to give
+      amount: 1-32     # Amount to give
 
   '1':
     id: common-coal
@@ -56,7 +56,7 @@ items:
     rarity: COMMON
     item:
       type: COAL
-      amount: 16
+      amount: 8-16
 
   '2':
     id: common-logs
@@ -64,7 +64,7 @@ items:
     rarity: COMMON
     item:
       type: OAK_LOG
-      amount: 32
+      amount: 1-32
 
   '3':
     id: common-iron

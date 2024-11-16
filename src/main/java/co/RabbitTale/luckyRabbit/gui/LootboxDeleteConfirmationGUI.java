@@ -1,5 +1,6 @@
 package co.RabbitTale.luckyRabbit.gui;
 
+import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,11 +18,38 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;
 
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
+
+/*
+ * LootboxDeleteConfirmationGUI.java
+ *
+ * Confirmation GUI for deleting lootboxes.
+ * Provides a safe way to confirm lootbox deletion.
+ *
+ * Features:
+ * - Visual confirmation interface
+ * - Lootbox preview
+ * - Confirm/Cancel buttons
+ * - Admin-only access
+ *
+ * Layout:
+ * - Black glass pane border
+ * - Center: Lootbox preview
+ * - Left: Confirm button (green)
+ * - Right: Cancel button (red)
+ */
 public class LootboxDeleteConfirmationGUI implements GUI {
     private final Inventory inventory;
     private final Player player;
     private final Lootbox lootbox;
 
+    /**
+     * Creates a new deletion confirmation GUI.
+     *
+     * @param player Player viewing the GUI
+     * @param lootbox Lootbox to be deleted
+     */
     public LootboxDeleteConfirmationGUI(Player player, Lootbox lootbox) {
         this.player = player;
         this.lootbox = lootbox;
@@ -29,6 +57,9 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         setupInventory();
     }
 
+    /**
+     * Sets up the inventory with buttons and preview.
+     */
     private void setupInventory() {
         // Fill with black glass
         for (int i = 0; i < inventory.getSize(); i++) {
@@ -39,47 +70,46 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         ItemStack lootboxItem = new ItemStack(Material.CHEST);
         ItemMeta meta = lootboxItem.getItemMeta();
         meta.displayName(Component.text("Delete: ")
-            .color(NamedTextColor.RED)
+            .color(ERROR_COLOR)
             .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
             .decoration(TextDecoration.ITALIC, false));
         lootboxItem.setItemMeta(meta);
         inventory.setItem(13, lootboxItem);
 
-        // Add confirm button (green wool)
-        ItemStack confirm = new ItemStack(Material.LIME_WOOL);
-        ItemMeta confirmMeta = confirm.getItemMeta();
-        confirmMeta.displayName(Component.text("Confirm Delete")
-            .color(NamedTextColor.GREEN)
-            .decoration(TextDecoration.ITALIC, false));
-        confirm.setItemMeta(confirmMeta);
-        inventory.setItem(11, confirm);
-
-        // Add cancel button (red wool)
-        ItemStack cancel = new ItemStack(Material.RED_WOOL);
-        ItemMeta cancelMeta = cancel.getItemMeta();
-        cancelMeta.displayName(Component.text("Cancel")
-            .color(NamedTextColor.RED)
-            .decoration(TextDecoration.ITALIC, false));
-        cancel.setItemMeta(cancelMeta);
-        inventory.setItem(15, cancel);
+        // Add confirmation buttons
+        GUIUtils.setupConfirmationButtons(inventory);
     }
 
+    /**
+     * Handles inventory click events.
+     * Processes confirmation or cancellation.
+     *
+     * @param event The click event
+     */
     @Override
     public void handleClick(InventoryClickEvent event) {
         event.setCancelled(true);
 
         if (event.getCurrentItem() == null) return;
 
-        if (event.getSlot() == 11) { // Confirm
+        if (GUIUtils.isConfirmButton(event.getSlot())) {
             LuckyRabbit.getInstance().getLootboxManager().deleteLootbox(lootbox.getId());
             player.sendMessage(Component.text("Lootbox deleted successfully!")
-                .color(NamedTextColor.GREEN));
+                .color(ITEM_COLOR));
             player.closeInventory();
             LootboxListGUI.openGUI(player);
-        } else if (event.getSlot() == 15) { // Cancel
+        } else if (GUIUtils.isCancelButton(event.getSlot())) {
             player.closeInventory();
             LootboxListGUI.openGUI(player);
         }
+    }
+
+    /**
+     * Shows the GUI to a player.
+     * Opens the inventory for viewing.
+     */
+    public void show() {
+        player.openInventory(inventory);
     }
 
     @Override
@@ -90,9 +120,5 @@ public class LootboxDeleteConfirmationGUI implements GUI {
     @Override
     public @NotNull Inventory getInventory() {
         return inventory;
-    }
-
-    public void show() {
-        player.openInventory(inventory);
     }
 }

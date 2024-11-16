@@ -3,182 +3,216 @@ package co.RabbitTale.luckyRabbit.lootbox.items;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import lombok.Setter;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardAction;
+import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
 import co.RabbitTale.luckyRabbit.utils.Logger;
+import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
 @Getter
-public class LootboxItem {
-    private final String id;
+public abstract class LootboxItem {
+
     private final ItemStack item;
+    private final String id;
     private final double chance;
     private final String rarity;
     private final RewardAction action;
+    private final ConfigurationSection originalConfig;
+    /**
+     * -- GETTER -- Checks if this item's chance was manually set. Used for
+     * automatic chance recalculation.
+     * <p>
+     * -- SETTER -- Sets whether this item's chance was manually set.
+     */
+    @Setter
+    @Getter
+    private boolean isChanceManuallySet;
 
-    private String generateId() {
-        // Generate a unique ID based on item type and a random UUID
-        String itemType = item.getType().name().toLowerCase();
-        String shortUUID = UUID.randomUUID().toString().substring(0, 8);
-        return itemType + "-" + shortUUID;
-    }
-
-    public LootboxItem(ItemStack item) {
-        this.item = item.clone();
-        this.id = generateId();
-        this.chance = 1.0;
-        this.rarity = "COMMON";
-        this.action = null;
-    }
-
-    public LootboxItem(ItemStack item, String id, double chance, String rarity) {
-        this.item = item.clone();
-        this.id = id;
-        this.chance = chance;
-        this.rarity = rarity;
-        this.action = null;
-    }
-
-    public LootboxItem(ItemStack item, String id, double chance, String rarity, RewardAction action) {
-        this.item = item.clone();
+    /**
+     * Creates a new lootbox item.
+     *
+     * @param item ItemStack to give
+     * @param id Unique identifier
+     * @param chance Drop chance percentage
+     * @param rarity Item rarity level
+     * @param action Action to execute on win
+     * @param originalConfig Original config section for saving
+     */
+    public LootboxItem(ItemStack item, String id, double chance, String rarity, RewardAction action, ConfigurationSection originalConfig) {
+        this.item = item;
         this.id = id;
         this.chance = chance;
         this.rarity = rarity;
         this.action = action;
+        this.originalConfig = originalConfig;
+
     }
 
-    public static LootboxItem fromConfig(ConfigurationSection config) {
-        String id = config.getString("id");
-        double chance = config.getDouble("chance", 1.0);
-        String rarity = config.getString("rarity", "COMMON");
+    /**
+     * Creates a LootboxItem from a configuration section. Handles both
+     * Minecraft and Oraxen items.
+     *
+     * @param section Configuration section to load from
+     * @return New LootboxItem instance
+     * @throws IllegalArgumentException if configuration is invalid
+     */
+    public static LootboxItem fromConfig(ConfigurationSection section) {
+        if (section == null) {
+            throw new IllegalArgumentException("Configuration section cannot be null");
+        }
+
+        String id = section.getName();
+        double chance = section.getDouble("chance", 100.0);
+        String rarity = section.getString("rarity", "COMMON");
+        RewardAction action = RewardAction.fromConfig(section.getConfigurationSection("action"));
 
         // Check for Oraxen item first
-        String oraxenId = config.getString("oraxen_item");
+        String oraxenId = section.getString("oraxen_item");
         if (oraxenId != null) {
-            try {
-                // Try to get Oraxen item
-                var oraxenItem = io.th0rgal.oraxen.api.OraxenItems.getItemById(oraxenId);
-                if (oraxenItem != null) {
-                    ItemStack item = oraxenItem.build();
-                    return new OraxenLootboxItem(item, oraxenId, id, chance, rarity);
-                } else {
-                    // If Oraxen item not found, create a placeholder item
-                    return getLootboxItem(id, chance, rarity, oraxenId);
+            // Create Oraxen item
+            ItemBuilder itemBuilder = OraxenItems.getItemById(oraxenId);
+            if (itemBuilder != null) {
+                ItemStack oraxenItem = itemBuilder.build();
+
+                // Apply any additional meta from config
+                ConfigurationSection itemSection = section.getConfigurationSection("item");
+                if (itemSection != null) {
+                    applyItemMeta(oraxenItem, itemSection);
                 }
-            } catch (Exception e) {
-                // Log the error but don't fail the entire loading process
-                Logger.warning("Failed to load Oraxen item " + oraxenId + ": " + e.getMessage());
-                // Create placeholder item
-                return getLootboxItem(id, chance, rarity, oraxenId);
+
+                return new OraxenLootboxItem(oraxenItem, oraxenId, id, chance, rarity, section);
+            } else {
+                Logger.error("Failed to load Oraxen item: " + oraxenId);
             }
         }
 
-        // Get regular item section
-        ConfigurationSection itemSection = config.getConfigurationSection("item");
+        // If not Oraxen, create as Minecraft item
+        ConfigurationSection itemSection = section.getConfigurationSection("item");
         if (itemSection == null) {
-            throw new IllegalArgumentException("Missing item section in config for item: " + id);
+            throw new IllegalArgumentException("Missing item section in config");
         }
 
-        // Get material type
-        String materialName = itemSection.getString("type");
-        if (materialName == null) {
-            throw new IllegalArgumentException("Missing material type in item config for: " + id);
-        }
-
-        // Create ItemStack
-        Material material = Material.valueOf(materialName.toUpperCase());
+        // Get item properties
+        String materialName = itemSection.getString("type", "STONE");
         int amount = itemSection.getInt("amount", 1);
-        ItemStack item = new ItemStack(material, amount);
 
-        // Set meta if exists
+        // Create the item
+        ItemStack item = new ItemStack(org.bukkit.Material.valueOf(materialName.toUpperCase()), amount);
+
+        // Apply metadata from config
+        applyItemMeta(item, itemSection);
+
+        return new MinecraftLootboxItem(item, id, chance, rarity, action, section);
+    }
+
+    /**
+     * Applies metadata to an ItemStack from configuration. Handles display name
+     * and lore with MiniMessage formatting.
+     *
+     * @param item ItemStack to modify
+     * @param itemSection Configuration section containing metadata
+     */
+    protected static void applyItemMeta(ItemStack item, ConfigurationSection itemSection) {
         ItemMeta meta = item.getItemMeta();
-        if (meta != null && itemSection.contains("meta")) {
+        if (meta == null) {
+            return;
+        }
+
+        // Apply metadata from config
+        if (itemSection.contains("meta")) {
             ConfigurationSection metaSection = itemSection.getConfigurationSection("meta");
             if (metaSection != null) {
-                // Set display name
+                // Set display name with MiniMessage formatting
                 if (metaSection.contains("display-name")) {
-                    meta.displayName(MiniMessage.miniMessage()
-                        .deserialize(Objects.requireNonNull(metaSection.getString("display-name"))));
-                }
-
-                // Set lore
-                if (metaSection.contains("lore")) {
-                    List<Component> lore = metaSection.getStringList("lore").stream()
-                        .map(line -> MiniMessage.miniMessage().deserialize(line))
-                        .collect(Collectors.toList());
-                    meta.lore(lore);
-                }
-
-                // Handle enchantments
-                if (metaSection.contains("enchants")) {
-                    ConfigurationSection enchants = metaSection.getConfigurationSection("enchants");
-                    if (enchants != null) {
-                        for (String enchantName : enchants.getKeys(false)) {
-                            try {
-                                NamespacedKey key = NamespacedKey.minecraft(enchantName.toLowerCase());
-                                Enchantment enchant = Enchantment.getByKey(key);
-                                if (enchant != null) {
-                                    meta.addEnchant(enchant, enchants.getInt(enchantName), true);
-                                }
-                            } catch (IllegalArgumentException e) {
-                                // Skip invalid enchantments
-                            }
-                        }
+                    String displayName = metaSection.getString("display-name");
+                    if (displayName != null) {
+                        Component nameComponent = MiniMessage.miniMessage().deserialize(displayName)
+                                .decoration(TextDecoration.ITALIC, false);
+                        meta.displayName(nameComponent);
                     }
                 }
 
-                // Add glow effect if specified
-                if (metaSection.getBoolean("glow", false)) {
-                    meta.addEnchant(Enchantment.LUCK, 1, true);
-                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                // Set lore with MiniMessage formatting
+                if (metaSection.contains("lore")) {
+                    List<String> configLore = metaSection.getStringList("lore");
+                    List<Component> lore = configLore.stream()
+                            .map(line -> MiniMessage.miniMessage().deserialize(line)
+                            .decoration(TextDecoration.ITALIC, false))
+                            .collect(Collectors.toList());
+                    meta.lore(lore);
                 }
             }
-            item.setItemMeta(meta);
         }
 
-        RewardAction action = RewardAction.fromConfig(config.getConfigurationSection("action"));
-
-        return new LootboxItem(item, id, chance, rarity, action);
+        item.setItemMeta(meta);
     }
 
-    @NotNull
-    private static LootboxItem getLootboxItem(String id, double chance, String rarity, String oraxenId) {
-        ItemStack placeholder = new ItemStack(Material.BARRIER);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.displayName(Component.text("Missing Oraxen Item: " + oraxenId)
-            .color(NamedTextColor.RED));
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("This item will be available")
-            .color(NamedTextColor.GRAY));
-        lore.add(Component.text("when Oraxen is fully loaded")
-            .color(NamedTextColor.GRAY));
-        meta.lore(lore);
-        placeholder.setItemMeta(meta);
-        return new OraxenLootboxItem(placeholder, oraxenId, id, chance, rarity);
+    /**
+     * Gets a display version of this item. Includes rarity and chance
+     * information in lore.
+     *
+     * @return ItemStack configured for display
+     */
+    public ItemStack getDisplayItem() {
+        ItemStack displayItem = item.clone();
+        ItemMeta meta = displayItem.getItemMeta();
+        if (meta != null) {
+            List<Component> lore = new ArrayList<>();
+
+            // Preserve original lore if it exists (especially for Oraxen items)
+            if (meta.hasLore()) {
+                lore.addAll(Objects.requireNonNull(meta.lore()));
+            }
+
+            // Add rarity and chance information
+            lore.add(Component.empty());
+            lore.add(Component.text("Rarity: ")
+                    .color(NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false)
+                    .append(Component.text(rarity)
+                            .color(RewardRarity.valueOf(rarity.toUpperCase()).getColor())
+                            .decoration(TextDecoration.ITALIC, false)));
+            lore.add(Component.text(String.format("Chance: %.1f%%", chance))
+                    .color(NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false));
+
+            meta.lore(lore);
+            displayItem.setItemMeta(meta);
+        }
+        return displayItem;
     }
 
+    /**
+     * Saves this item to a configuration section.
+     *
+     * @param config Configuration section to save to
+     */
     public void save(ConfigurationSection config) {
         config.set("id", id);
         config.set("chance", chance);
         config.set("rarity", rarity);
-        config.set("item", item.serialize());
-        // Save action if it exists
-        if (action != null) {
-            action.save(config.createSection("action"));
-        }
+
+        // Let subclasses handle their specific save operations
+        saveSpecific(config);
     }
+
+    /**
+     * Saves item-specific data to configuration. Implemented by subclasses for
+     * their unique properties.
+     *
+     * @param config Configuration section to save to
+     */
+    protected abstract void saveSpecific(ConfigurationSection config);
 }

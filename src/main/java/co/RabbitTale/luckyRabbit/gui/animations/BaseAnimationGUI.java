@@ -5,28 +5,62 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
+import org.bukkit.*;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.DESCRIPTION_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.SEPARATOR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.TARGET_COLOR;
 import co.RabbitTale.luckyRabbit.gui.LootboxGUI;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.Reward;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
-import net.kyori.adventure.text.format.TextColor;
+import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.jetbrains.annotations.NotNull;
 
-import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
-
+/*
+ * BaseAnimationGUI.java
+ *
+ * Abstract base class for all lootbox opening animations.
+ * Provides common functionality for animations and reward handling.
+ *
+ * Features:
+ * - Configurable animation duration and steps
+ * - Reward selection and distribution
+ * - Sound and particle effects
+ * - Legendary item special effects
+ * - Broadcast messages
+ *
+ * Animation Flow:
+ * 1. Initialize animation parameters
+ * 2. Generate spin sequence
+ * 3. Play animation with delays
+ * 4. Show final reward
+ * 5. Execute reward actions
+ *
+ * Reward Selection:
+ * - Weighted random selection based on chances
+ * - Rarity-based effects and announcements
+ * - Support for custom actions (commands/permissions)
+ *
+ * Sound Effects:
+ * - Tick sounds during animation
+ * - Pitch variation based on progress
+ * - Special sounds for legendary items
+ */
 public abstract class BaseAnimationGUI extends LootboxGUI {
 
     protected final Player player;
@@ -36,13 +70,17 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     protected int currentStep = 0;
     protected int totalSteps;
     protected List<Integer> delays;
-    protected boolean isShuffling = true;
 
     protected BaseAnimationGUI(LuckyRabbit plugin, Player player, Lootbox lootbox, int guiSize) {
-        super(plugin, Bukkit.createInventory(null, guiSize,
+        // First call super with temporary inventory
+        super(plugin, Bukkit.createInventory(null, guiSize, Component.empty()));
+
+        // Now create the proper inventory with this as holder
+        this.inventory = Bukkit.createInventory(this, guiSize,
                 Component.text("Opening: ")
                         .append(Component.text(PlainTextComponentSerializer.plainText()
-                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))))));
+                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName())))));
+
         this.player = player;
         this.lootbox = lootbox;
 
@@ -77,8 +115,40 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     }
 
     private Reward convertToReward(LootboxItem item) {
+        // Get the original item and check for amount range
+        ItemStack displayItem = item.getDisplayItem().clone();
+        String amountStr = String.valueOf(displayItem.getAmount());
+        int minAmount = displayItem.getAmount();
+        int maxAmount = displayItem.getAmount();
+
+        // Check if amount contains a range (e.g., "8-16")
+        if (amountStr.contains("-")) {
+            try {
+                String[] range = amountStr.split("-");
+                minAmount = Integer.parseInt(range[0]);
+                maxAmount = Integer.parseInt(range[1]);
+                // Generate random amount between min and max (inclusive)
+                int randomAmount = minAmount + new Random().nextInt(maxAmount - minAmount + 1);
+                displayItem.setAmount(randomAmount);
+            } catch (Exception e) {
+                Logger.error("Failed to parse item amount range: " + amountStr);
+            }
+        }
+
+        // Add amount range to lore if it's a range
+        if (minAmount != maxAmount) {
+            ItemMeta meta = displayItem.getItemMeta();
+            if (meta != null) {
+                List<Component> lore = meta.hasLore() ? new ArrayList<>(Objects.requireNonNull(meta.lore())) : new ArrayList<>();
+                lore.add(0, Component.text("Amount: " + minAmount + "-" + maxAmount)
+                        .color(NamedTextColor.GRAY));
+                meta.lore(lore);
+                displayItem.setItemMeta(meta);
+            }
+        }
+
         return new Reward(
-                item.getItem(),
+                item,
                 item.getChance(),
                 RewardRarity.valueOf(item.getRarity().toUpperCase()),
                 item.getAction()
@@ -173,70 +243,179 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1.0f, 1.0f);
 
+        // Special effects for legendary items
+        if (finalReward.rarity() == RewardRarity.LEGENDARY) {
+            // Get the lootbox entity location
+            Location lootboxLocation = null;
+            for (LootboxEntity entity : plugin.getLootboxManager().getAllEntities()) {
+                if (entity.getLootboxId().equals(lootbox.getId())) {
+                    lootboxLocation = entity.getLocation();
+                    break;
+                }
+            }
+
+            // If we found the lootbox location, play effects there
+            if (lootboxLocation != null) {
+                final Location effectLocation = lootboxLocation.clone().add(0, 1, 0); // Slightly above the entity
+
+                // Play special sounds at entity location for everyone to hear
+                effectLocation.getWorld().playSound(effectLocation, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+                effectLocation.getWorld().playSound(effectLocation, Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 2.0f);
+                effectLocation.getWorld().playSound(effectLocation, Sound.ENTITY_WITHER_SPAWN, 0.3f, 2.0f);
+
+                // Create particle effects
+                new BukkitRunnable() {
+                    double y = 0;
+                    int ticks = 0;
+
+                    @Override
+                    public void run() {
+                        if (ticks >= 40) { // 2 seconds of effects
+                            this.cancel();
+                            return;
+                        }
+
+                        Location particleLoc = effectLocation.clone().add(0, y, 0);
+
+                        // Spiral effect
+                        double radius = 1.5;
+                        for (double degree = 0; degree < 360; degree += 20) {
+                            double radian = Math.toRadians(degree);
+                            double x = Math.cos(radian) * radius;
+                            double z = Math.sin(radian) * radius;
+
+                            Location spawnLoc = particleLoc.clone().add(x, 0, z);
+
+                            // Dragon breath particles rising up
+                            effectLocation.getWorld().spawnParticle(
+                                Particle.DRAGON_BREATH,
+                                spawnLoc,
+                                1, 0, 0, 0, 0
+                            );
+
+                            // End rod particles for extra effect
+                            effectLocation.getWorld().spawnParticle(
+                                Particle.END_ROD,
+                                spawnLoc,
+                                1, 0, 0, 0, 0.05
+                            );
+                        }
+
+                        // Lightning effect (visual only)
+                        if (ticks % 5 == 0) {
+                            effectLocation.getWorld().strikeLightningEffect(particleLoc);
+                        }
+
+                        y += 0.1;
+                        ticks++;
+                    }
+                }.runTaskTimer(plugin, 0L, 1L);
+            }
+        }
+
         // Give reward after a short delay
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // Get reward name based on metadata
-            Component rewardName;
-            ItemStack rewardItem = finalReward.displayItem();
+            // Get reward item and prepare for giving
+            ItemStack rewardItem = finalReward.displayItem().clone();
             ItemMeta meta = rewardItem.getItemMeta();
+
+            // Initialize rewardName with a default value
+            Component rewardName = meta != null && meta.hasDisplayName() ?
+                    MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                            .serialize(Objects.requireNonNull(meta.displayName()))) :
+                    Component.text(rewardItem.getType().name());
+
+            // Check original config for amount range
+            ConfigurationSection itemSection = finalReward.item().getOriginalConfig() != null ?
+                finalReward.item().getOriginalConfig().getConfigurationSection("item") : null;
+
+            if (itemSection != null) {
+                String amountStr = itemSection.getString("amount");
+                if (amountStr != null && amountStr.contains("-")) {
+                    try {
+                        String[] range = amountStr.split("-");
+                        int min = Integer.parseInt(range[0]);
+                        int max = Integer.parseInt(range[1]);
+                        int randomAmount = min + new Random().nextInt(max - min + 1);
+                        rewardItem.setAmount(randomAmount);
+                        Logger.debug("Generated random amount: " + randomAmount + " (range: " + min + "-" + max + ")");
+                    } catch (Exception e) {
+                        Logger.error("Failed to parse item amount range: " + amountStr);
+                    }
+                }
+            }
 
             if (finalReward.action() != null) {
                 // For virtual rewards, use display name and first lore line
                 if (meta != null && meta.hasLore() && !Objects.requireNonNull(meta.lore()).isEmpty()) {
                     String firstLoreLine = PlainTextComponentSerializer.plainText()
-                        .serialize(Objects.requireNonNull(meta.lore()).get(0));
+                            .serialize(Objects.requireNonNull(meta.lore()).get(0));
 
                     // Extract the actual reward from lore (e.g., "Adds 1000 coins" -> "1000 coins")
                     String reward = firstLoreLine.replaceFirst(".*?([0-9]+.*?)$", "$1");
 
-                    // Use MiniMessage to parse the display name with color codes
+                    // Update rewardName for virtual rewards
                     rewardName = meta.hasDisplayName() ?
-                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                            .serialize(Objects.requireNonNull(meta.displayName()))) :
-                        Component.text(reward).color(NamedTextColor.YELLOW);
-                } else {
-                    rewardName = meta != null && meta.hasDisplayName() ?
-                        MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                            .serialize(Objects.requireNonNull(meta.displayName()))) :
-                        Component.text(rewardItem.getType().name());
+                            MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                                    .serialize(Objects.requireNonNull(meta.displayName()))) :
+                            Component.text(reward).color(NamedTextColor.YELLOW);
+
+                    // Execute the action
+                    finalReward.action().execute(player);
                 }
             } else {
-                // For physical items, use item display name with color support
-                rewardName = meta != null && meta.hasDisplayName() ?
-                    MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                        .serialize(Objects.requireNonNull(meta.displayName()))) :
-                    Component.text(rewardItem.getType().name());
-            }
+                // For physical items, clean the lore and give the item
+                if (meta != null && meta.hasLore()) {
+                    List<Component> lore = new ArrayList<>(Objects.requireNonNull(meta.lore()));
 
-            // Message for winner
-            Component winnerMessage = Component.text("You won ")
-                .color(DESCRIPTION_COLOR)
-                .append(rewardName)
-                .append(Component.text("!")
-                    .color(DESCRIPTION_COLOR));
-            player.sendMessage(winnerMessage);
+                    // Remove amount range, chance and rarity lines
+                    lore.removeIf(line -> {
+                        String plainText = PlainTextComponentSerializer.plainText().serialize(line);
+                        return plainText.startsWith("Amount:") ||
+                               plainText.startsWith("Chance:") ||
+                               plainText.startsWith("Rarity:") ||
+                               plainText.isEmpty(); // Remove empty lines
+                    });
+
+                    // Remove any trailing empty lines
+                    while (!lore.isEmpty() && PlainTextComponentSerializer.plainText()
+                            .serialize(lore.get(lore.size() - 1)).isEmpty()) {
+                        lore.remove(lore.size() - 1);
+                    }
+
+                    meta.lore(lore);
+                    rewardItem.setItemMeta(meta);
+                }
+
+                // Give the cleaned item
+                player.getInventory().addItem(rewardItem);
+            }
 
             // Global broadcast message
             Component broadcastMessage = Component.text("» ")
-                .color(SEPARATOR_COLOR)
-                .append(Component.text(player.getName())
-                    .color(TARGET_COLOR))
-                .append(Component.text(" has won ")
-                    .color(DESCRIPTION_COLOR))
-                .append(rewardName)
-                .append(Component.text(" from ")
-                    .color(DESCRIPTION_COLOR))
-                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
-                .append(Component.text("!")
-                    .color(DESCRIPTION_COLOR));
+                    .color(SEPARATOR_COLOR)
+                    .append(Component.text(player.getName())
+                            .color(TARGET_COLOR))
+                    .append(Component.text(" has won ")
+                            .color(DESCRIPTION_COLOR))
+                    .append(Component.text(rewardItem.getAmount() + "x ")
+                            .color(ITEM_COLOR))
+                    .append(rewardName
+                            .color(ITEM_COLOR))
+                    .append(Component.text(" (")
+                            .color(DESCRIPTION_COLOR))
+                    .append(Component.text(finalReward.rarity().toString())
+                            .color(finalReward.rarity().getColor()))
+                    .append(Component.text(") from ")
+                            .color(DESCRIPTION_COLOR))
+                    .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                    .append(Component.text("!")
+                            .color(DESCRIPTION_COLOR));
 
             // Broadcast to all players
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendMessage(broadcastMessage);
             }
-
-            // Give the reward
-            finalReward.give(player);
 
             // Increment open count and save
             lootbox.incrementOpenCount();
@@ -245,16 +424,6 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
             player.closeInventory();
             isProcessingReward = false;
         }, 20L);
-    }
-
-    // Helper class to get color from component
-    private static class TextColorGetter {
-        public static TextColor getColorFromComponent(Component component) {
-            if (component.color() != null) {
-                return component.color();
-            }
-            return NamedTextColor.YELLOW; // Default color
-        }
     }
 
     protected void playTickSound() {
@@ -281,9 +450,20 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         }
     }
 
+    // Make sure the inventory is properly associated with this GUI
     @Override
-    public void handleClick(InventoryClickEvent event) {
-        event.setCancelled(true);
+    public @NotNull Inventory getInventory() {
+        if (inventory.getHolder() != this) {
+            // If somehow the holder is wrong, create a new inventory with correct holder
+            Component title = inventory.getViewers().isEmpty() ?
+                Component.text("Opening Lootbox") : // Default title if no viewers
+                inventory.getViewers().get(0).getOpenInventory().title(); // Get title from view
+
+            Inventory newInv = Bukkit.createInventory(this, inventory.getSize(), title);
+            newInv.setContents(inventory.getContents());
+            this.inventory = newInv;
+        }
+        return inventory;
     }
 
     // Abstract methods that must be implemented by specific animations

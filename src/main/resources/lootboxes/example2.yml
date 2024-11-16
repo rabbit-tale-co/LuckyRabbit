@@ -51,9 +51,9 @@ items:
     # Item shown in the animation and given to player
     item:
       type: GOLD_INGOT  # Minecraft material type
-      amount: 32
+      amount: 1
       meta:
-        display-name: "<yellow>Pouch of gold"
+        display-name: "<yellow>Pouch of gold (1000)"
         lore:
           - "<gold>1000 <white>gold"
     # Actions executed when this reward is won

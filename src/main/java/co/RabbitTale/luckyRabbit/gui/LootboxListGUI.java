@@ -1,6 +1,7 @@
 package co.RabbitTale.luckyRabbit.gui;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.Bukkit;
@@ -15,14 +16,34 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
-import static co.RabbitTale.luckyRabbit.gui.LootboxContentGUI.adminLore;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
 
+/*
+ * LootboxListGUI.java
+ *
+ * GUI for displaying all available lootboxes.
+ * Provides paginated list with lootbox information and management options.
+ *
+ * Features:
+ * - Paginated display (7x3 grid per page)
+ * - Permission-based content (admin/user views)
+ * - Interactive buttons for navigation
+ * - Detailed lootbox information display
+ * - Quick access to lootbox management
+ *
+ * Layout:
+ * - Main content: 7x3 grid of lootboxes
+ * - Navigation: Previous/Next page buttons
+ * - Controls: Close button, additional admin options
+ * - Statistics: Key count, open count, items available
+ */
 public class LootboxListGUI implements GUI {
 
     private static final int ROWS = 5;
@@ -37,13 +58,26 @@ public class LootboxListGUI implements GUI {
     private final List<Lootbox> lootboxes;
     private int currentPage = 0;
 
+    /**
+     * Creates a new lootbox list GUI. Loads appropriate lootboxes based on
+     * player permissions.
+     *
+     * @param player Player viewing the GUI
+     */
     public LootboxListGUI(Player player) {
         this.plugin = LuckyRabbit.getInstance();
         this.player = player;
 
-        // Create a sorted list of lootboxes (oldest first)
-        // If you want newest first, use Collections.reverse(sortedLootboxes);
-        this.lootboxes = new ArrayList<>(plugin.getLootboxManager().getAllLootboxes());
+        // Get appropriate lootbox collection based on permissions
+        Collection<Lootbox> lootboxCollection;
+        if (player.hasPermission("luckyrabbit.admin")) {
+            lootboxCollection = plugin.getLootboxManager().getAllLootboxesAdmin();
+        } else {
+            lootboxCollection = plugin.getLootboxManager().getAllLootboxes();
+        }
+
+        // Create a sorted list of lootboxes
+        this.lootboxes = new ArrayList<>(lootboxCollection);
 
         // Calculate total pages
         int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
@@ -54,15 +88,33 @@ public class LootboxListGUI implements GUI {
         updateInventory();
     }
 
+    /**
+     * Opens the GUI for a player. Shows first page by default.
+     *
+     * @param player Player to show GUI to
+     */
     public static void openGUI(Player player) {
         openGUI(player, 1); // Default to first page
     }
 
+    /**
+     * Opens the GUI for a player at a specific page.
+     *
+     * @param player Player to show GUI to
+     * @param page Page number to display
+     */
     public static void openGUI(Player player, int page) {
+        Collection<Lootbox> lootboxes;
+        if (player.hasPermission("luckyrabbit.admin")) {
+            lootboxes = LuckyRabbit.getInstance().getLootboxManager().getAllLootboxesAdmin();
+        } else {
+            lootboxes = LuckyRabbit.getInstance().getLootboxManager().getAllLootboxes();
+        }
+
         LootboxListGUI gui = new LootboxListGUI(player);
 
         // Calculate total pages
-        int totalPages = Math.max(1, (int) Math.ceil(gui.lootboxes.size() / (double) PAGE_SIZE));
+        int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
 
         // Validate page number
         if (page < 1 || page > totalPages) {
@@ -76,26 +128,12 @@ public class LootboxListGUI implements GUI {
         player.openInventory(gui.getInventory());
     }
 
-    @Override
-    public @NotNull
-    Inventory getInventory() {
-        return inventory;
-    }
-
+    /**
+     * Updates the inventory contents. Refreshes lootbox display and navigation
+     * buttons.
+     */
     private void updateInventory() {
-        inventory.clear();
-
-        // Add glass pane border
-        for (int i = 0; i < ROWS * 9; i++) {
-            // First and last row
-            if (i < 9 || i >= (ROWS - 1) * 9) {
-                inventory.setItem(i, createBorderItem());
-            }
-            // Side borders
-            else if (i % 9 == 0 || i % 9 == 8) {
-                inventory.setItem(i, createBorderItem());
-            }
-        }
+        GUIUtils.setupBorder(inventory, ROWS);
 
         // Add lootbox items
         int startIndex = currentPage * PAGE_SIZE;
@@ -109,19 +147,14 @@ public class LootboxListGUI implements GUI {
             inventory.setItem(slot, createLootboxItem(lootbox));
         }
 
-        // Always show navigation buttons
-        // Previous button (disabled if on first page)
-        inventory.setItem(PREV_BUTTON_SLOT, createNavigationButton("Previous Page",
-            Material.ARROW, currentPage > 0));
+        // Add navigation buttons - always show them, just like in LootboxContentGUI
+        inventory.setItem(PREV_BUTTON_SLOT, GUIUtils.createNavigationButton("Previous Page",
+                Material.ARROW, currentPage > 0));
+        inventory.setItem(NEXT_BUTTON_SLOT, GUIUtils.createNavigationButton("Next Page",
+                Material.ARROW, (currentPage + 1) * PAGE_SIZE < lootboxes.size()));
 
-        // Close button
-        inventory.setItem(CLOSE_BUTTON_SLOT, createNavigationButton("Close",
-            Material.BARRIER, true));
-
-        // Next button (disabled if on last page)
-        boolean hasNextPage = (currentPage + 1) * PAGE_SIZE < lootboxes.size();
-        inventory.setItem(NEXT_BUTTON_SLOT, createNavigationButton("Next Page",
-            Material.ARROW, hasNextPage));
+        // Add close button
+        inventory.setItem(CLOSE_BUTTON_SLOT, GUIUtils.createNavigationButton("Close", Material.BARRIER, true));
 
         // Update title with current page
         int totalPages = Math.max(1, (int) Math.ceil(lootboxes.size() / (double) PAGE_SIZE));
@@ -130,36 +163,13 @@ public class LootboxListGUI implements GUI {
         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
     }
 
-    private ItemStack createBorderItem() {
-        ItemStack item = new ItemStack(Material.GRAY_STAINED_GLASS_PANE); // Changed to dark gray
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private ItemStack createNavigationButton(String name, Material material, boolean enabled) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        if (enabled) {
-            meta.displayName(Component.text(name)
-                .color(NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false));
-        } else {
-            meta.displayName(Component.text(name)
-                .color(NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
-            // Add "disabled" lore
-            meta.lore(List.of(Component.text("Not available")
-                .color(NamedTextColor.RED)
-                .decoration(TextDecoration.ITALIC, false)));
-        }
-
-        item.setItemMeta(meta);
-        return item;
-    }
-
+    /**
+     * Creates a display item for a lootbox. Includes statistics and admin
+     * options.
+     *
+     * @param lootbox Lootbox to create item for
+     * @return ItemStack configured for display
+     */
     private ItemStack createLootboxItem(Lootbox lootbox) {
         ItemStack item = new ItemStack(Material.CHEST);
         ItemMeta meta = item.getItemMeta();
@@ -171,7 +181,18 @@ public class LootboxListGUI implements GUI {
 
         List<Component> lore = new ArrayList<>();
 
-        // Add lore lines with MiniMessage parsing
+        // Add example lootbox indicator for admins
+        if (plugin.getLootboxManager().isExampleLootbox(lootbox.getId())) {
+            lore.add(Component.empty());
+            lore.add(Component.text("EXAMPLE LOOTBOX")
+                    .color(INFO_COLOR)
+                    .decoration(TextDecoration.BOLD, true));
+            lore.add(Component.text("Cannot be placed in world")
+                    .color(DESCRIPTION_COLOR));
+            lore.add(Component.empty());
+        }
+
+        // Add existing lore lines with MiniMessage parsing
         for (String loreLine : lootbox.getLore()) {
             lore.add(MiniMessage.miniMessage()
                     .deserialize(loreLine)
@@ -179,22 +200,23 @@ public class LootboxListGUI implements GUI {
         }
 
         // Add statistics
+        // TODO: open count and items count make as separated color
         lore.add(Component.empty());
         lore.add(Component.text("Statistics:")
-                .color(NamedTextColor.GOLD)
+                .color(INFO_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("• Times opened: " + lootbox.getOpenCount())
-                .color(NamedTextColor.GRAY)
+        lore.add(Component.text("  • Times opened: " + lootbox.getOpenCount())
+                .color(DESCRIPTION_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("• Items available: " + lootbox.getItems().size())
-                .color(NamedTextColor.GRAY)
+        lore.add(Component.text("  • Items available: " + lootbox.getItems().size())
+                .color(DESCRIPTION_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
 
         // Add key count
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
         lore.add(Component.empty());
         lore.add(Component.text("Your keys: " + keyCount)
-                .color(keyCount > 0 ? NamedTextColor.GREEN : NamedTextColor.RED)
+                .color(keyCount > 0 ? ITEM_COLOR : ERROR_COLOR)
                 .decoration(TextDecoration.ITALIC, false));
 
         // Add actions
@@ -203,9 +225,18 @@ public class LootboxListGUI implements GUI {
                 .color(NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false));
 
-        return adminLore(item, meta, lore, player);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
 
+    /**
+     * Handles inventory click events. Processes navigation and lootbox
+     * interaction.
+     *
+     * @param event The click event
+     */
+    @Override
     public void handleClick(InventoryClickEvent event) {
         event.setCancelled(true);
 
@@ -251,8 +282,26 @@ public class LootboxListGUI implements GUI {
         }
     }
 
+    /**
+     * Handles inventory close events. Cleans up any necessary resources.
+     *
+     * @param event The close event
+     */
     @Override
     public void handleClose(InventoryCloseEvent event) {
         // Cleanup if needed
+    }
+
+    @Override
+    public @NotNull
+    Inventory getInventory() {
+        return inventory;
+    }
+
+    /**
+     * Shows the GUI to a player. Opens the inventory for viewing.
+     */
+    public void show() {
+        player.openInventory(inventory);
     }
 }
