@@ -11,26 +11,61 @@ import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.Reward;
 
+/*
+ * CascadeSpinGUI.java
+ *
+ * Waterfall-style animation.
+ * Items flow down in a cascading pattern.
+ * Premium feature only.
+ *
+ * Features:
+ * - Cascading item movement
+ * - Multi-row animation
+ * - Synchronized timing
+ * - Flow direction control
+ *
+ * Layout:
+ * - 6x9 display grid
+ * - Multiple animation rows
+ * - Flow indicators
+ * - Border decoration
+ */
 public class CascadeSpinGUI extends BaseAnimationGUI {
 
     private static final int GUI_SIZE = 54;
     private static final int[][] SLOTS = {
-        {10, 11, 12, 13, 14, 15, 16},
-        {19, 20, 21, 22, 23, 24, 25},
-        {28, 29, 30, 31, 32, 33, 34},
-        {37, 38, 39, 40, 41, 42, 43}
+        {10, 11, 12, 13, 14, 15, 16}, // Top row
+        {19, 20, 21, 22, 23, 24, 25}, // Second row
+        {28, 29, 30, 31, 32, 33, 34}, // Third row
+        {37, 38, 39, 40, 41, 42, 43}  // Bottom row
     };
 
+    /**
+     * Creates a new cascade animation GUI.
+     *
+     * @param plugin Plugin instance
+     * @param player Player viewing the animation
+     * @param lootbox Lootbox being opened
+     */
     public CascadeSpinGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
         super(plugin, player, lootbox, GUI_SIZE);
         setTotalSteps(60);
     }
 
+    /**
+     * Sets up the GUI decoration.
+     * Creates border and flow indicators.
+     */
     @Override
     protected void decorateGUI() {
         fillEmptySlots();
     }
 
+    /**
+     * Updates the animation frame.
+     * Handles cascading item movement.
+     * Shows final reward in center slot at end.
+     */
     @Override
     protected void updateItems() {
         for (int row = 0; row < SLOTS.length; row++) {
@@ -45,11 +80,24 @@ public class CascadeSpinGUI extends BaseAnimationGUI {
         }
     }
 
+    /**
+     * Gets the animation duration in ticks.
+     *
+     * @return Duration in ticks (100 = 5 seconds)
+     */
     @Override
     protected int getAnimationDuration() {
         return 100;
     }
 
+    /**
+     * Generates the sequence of items for the animation.
+     * Creates a cascading pattern with final reward.
+     *
+     * @param totalSteps Total animation steps
+     * @param winningSlot Slot where winning item will land
+     * @return List of items for animation
+     */
     @Override
     protected List<ItemStack> generateSpinSequence(int totalSteps, int winningSlot) {
         List<ItemStack> spinSequence = new ArrayList<>();

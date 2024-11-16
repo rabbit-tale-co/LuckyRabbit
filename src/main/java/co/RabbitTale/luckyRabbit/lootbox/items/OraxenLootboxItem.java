@@ -7,6 +7,7 @@ import lombok.Getter;
 
 @Getter
 public class OraxenLootboxItem extends LootboxItem {
+
     private final String oraxenId;
 
     public OraxenLootboxItem(ItemStack item, String oraxenId) {

@@ -16,13 +16,36 @@ import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+/*
+ * EntityListener.java
+ *
+ * Handles entity-related events for lootbox entities.
+ * Manages lootbox interaction and GUI opening.
+ *
+ * Features:
+ * - Lootbox entity interaction
+ * - Permission checking
+ * - Example lootbox restrictions
+ * - GUI opening
+ */
 public class EntityListener implements Listener {
     private final LuckyRabbit plugin;
 
+    /**
+     * Creates a new entity listener.
+     *
+     * @param plugin The LuckyRabbit plugin instance
+     */
     public EntityListener(LuckyRabbit plugin) {
         this.plugin = plugin;
     }
 
+    /**
+     * Handles entity click events.
+     * Opens lootbox GUI when players click lootbox entities.
+     *
+     * @param event The click event
+     */
     @EventHandler
     public void onEntityClick(PlayerInteractAtEntityEvent event) {
         Entity entity = event.getRightClicked();

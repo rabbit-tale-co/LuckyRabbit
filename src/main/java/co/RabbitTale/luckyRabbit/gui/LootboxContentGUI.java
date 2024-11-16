@@ -34,6 +34,29 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
 
+/*
+ * LootboxContentGUI.java
+ *
+ * GUI for displaying and managing lootbox contents.
+ * Shows items, chances, and provides opening functionality.
+ *
+ * Features:
+ * - Paginated item display
+ * - Item statistics (chance, rarity)
+ * - Opening animation selection
+ * - Key management
+ * - Admin item removal
+ *
+ * Layout:
+ * - 7x3 grid for items (21 per page)
+ * - Navigation buttons (prev/next)
+ * - Open button (if player has keys)
+ * - Back button (optional)
+ *
+ * Permissions:
+ * - Regular users: View contents and open
+ * - Admins: Additional item management
+ */
 public class LootboxContentGUI implements GUI {
 
     private static final int ROWS = 5;
@@ -52,10 +75,24 @@ public class LootboxContentGUI implements GUI {
     private final boolean showBackButton;
     private final boolean showOpenButton;
 
+    /**
+     * Creates a new content GUI with default settings.
+     *
+     * @param player Player viewing the GUI
+     * @param lootbox Lootbox to display
+     */
     public LootboxContentGUI(Player player, Lootbox lootbox) {
         this(player, lootbox, true, false);
     }
 
+    /**
+     * Creates a new content GUI with custom settings.
+     *
+     * @param player Player viewing the GUI
+     * @param lootbox Lootbox to display
+     * @param showBackButton Whether to show back button
+     * @param showOpenButton Whether to show open button
+     */
     public LootboxContentGUI(Player player, Lootbox lootbox, boolean showBackButton, boolean showOpenButton) {
         this.plugin = LuckyRabbit.getInstance();
         this.player = player;
@@ -76,6 +113,10 @@ public class LootboxContentGUI implements GUI {
         updateInventory();
     }
 
+    /**
+     * Updates the inventory contents.
+     * Refreshes items and buttons.
+     */
     private void updateInventory() {
         GUIUtils.setupBorder(inventory, ROWS);
 
@@ -116,6 +157,10 @@ public class LootboxContentGUI implements GUI {
         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
     }
 
+    /**
+     * Updates the open button state.
+     * Shows key count and availability.
+     */
     private void updateOpenButton() {
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
         ItemStack openButton = new ItemStack(Material.TRIPWIRE_HOOK);
@@ -191,6 +236,13 @@ public class LootboxContentGUI implements GUI {
         return inventory;
     }
 
+    /**
+     * Creates a display item with statistics.
+     * Shows chance and rarity information.
+     *
+     * @param item LootboxItem to display
+     * @return Configured ItemStack
+     */
     private ItemStack createDisplayItem(LootboxItem item) {
         // Get the display item with proper formatting from LootboxItem
         ItemStack displayItem = item.getDisplayItem();
@@ -246,6 +298,10 @@ public class LootboxContentGUI implements GUI {
         return displayItem;
     }
 
+    /**
+     * Handles opening the lootbox.
+     * Checks key availability and starts animation.
+     */
     private void handleOpenButton() {
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
 
@@ -289,6 +345,10 @@ public class LootboxContentGUI implements GUI {
         }
     }
 
+    /**
+     * Shows the GUI to a player.
+     * Opens the inventory for viewing.
+     */
     public void show() {
         player.openInventory(inventory);
     }

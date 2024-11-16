@@ -22,6 +22,29 @@ import co.RabbitTale.luckyRabbit.utils.Logger;
 import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 
+/*
+ * LuckyRabbit.java
+ *
+ * Main plugin class for the LuckyRabbit Minecraft plugin.
+ * This class handles plugin initialization, configuration, and core functionality.
+ *
+ * Features:
+ * - Lootbox system with customizable animations and rewards
+ * - License management (Premium/Trial/Free modes)
+ * - Integration with Vault Economy and Oraxen
+ * - API for external plugin integration
+ * - User data management and persistence
+ *
+ * Dependencies:
+ * - Vault (optional) - For economy features
+ * - Oraxen (optional) - For custom item support
+ *
+ * Configuration:
+ * - Reads main config from config.yml
+ * - Supports debug mode for detailed logging
+ * - License key management through commands
+ *
+ */
 public class LuckyRabbit extends JavaPlugin {
 
     @Getter
@@ -51,11 +74,10 @@ public class LuckyRabbit extends JavaPlugin {
     @Getter
     private boolean oraxenHooked = false;
 
-    // TODO: make more lootbox animations (PARTICLES) -> lootbox/entity/lootboxEntity
-    // TODO: add more lootbox animations (SPIN)
-    // TODO: add option to change lang (even by API calls from other plugins)
-    // TODO: make more advanced chance % system (auto recalculate on adding new items to lootbox)
-    // TODO: web editor (manage lootboxes and items via web dashboard) will auto calculate % of items, will show list of lootboxes with items inside ect.
+    /**
+     * Called when the plugin is enabled.
+     * Initializes all managers, loads configurations, and sets up integrations.
+     */
     @Override
     public void onEnable() {
         instance = this;
@@ -95,7 +117,7 @@ public class LuckyRabbit extends JavaPlugin {
         // Register entity listener
         getServer().getPluginManager().registerEvents(new EntityListener(this), this);
 
-        // Check license and load lootboxes after all plugins are loaded
+        // Setup integrations and display startup banner after all plugins are loaded
         getServer().getScheduler().runTaskLater(this, () -> {
             // Setup Vault
             if (setupEconomy()) {
@@ -107,15 +129,7 @@ public class LuckyRabbit extends JavaPlugin {
                 hookedPlugins.add("Oraxen");
             }
 
-            // Then check license
-            String licenseKey = getConfig().getString("license-key", "");
-            if (!licenseKey.isEmpty()) {
-                licenseManager.verifyLicense(licenseKey);
-            } else {
-                LicenseManager.checkTrialStatus();
-            }
-
-            // Get plan type
+            // Get current plan type (bez ponownego sprawdzania)
             String planType;
             if (LicenseManager.isPremium()) {
                 planType = "PREMIUM";
@@ -147,9 +161,13 @@ public class LuckyRabbit extends JavaPlugin {
             // Respawn entities
             lootboxManager.respawnEntities();
 
-        }, 100L); // Increased delay to 5 seconds (100 ticks)
+        }, 100L);
     }
 
+    /**
+     * Called when the plugin is disabled.
+     * Saves all data and cleans up resources.
+     */
     @Override
     public void onDisable() {
         // Save all data and cleanup entities
@@ -167,7 +185,12 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
-     * Reloads the plugin configuration and verifies license
+     * Reloads the plugin configuration and verifies license.
+     * This includes:
+     * - Reloading config files
+     * - Verifying license status
+     * - Reloading lootboxes
+     * - Respawning entities
      */
     public void reload() {
         reloadConfig();
@@ -176,18 +199,20 @@ public class LuckyRabbit extends JavaPlugin {
         // First reload configs
         configManager.loadConfigs();
 
-        // Then check license status
-        if (!licenseKey.isEmpty()) {
-            licenseManager.verifyLicense(licenseKey);
-        } else {
-            LicenseManager.checkTrialStatus();
-        }
+        // Sprawdź licencję tylko jeśli nie jest aktualnie weryfikowana
+        if (!LicenseManager.isVerifying()) {
+            if (!licenseKey.isEmpty()) {
+                licenseManager.verifyLicense(licenseKey, false);
+            } else {
+                LicenseManager.checkTrialStatus();
+            }
 
-        // Wait for license check to complete
-        try {
-            Thread.sleep(1000); // Give time for async license check
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            // Wait for license check to complete
+            try {
+                Thread.sleep(1000); // Give time for async license check
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
 
         // Cleanup existing entities
@@ -214,7 +239,10 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
-     * Sets up the economy integration with Vault
+     * Sets up the economy integration with Vault.
+     * This is optional - plugin will work without economy features if Vault is not present.
+     *
+     * @return true if economy was successfully set up, false otherwise
      */
     private boolean setupEconomy() {
         if (getServer().getPluginManager().getPlugin("Vault") == null) {
@@ -238,7 +266,10 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
-     * Sets up Oraxen integration
+     * Sets up Oraxen integration for custom items.
+     * This is optional - plugin will use fallback items if Oraxen is not present.
+     *
+     * @return true if Oraxen was successfully hooked, false otherwise
      */
     private boolean setupOraxen() {
         if (getServer().getPluginManager().getPlugin("Oraxen") == null) {

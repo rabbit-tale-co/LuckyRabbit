@@ -8,7 +8,6 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
@@ -17,6 +16,25 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
+/*
+ * CircleSpinGUI.java
+ *
+ * Circular spinning animation.
+ * Items rotate in a circle with the winning item landing at the top.
+ * Premium feature only.
+ *
+ * Features:
+ * - Circular item movement
+ * - Rainbow border animation
+ * - Top position highlighting
+ * - Variable rotation speed
+ *
+ * Layout:
+ * - 6x9 circular pattern
+ * - Highlighted top slot
+ * - Animated glass pane border
+ * - Direction indicators
+ */
 public class CircleSpinGUI extends BaseAnimationGUI {
 
     private static final int GUI_SIZE = 54;
@@ -41,67 +59,26 @@ public class CircleSpinGUI extends BaseAnimationGUI {
         Material.PINK_STAINED_GLASS_PANE
     };
     private int glassColorIndex = 0;
-    private List<ItemStack> spinSequence;
-    private List<Integer> delays;
 
+    /**
+     * Creates a new circle animation GUI.
+     *
+     * @param plugin Plugin instance
+     * @param player Player viewing the animation
+     * @param lootbox Lootbox being opened
+     */
     public CircleSpinGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
         super(plugin, player, lootbox, GUI_SIZE);
         setTotalSteps(50);
-        this.spinSequence = generateSpinSequence(totalSteps, WINNING_SLOT);
-        this.delays = generateDelays(totalSteps, 80);
+        generateSpinSequence(totalSteps, WINNING_SLOT);
+        generateDelays(totalSteps, 80);
         decorateGUI();
     }
 
-    @Override
-    protected void startAnimation() {
-        if (spinSequence == null || delays == null) {
-            this.spinSequence = generateSpinSequence(totalSteps, WINNING_SLOT);
-            this.delays = generateDelays(totalSteps, 80);
-        }
-        animateSpinSequence(0);
-    }
-
-    private void animateSpinSequence(int index) {
-        if (index >= delays.size()) {
-            finishAnimation();
-            return;
-        }
-
-        // Calculate current position in sequence
-        int sequenceIndex = index % CIRCLE_SLOTS.length;
-
-        // Update all slots
-        for (int i = 0; i < CIRCLE_SLOTS.length; i++) {
-            int slot = CIRCLE_SLOTS[(i + sequenceIndex) % CIRCLE_SLOTS.length];
-            ItemStack item;
-
-            if (index >= totalSteps - 5 && slot == WINNING_SLOT) {
-                item = finalReward.displayItem();
-            } else {
-                item = getRandomRewardItem();
-            }
-
-            if (slot == WINNING_SLOT) {
-                item = addGlowEffect(item);
-            }
-
-            inventory.setItem(slot, item);
-        }
-
-        playTickSound();
-        updateGlassColors();
-        placeArrows();
-
-        // Schedule next animation frame
-        int delay = delays.get(index);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                animateSpinSequence(index + 1);
-            }
-        }.runTaskLater(plugin, delay);
-    }
-
+    /**
+     * Sets up the GUI decoration.
+     * Creates glass pane border and slot markers.
+     */
     @Override
     protected void decorateGUI() {
         // Fill entire GUI with black glass first
@@ -118,11 +95,20 @@ public class CircleSpinGUI extends BaseAnimationGUI {
         placeArrows();
     }
 
+    /**
+     * Updates the animation frame.
+     * Handles item rotation and border animation.
+     */
     @Override
     protected void updateItems() {
         updateCircleItems(currentStep);
     }
 
+    /**
+     * Updates items in the circle pattern.
+     *
+     * @param step Current animation step
+     */
     private void updateCircleItems(int step) {
         for (int slot : CIRCLE_SLOTS) {
             ItemStack item = (step >= totalSteps - 5 && slot == WINNING_SLOT)
@@ -140,6 +126,10 @@ public class CircleSpinGUI extends BaseAnimationGUI {
         placeArrows();
     }
 
+    /**
+     * Updates the rainbow border colors.
+     * Creates animated border effect.
+     */
     private void updateGlassColors() {
         glassColorIndex = (glassColorIndex + 1) % GLASS_COLORS.length;
 
@@ -151,6 +141,12 @@ public class CircleSpinGUI extends BaseAnimationGUI {
         }
     }
 
+    /**
+     * Checks if a slot is part of the circle pattern.
+     *
+     * @param slot Slot to check
+     * @return true if slot is in circle pattern
+     */
     private boolean isCircleSlot(int slot) {
         for (int circleSlot : CIRCLE_SLOTS) {
             if (circleSlot == slot) return true;
@@ -173,11 +169,23 @@ public class CircleSpinGUI extends BaseAnimationGUI {
         return glass;
     }
 
+    /**
+     * Gets the animation duration in ticks.
+     *
+     * @return Duration in ticks (80 = 4 seconds)
+     */
     @Override
     protected int getAnimationDuration() {
         return 80;
     }
 
+    /**
+     * Generates the sequence of items for the animation.
+     *
+     * @param totalSteps Total animation steps
+     * @param winningSlot Slot where winning item will land
+     * @return List of items for animation
+     */
     @Override
     protected List<ItemStack> generateSpinSequence(int totalSteps, int winningSlot) {
         List<ItemStack> sequence = new ArrayList<>();

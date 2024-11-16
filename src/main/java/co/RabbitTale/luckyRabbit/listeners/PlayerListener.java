@@ -14,16 +14,39 @@ import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
 import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 
+/*
+ * PlayerListener.java
+ *
+ * Handles player-related events for the LuckyRabbit plugin.
+ * Manages user data loading/unloading and entity visibility.
+ *
+ * Features:
+ * - User data management on join/quit
+ * - Creator effects handling
+ * - Lootbox entity visibility control
+ * - Per-player entity state management
+ */
 public class PlayerListener implements Listener {
 
     private final LuckyRabbit plugin;
     private final CreatorEffects creatorEffects;
 
+    /**
+     * Creates a new player listener.
+     *
+     * @param plugin The LuckyRabbit plugin instance
+     */
     public PlayerListener(LuckyRabbit plugin) {
         this.plugin = plugin;
         this.creatorEffects = new CreatorEffects(plugin);
     }
 
+    /**
+     * Handles player join events.
+     * Loads user data and updates entity visibility.
+     *
+     * @param event The join event
+     */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         plugin.getUserManager().loadUserData(event.getPlayer().getUniqueId());
@@ -37,7 +60,6 @@ public class PlayerListener implements Listener {
         for (Entity entity : event.getPlayer().getWorld().getEntities()) {
             if (entity instanceof ArmorStand && entity.hasMetadata("LootboxEntity")) {
                 try {
-                    // Get the entity's UUID from the armor stand itself
                     UUID entityUUID = entity.getUniqueId();
                     LootboxEntity lootboxEntity = plugin.getLootboxManager().getEntityById(entityUUID);
 
@@ -51,6 +73,12 @@ public class PlayerListener implements Listener {
         }
     }
 
+    /**
+     * Handles player quit events.
+     * Saves and unloads user data.
+     *
+     * @param event The quit event
+     */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         plugin.getUserManager().unloadUserData(event.getPlayer().getUniqueId());

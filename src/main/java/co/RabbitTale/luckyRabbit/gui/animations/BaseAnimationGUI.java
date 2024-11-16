@@ -9,8 +9,6 @@ import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -33,6 +31,36 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 
+/*
+ * BaseAnimationGUI.java
+ *
+ * Abstract base class for all lootbox opening animations.
+ * Provides common functionality for animations and reward handling.
+ *
+ * Features:
+ * - Configurable animation duration and steps
+ * - Reward selection and distribution
+ * - Sound and particle effects
+ * - Legendary item special effects
+ * - Broadcast messages
+ *
+ * Animation Flow:
+ * 1. Initialize animation parameters
+ * 2. Generate spin sequence
+ * 3. Play animation with delays
+ * 4. Show final reward
+ * 5. Execute reward actions
+ *
+ * Reward Selection:
+ * - Weighted random selection based on chances
+ * - Rarity-based effects and announcements
+ * - Support for custom actions (commands/permissions)
+ *
+ * Sound Effects:
+ * - Tick sounds during animation
+ * - Pitch variation based on progress
+ * - Special sounds for legendary items
+ */
 public abstract class BaseAnimationGUI extends LootboxGUI {
 
     protected final Player player;

@@ -39,7 +39,7 @@ public class LootboxTabCompleter implements TabCompleter {
                 commands.add("creator");
             }
             if (sender.hasPermission("luckyrabbit.admin")) {
-                commands.addAll(Arrays.asList("create", "delete", "item", "entity", "key", "reload", "animations", "license"));
+                commands.addAll(Arrays.asList("create", "delete", "item", "entity", "key", "reload", "animations", "license", "config"));
             }
             return filterCompletions(commands, args[0]);
         }
@@ -134,6 +134,26 @@ public class LootboxTabCompleter implements TabCompleter {
             case "license" -> {
                 if (args.length == 2) {
                     return filterCompletions(List.of("info"), args[1]);
+                }
+            }
+            case "config" -> {
+                if (!sender.hasPermission("luckyrabbit.admin.config")) {
+                    return completions;
+                }
+                if (args.length == 2) {
+                    return filterCompletions(List.of("license-key"), args[1]);
+                }
+                if (args.length == 3 && args[1].equalsIgnoreCase("license-key")) {
+                    return filterCompletions(Arrays.asList("add", "remove"), args[2]);
+                }
+                if (args.length == 4 && args[1].equalsIgnoreCase("license-key") && args[2].equalsIgnoreCase("add")) {
+                    String currentKey = plugin.getConfig().getString("license-key", "");
+                    List<String> suggestions = new ArrayList<>();
+                    if (!currentKey.isEmpty()) {
+                        suggestions.add(currentKey);
+                    }
+                    suggestions.add("XXXX-XXXX-XXXX-XX");
+                    return filterCompletions(suggestions, args[3]);
                 }
             }
         }
@@ -277,6 +297,36 @@ public class LootboxTabCompleter implements TabCompleter {
                 Component.text("Removes the lootbox entity you're looking at", LootboxCommand.DESCRIPTION_COLOR),
                 Component.text("Note: ", LootboxCommand.INFO_COLOR)
                     .append(Component.text("You must be looking at a lootbox entity", LootboxCommand.DESCRIPTION_COLOR))
+            );
+            case "config" -> Arrays.asList(
+                Component.text("Available config commands:", LootboxCommand.INFO_COLOR),
+                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("config ", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text("license-key ", LootboxCommand.ITEM_COLOR))
+                    .append(Component.text("<add/remove>", LootboxCommand.TARGET_COLOR))
+                    .append(Component.text(" - Manage license key", LootboxCommand.DESCRIPTION_COLOR)),
+                Component.text("\nType ", LootboxCommand.INFO_COLOR)
+                    .append(Component.text("/lb config license-key", LootboxCommand.COMMAND_COLOR))
+                    .append(Component.text(" for more information", LootboxCommand.INFO_COLOR))
+            );
+            case "config license-key" -> Arrays.asList(
+                Component.text("Available license key commands:", LootboxCommand.INFO_COLOR),
+                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("config ", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text("license-key ", LootboxCommand.ITEM_COLOR))
+                    .append(Component.text("add ", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text("<key>", LootboxCommand.TARGET_COLOR))
+                    .append(Component.text(" - Add or update license key", LootboxCommand.DESCRIPTION_COLOR)),
+                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                    .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                    .append(Component.text("config ", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text("license-key ", LootboxCommand.ITEM_COLOR))
+                    .append(Component.text("remove", LootboxCommand.ACTION_COLOR))
+                    .append(Component.text(" - Remove current license key", LootboxCommand.DESCRIPTION_COLOR)),
+                Component.text("\nExample: ", LootboxCommand.INFO_COLOR)
+                    .append(Component.text("/lb config license-key add XXXX-XXXX-XXXX-XX", LootboxCommand.DESCRIPTION_COLOR))
             );
             // Add other command usages with similar color formatting
             default -> List.of(

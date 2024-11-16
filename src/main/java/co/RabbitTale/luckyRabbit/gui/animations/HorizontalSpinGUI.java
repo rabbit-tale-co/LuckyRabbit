@@ -16,6 +16,25 @@ import co.RabbitTale.luckyRabbit.lootbox.rewards.Reward;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+/*
+ * HorizontalSpinGUI.java
+ *
+ * Classic slot machine style animation.
+ * Items scroll horizontally with the winning item landing in the center.
+ * Available in free version.
+ *
+ * Features:
+ * - Horizontal scrolling effect
+ * - Rainbow border animation
+ * - Center slot highlighting
+ * - Variable speed (slows down at end)
+ *
+ * Layout:
+ * - 3x9 display area
+ * - Highlighted center slot (13)
+ * - Animated glass pane border
+ * - Direction arrows
+ */
 public class HorizontalSpinGUI extends BaseAnimationGUI {
 
     private static final int GUI_SIZE = 27;
@@ -36,6 +55,14 @@ public class HorizontalSpinGUI extends BaseAnimationGUI {
     private List<ItemStack> spinSequence;
     private List<Integer> delays;
 
+    /**
+     * Creates a new horizontal spin animation GUI. Initializes animation
+     * parameters and decorates GUI.
+     *
+     * @param plugin Plugin instance
+     * @param player Player viewing the animation
+     * @param lootbox Lootbox being opened
+     */
     public HorizontalSpinGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
         super(plugin, player, lootbox, GUI_SIZE);
         setTotalSteps(40);
@@ -43,6 +70,12 @@ public class HorizontalSpinGUI extends BaseAnimationGUI {
         initializeAnimation();
     }
 
+    /**
+     * Initializes the animation sequence and delays. Called during construction
+     * and before each animation start.
+     *
+     * @throws IllegalStateException if sequence generation fails
+     */
     private void initializeAnimation() {
         // Generate sequence and delays
         this.spinSequence = generateSpinSequence(totalSteps, WINNING_SLOT);
@@ -53,6 +86,10 @@ public class HorizontalSpinGUI extends BaseAnimationGUI {
         }
     }
 
+    /**
+     * Starts the animation sequence. Reinitializes if needed and begins
+     * animation loop.
+     */
     @Override
     protected void startAnimation() {
         if (spinSequence == null || delays == null) {
@@ -61,6 +98,11 @@ public class HorizontalSpinGUI extends BaseAnimationGUI {
         animateSpinSequence(0);
     }
 
+    /**
+     * Recursively animates the spin sequence. Handles timing and item movement.
+     *
+     * @param index Current step in the sequence
+     */
     private void animateSpinSequence(int index) {
         if (index >= delays.size()) {
             finishAnimation();
@@ -90,6 +132,91 @@ public class HorizontalSpinGUI extends BaseAnimationGUI {
         // Schedule next animation frame
         int delay = delays.get(index);
         Bukkit.getScheduler().runTaskLater(plugin, () -> animateSpinSequence(index + 1), delay);
+    }
+
+    /**
+     * Updates the items in the GUI. Handles item movement and border animation.
+     */
+    @Override
+    protected void updateItems() {
+        // Update items in the middle row
+        for (int i = ITEMS_ROW_START; i <= ITEMS_ROW_END; i++) {
+            ItemStack item;
+            if (currentStep >= totalSteps - 5 && i == WINNING_SLOT) {
+                item = finalReward.displayItem();
+            } else {
+                item = getRandomRewardItem();
+            }
+
+            if (i == WINNING_SLOT) {
+                item = addGlowEffect(item);
+            }
+
+            inventory.setItem(i, item);
+        }
+
+        showSelectedSlot();
+        updateGlassColors();
+    }
+
+    /**
+     * Gets the animation duration in ticks.
+     *
+     * @return Duration in ticks (100 = 5 seconds)
+     */
+    @Override
+    protected int getAnimationDuration() {
+        return 100; // 5 seconds (100 ticks)
+    }
+
+    /**
+     * Shows the selected slot with arrows. Adds visual indicators for winning
+     * position.
+     */
+    private void showSelectedSlot() {
+        // Add arrows pointing to the selected slot
+        ItemStack arrow = new ItemStack(Material.ARROW);
+        ItemMeta arrowMeta = arrow.getItemMeta();
+        arrowMeta.displayName(Component.text("⬇ Selected Item ⬇").color(NamedTextColor.YELLOW));
+        arrow.setItemMeta(arrowMeta);
+
+        inventory.setItem(4, arrow); // Top arrow
+        inventory.setItem(22, arrow); // Bottom arrow
+    }
+
+    /**
+     * Updates the rainbow border colors. Creates animated border effect.
+     */
+    private void updateGlassColors() {
+        glassColorIndex = (glassColorIndex + 1) % GLASS_COLORS.length;
+
+        // Top row
+        for (int i = 0; i < 9; i++) {
+            inventory.setItem(i, createGlassPane((glassColorIndex + i) % GLASS_COLORS.length));
+        }
+
+        // Bottom row
+        for (int i = 18; i < 27; i++) {
+            inventory.setItem(i, createGlassPane((glassColorIndex + i) % GLASS_COLORS.length));
+        }
+
+        // Side columns
+        inventory.setItem(ITEMS_ROW_START - 1, createGlassPane(glassColorIndex)); // Left border
+        inventory.setItem(ITEMS_ROW_END + 1, createGlassPane(glassColorIndex)); // Right border
+    }
+
+    /**
+     * Creates a glass pane with specific color. Used for border animation.
+     *
+     * @param colorIndex Index in GLASS_COLORS array
+     * @return Configured glass pane item
+     */
+    private ItemStack createGlassPane(int colorIndex) {
+        ItemStack glass = new ItemStack(GLASS_COLORS[colorIndex]);
+        ItemMeta meta = glass.getItemMeta();
+        meta.displayName(Component.text(" ")); // Empty name
+        glass.setItemMeta(meta);
+        return glass;
     }
 
     @Override
@@ -128,68 +255,5 @@ public class HorizontalSpinGUI extends BaseAnimationGUI {
             }
         }
     }
-
-    @Override
-    protected void updateItems() {
-        // Update items in the middle row
-        for (int i = ITEMS_ROW_START; i <= ITEMS_ROW_END; i++) {
-            ItemStack item;
-            if (currentStep >= totalSteps - 5 && i == WINNING_SLOT) {
-                item = finalReward.displayItem();
-            } else {
-                item = getRandomRewardItem();
-            }
-
-            if (i == WINNING_SLOT) {
-                item = addGlowEffect(item);
-            }
-
-            inventory.setItem(i, item);
-        }
-
-        showSelectedSlot();
-        updateGlassColors();
-    }
-
-    @Override
-    protected int getAnimationDuration() {
-        return 100; // 5 seconds (100 ticks)
-    }
-
-    private void showSelectedSlot() {
-        // Add arrows pointing to the selected slot
-        ItemStack arrow = new ItemStack(Material.ARROW);
-        ItemMeta arrowMeta = arrow.getItemMeta();
-        arrowMeta.displayName(Component.text("⬇ Selected Item ⬇").color(NamedTextColor.YELLOW));
-        arrow.setItemMeta(arrowMeta);
-
-        inventory.setItem(4, arrow); // Top arrow
-        inventory.setItem(22, arrow); // Bottom arrow
-    }
-
-    private void updateGlassColors() {
-        glassColorIndex = (glassColorIndex + 1) % GLASS_COLORS.length;
-
-        // Top row
-        for (int i = 0; i < 9; i++) {
-            inventory.setItem(i, createGlassPane((glassColorIndex + i) % GLASS_COLORS.length));
-        }
-
-        // Bottom row
-        for (int i = 18; i < 27; i++) {
-            inventory.setItem(i, createGlassPane((glassColorIndex + i) % GLASS_COLORS.length));
-        }
-
-        // Side columns
-        inventory.setItem(ITEMS_ROW_START - 1, createGlassPane(glassColorIndex)); // Left border
-        inventory.setItem(ITEMS_ROW_END + 1, createGlassPane(glassColorIndex)); // Right border
-    }
-
-    private ItemStack createGlassPane(int colorIndex) {
-        ItemStack glass = new ItemStack(GLASS_COLORS[colorIndex]);
-        ItemMeta meta = glass.getItemMeta();
-        meta.displayName(Component.text(" ")); // Empty name
-        glass.setItemMeta(meta);
-        return glass;
-    }
 }
+ 

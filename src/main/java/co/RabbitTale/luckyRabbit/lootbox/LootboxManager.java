@@ -3,7 +3,6 @@ package co.RabbitTale.luckyRabbit.lootbox;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,17 +39,58 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 
 public class LootboxManager {
 
+    /*
+     * LootboxManager.java
+     *
+     * Core manager class for handling all lootbox-related functionality.
+     * Manages lootbox creation, loading, saving, and entity handling.
+     *
+     * Features:
+     * - YAML-based lootbox configuration
+     * - Dynamic lootbox entity spawning and management
+     * - Support for Oraxen custom items
+     * - Automatic chance calculation system
+     * - Example lootbox templates
+     * - License-based feature restrictions
+     *
+     * File Structure:
+     * lootboxes/
+     *   ├── example.yml  - Example lootbox template
+     *   ├── example2.yml - Additional example template
+     *   └── custom/      - User-created lootboxes
+     *
+     * Entity Management:
+     * - Automatic entity respawning on server restart
+     * - Chunk loading management for entities
+     * - Entity cleanup on plugin disable
+     * - Location persistence in config
+     *
+     * Restrictions:
+     * - Free version: Limited number of custom lootboxes
+     * - Trial version: Increased limits with time restriction
+     * - Premium: Unlimited lootboxes and features
+     */
     private final LuckyRabbit plugin;
     private final Map<String, Lootbox> lootboxes;
     private final Map<UUID, LootboxEntity> entities;
     private int respawnTaskId = -1;
 
+    /**
+     * Initializes the LootboxManager.
+     *
+     * @param plugin The LuckyRabbit plugin instance
+     */
     public LootboxManager(LuckyRabbit plugin) {
         this.plugin = plugin;
         this.lootboxes = new HashMap<>();
         this.entities = new HashMap<>();
     }
 
+    /**
+     * Loads all lootboxes from the lootboxes directory. Creates example
+     * lootboxes if they don't exist. Enforces license restrictions on
+     * animations and items.
+     */
     public void loadLootboxes() {
         File lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
 
@@ -119,6 +159,15 @@ public class LootboxManager {
         Logger.debug("Lootbox IDs: " + String.join(", ", lootboxes.keySet()));
     }
 
+    /**
+     * Creates a new lootbox with the specified name and animation. Enforces
+     * license restrictions on the number of lootboxes.
+     *
+     * @param name Display name for the lootbox (supports MiniMessage format)
+     * @param animationType Animation type to use
+     * @throws IllegalStateException if lootbox limit is reached
+     * @throws IllegalArgumentException if lootbox already exists
+     */
     public void createLootbox(String name, AnimationType animationType) {
         // If free version, force HORIZONTAL animation
         if (FeatureManager.canUseAnimation(animationType.name())) {
@@ -172,6 +221,14 @@ public class LootboxManager {
         Logger.success("Created new lootbox: " + id + " with display name: " + name);
     }
 
+    /**
+     * Generates a safe ID from a lootbox name. Removes formatting tags and
+     * special characters.
+     *
+     * @param name The display name to convert
+     * @return Safe ID string
+     * @throws IllegalArgumentException if ID already exists
+     */
     private @NotNull
     String getId(String name) {
         String cleanName = name.replaceAll("<[^>]*>", "") // Remove all tags like <gradient:blue:purple>
@@ -186,6 +243,13 @@ public class LootboxManager {
         return cleanName;
     }
 
+    /**
+     * Deletes a lootbox and its entities. Removes all spawned entities and the
+     * config file.
+     *
+     * @param id Lootbox ID to delete
+     * @throws IllegalArgumentException if lootbox doesn't exist
+     */
     public void deleteLootbox(String id) {
         Lootbox lootbox = lootboxes.get(id);
         if (lootbox == null) {
@@ -229,7 +293,16 @@ public class LootboxManager {
         }
     }
 
-    // TODO: add also parametr for ammount can be random using min-max or just max (maybe before rarity?)
+    /**
+     * Adds an item to a lootbox with specified rarity and chance. Automatically
+     * recalculates chances for other items.
+     *
+     * @param player Player adding the item (for messages)
+     * @param lootboxId Target lootbox ID
+     * @param item Item to add
+     * @param rarity Item rarity (defaults to COMMON)
+     * @param chance Custom chance (optional)
+     */
     public void addItem(Player player, @NotNull String lootboxId, @NotNull ItemStack item, String rarity, Double chance) {
         // Walidacja parametrów
         if (item.getType() == Material.AIR) {
@@ -267,14 +340,19 @@ public class LootboxManager {
             // Create a new map for updated items
             Map<String, LootboxItem> updatedItems = new HashMap<>();
 
-            // First, create the new item
+            // Create new item with calculated chance
             String newItemId = "item-" + existingItems.size();
             LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
             updatedItems.put(newItemId, newItem);
 
             // Then update all existing items with equal chance
             for (LootboxItem existingItem : existingItems.values()) {
-                LootboxItem updatedItem = createUpdatedItem(existingItem, finalChance);
+                LootboxItem updatedItem;
+                if (!existingItem.isChanceManuallySet()) {
+                    updatedItem = createUpdatedItem(existingItem, finalChance);
+                } else {
+                    updatedItem = existingItem;
+                }
                 updatedItems.put(existingItem.getId(), updatedItem);
             }
 
@@ -282,37 +360,48 @@ public class LootboxManager {
             existingItems.clear();
             existingItems.putAll(updatedItems);
         } else {
-            finalChance = chance;
+            // Calculate remaining chance after manually set items
             double remainingChance = 100.0 - chance;
             double totalExistingChance = existingItems.values().stream()
+                    .filter(LootboxItem::isChanceManuallySet)
                     .mapToDouble(LootboxItem::getChance)
                     .sum();
 
-            if (totalExistingChance > 0) {
-                // Create a new map for updated items
-                Map<String, LootboxItem> updatedItems = new HashMap<>();
-
-                // Adjust existing items proportionally
-                for (Map.Entry<String, LootboxItem> entry : existingItems.entrySet()) {
-                    double newChance = (entry.getValue().getChance() / totalExistingChance) * remainingChance;
-                    LootboxItem updatedItem = createUpdatedItem(entry.getValue(), newChance);
-                    updatedItems.put(entry.getKey(), updatedItem);
+            if (totalExistingChance + chance > 100.0) {
+                if (player != null) {
+                    player.sendMessage(Component.text("Cannot add item! Total chance would exceed 100%")
+                            .color(LootboxCommand.ERROR_COLOR));
                 }
-
-                // Create new item with specified chance
-                String newItemId = "item-" + existingItems.size();
-                LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
-                updatedItems.put(newItemId, newItem);
-
-                // Clear and update the lootbox items
-                existingItems.clear();
-                existingItems.putAll(updatedItems);
-            } else {
-                // If no existing items, just add the new one with specified chance
-                String newItemId = "item-" + existingItems.size();
-                LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, finalChance, finalRarity);
-                existingItems.put(newItemId, newItem);
+                return;
             }
+
+            // Create a new map for updated items
+            Map<String, LootboxItem> updatedItems = new HashMap<>();
+
+            // Add new item with specified chance
+            String newItemId = "item-" + existingItems.size();
+            LootboxItem newItem = createLootboxItem(item, oraxenId, newItemId, chance, finalRarity);
+            newItem.setChanceManuallySet(true);
+            updatedItems.put(newItemId, newItem);
+
+            // Update existing items
+            for (Map.Entry<String, LootboxItem> entry : existingItems.entrySet()) {
+                double newChance;
+                if (entry.getValue().isChanceManuallySet()) {
+                    newChance = entry.getValue().getChance();
+                } else {
+                    newChance = remainingChance / existingItems.values().stream()
+                            .filter(lootItem -> !lootItem.isChanceManuallySet())
+                            .count();
+                }
+                LootboxItem updatedItem = createUpdatedItem(entry.getValue(), newChance);
+                updatedItems.put(entry.getKey(), updatedItem);
+                Logger.debug("Updated item: " + entry.getKey() + " to " + newChance);
+            }
+
+            // Clear and update the lootbox items
+            existingItems.clear();
+            existingItems.putAll(updatedItems);
         }
 
         // Save lootbox
@@ -327,15 +416,26 @@ public class LootboxManager {
                     .color(LootboxCommand.INFO_COLOR));
 
             // Show all items with their chances
-            existingItems.values().forEach(existingItem ->
-                player.sendMessage(Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
-                    .append(Component.text(existingItem.getId() + ": ", LootboxCommand.DESCRIPTION_COLOR))
-                    .append(Component.text(String.format("%.1f%%", existingItem.getChance()))
-                        .color(LootboxCommand.TARGET_COLOR))));
+            existingItems.values().forEach(existingItem
+                    -> player.sendMessage(Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                            .append(Component.text(existingItem.getId() + ": ", LootboxCommand.DESCRIPTION_COLOR))
+                            .append(Component.text(String.format("%.1f%%", existingItem.getChance()))
+                                    .color(LootboxCommand.TARGET_COLOR))));
             player.sendMessage(Component.empty());
         }
     }
 
+    /**
+     * Creates a new LootboxItem instance. Handles both Minecraft and Oraxen
+     * items.
+     *
+     * @param item The ItemStack to create from
+     * @param oraxenId Oraxen ID if applicable
+     * @param itemId Internal item ID
+     * @param chance Drop chance
+     * @param rarity Item rarity
+     * @return New LootboxItem instance
+     */
     private LootboxItem createLootboxItem(ItemStack item, String oraxenId, String itemId, double chance, String rarity) {
         if (oraxenId != null) {
             return new OraxenLootboxItem(item, oraxenId, itemId, chance, rarity, null);
@@ -344,6 +444,14 @@ public class LootboxManager {
         }
     }
 
+    /**
+     * Removes an item from a lootbox.
+     *
+     * @param player Player removing the item
+     * @param id Lootbox ID
+     * @throws IllegalArgumentException if lootbox doesn't exist or player isn't
+     * holding an item
+     */
     public void removeItem(Player player, String id) {
         Lootbox lootbox = lootboxes.get(id);
         if (lootbox == null) {
@@ -370,6 +478,14 @@ public class LootboxManager {
         player.sendMessage(message);
     }
 
+    /**
+     * Places a lootbox in the world. Creates a new LootboxEntity at the
+     * player's location.
+     *
+     * @param player Player placing the lootbox
+     * @param id Lootbox ID to place
+     * @throws IllegalArgumentException if lootbox doesn't exist
+     */
     public void placeLootbox(Player player, String id) {
         Lootbox lootbox = lootboxes.get(id);
         if (lootbox == null) {
@@ -412,6 +528,12 @@ public class LootboxManager {
         player.sendMessage(message);
     }
 
+    /**
+     * Saves a lootbox to its configuration file. Skips saving unmodified
+     * example lootboxes.
+     *
+     * @param lootbox Lootbox to save
+     */
     public void saveLootbox(Lootbox lootbox) {
         // Don't save example lootboxes unless they've been modified
         if ((lootbox.getId().equals("example") || lootbox.getId().equals("example2"))
@@ -474,6 +596,9 @@ public class LootboxManager {
         }
     }
 
+    /**
+     * Saves all lootboxes to disk. Only saves modified example lootboxes.
+     */
     public void saveAll() {
         // Save all lootboxes
         for (Lootbox lootbox : lootboxes.values()) {
@@ -483,24 +608,51 @@ public class LootboxManager {
         }
     }
 
+    /**
+     * Checks if a lootbox is an example lootbox.
+     *
+     * @param id Lootbox ID to check
+     * @return true if example lootbox
+     */
     public boolean isExampleLootbox(String id) {
         return id.equals("example") || id.equals("example2");
     }
 
+    /**
+     * Gets a lootbox by its ID.
+     *
+     * @param id Lootbox ID
+     * @return Lootbox instance or null if not found
+     */
     public Lootbox getLootbox(String id) {
         return lootboxes.get(id);
     }
 
+    /**
+     * Gets a list of all non-example lootbox names. Used for regular players.
+     *
+     * @return List of lootbox IDs
+     */
     public List<String> getLootboxNames() {
         return new ArrayList<>(lootboxes.keySet().stream()
                 .filter(id -> !isExampleLootbox(id))
                 .toList());
     }
 
+    /**
+     * Gets a list of all lootbox names including examples. Used for admins.
+     *
+     * @return List of all lootbox IDs
+     */
     public List<String> getLootboxNamesAdmin() {
         return new ArrayList<>(lootboxes.keySet());
     }
 
+    /**
+     * Gets all non-example lootboxes. Used for regular players.
+     *
+     * @return Collection of lootboxes
+     */
     public Collection<Lootbox> getAllLootboxes() {
         // For non-admins, filter out example lootboxes
         return lootboxes.values().stream()
@@ -508,11 +660,20 @@ public class LootboxManager {
                 .toList();
     }
 
+    /**
+     * Gets all lootboxes including examples. Used for admins.
+     *
+     * @return Collection of all lootboxes
+     */
     public Collection<Lootbox> getAllLootboxesAdmin() {
         // For admins, show all lootboxes
         return Collections.unmodifiableCollection(lootboxes.values());
     }
 
+    /**
+     * Loads lootboxes with restrictions based on license. Enforces lootbox
+     * limits for free/trial users.
+     */
     public void loadLimitedLootboxes() {
         // First check trial status
         boolean isTrial = LicenseManager.isTrialActive();
@@ -560,7 +721,7 @@ public class LootboxManager {
                 Lootbox lootbox = Lootbox.fromConfig(config);
                 lootboxes.put(id, lootbox);
                 Logger.debug("Loaded lootbox: " + id);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
                 e.printStackTrace();
             }
@@ -581,6 +742,10 @@ public class LootboxManager {
         }
     }
 
+    /**
+     * Respawns all lootbox entities in the world. Handles chunk loading and
+     * entity creation.
+     */
     public void respawnEntities() {
         // Add a respawning flag to prevent multiple concurrent respawns
         if (plugin.getServer().getScheduler().isCurrentlyRunning(respawnTaskId)) {
@@ -649,6 +814,9 @@ public class LootboxManager {
         }, 20L).getTaskId(); // Store the task ID
     }
 
+    /**
+     * Cleans up all lootbox entities. Called during plugin disable and reload.
+     */
     public void cleanup() {
         // Cancel any pending respawn task
         if (respawnTaskId != -1) {
@@ -673,14 +841,31 @@ public class LootboxManager {
         }
     }
 
+    /**
+     * Gets a lootbox entity by its UUID.
+     *
+     * @param entityId Entity UUID
+     * @return LootboxEntity instance or null if not found
+     */
     public LootboxEntity getEntityById(UUID entityId) {
         return entities.get(entityId);
     }
 
+    /**
+     * Gets all active lootbox entities.
+     *
+     * @return Unmodifiable collection of entities
+     */
     public Collection<LootboxEntity> getAllEntities() {
         return Collections.unmodifiableCollection(entities.values());
     }
 
+    /**
+     * Gets the lootbox entity a player is looking at.
+     *
+     * @param player Player to check
+     * @return LootboxEntity if found within 5 blocks, null otherwise
+     */
     public LootboxEntity getLootboxEntityAtTarget(Player player) {
         // Get the target location the player is looking at
         Location targetLoc = player.getTargetBlock(null, 5).getLocation().add(0.5, 0, 0.5);
@@ -690,14 +875,22 @@ public class LootboxManager {
             Location entityLoc = entity.getLocation();
 
             // Check if locations are close enough (within 1 block)
-            if (entityLoc.getWorld().equals(targetLoc.getWorld()) &&
-                entityLoc.distance(targetLoc) <= 1.5) {
+            if (entityLoc.getWorld().equals(targetLoc.getWorld())
+                    && entityLoc.distance(targetLoc) <= 1.5) {
                 return entity;
             }
         }
         return null;
     }
 
+    /**
+     * Removes a lootbox entity from the world. Updates configuration and sends
+     * feedback.
+     *
+     * @param entity Entity to remove
+     * @return RemoveResult containing display name and location, or null if
+     * failed
+     */
     public RemoveResult removeLootboxEntity(LootboxEntity entity) {
         // Remove the entity
         entity.remove();
@@ -724,8 +917,8 @@ public class LootboxManager {
 
             try {
                 config.save(file);
-                Logger.debug("Removed lootbox location from " + lootbox.getId() + " at " +
-                    loc.getWorld().getName() + " " + loc.getX() + " " + loc.getY() + " " + loc.getZ());
+                Logger.debug("Removed lootbox location from " + lootbox.getId() + " at "
+                        + loc.getWorld().getName() + " " + loc.getX() + " " + loc.getY() + " " + loc.getZ());
             } catch (IOException e) {
                 Logger.error("Failed to save lootbox after removing location: " + lootbox.getId(), e);
             }
@@ -733,27 +926,30 @@ public class LootboxManager {
             // Create components for success message
             Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
             Component locationText = Component.text("at ")
-                .color(LootboxCommand.DESCRIPTION_COLOR)
-                .append(Component.text(String.format("%.1f, %.1f, %.1f",
-                    loc.getX(), loc.getY(), loc.getZ()))
-                    .color(LootboxCommand.TARGET_COLOR));
+                    .color(LootboxCommand.DESCRIPTION_COLOR)
+                    .append(Component.text(String.format("%.1f, %.1f, %.1f",
+                            loc.getX(), loc.getY(), loc.getZ()))
+                            .color(LootboxCommand.TARGET_COLOR));
 
             return new RemoveResult(displayName, locationText);
         }
         return null;
     }
 
-    // Add this record to store the removal result
-    public record RemoveResult(Component displayName, Component locationText) {}
+    /**
+     * Result record for entity removal operations. Contains formatted
+     * components for feedback messages.
+     */
+    public record RemoveResult(Component displayName, Component locationText) {
 
-    private void getLootboxPosition(Lootbox lootbox, YamlConfiguration config) {
-        getLootboxPostion(lootbox, config);
     }
 
-    private void getLootboxPostion(Lootbox lootbox, YamlConfiguration config) {
-        getEntityPos(lootbox, config);
-    }
-
+    /**
+     * Updates entity positions in configuration.
+     *
+     * @param lootbox Lootbox to update
+     * @param config Configuration to save to
+     */
     private void getEntityPos(Lootbox lootbox, YamlConfiguration config) {
         // First, completely remove the old locations section
         config.set("locations", null);
@@ -775,23 +971,31 @@ public class LootboxManager {
         // If no locations, the section will remain empty but exist
     }
 
+    /**
+     * Creates an updated item with new chance value. Preserves other item
+     * properties.
+     *
+     * @param existingItem Item to update
+     * @param newChance New chance value
+     * @return Updated LootboxItem instance
+     */
     private LootboxItem createUpdatedItem(LootboxItem existingItem, double newChance) {
-        return existingItem instanceof OraxenLootboxItem oraxenItem ?
-            new OraxenLootboxItem(
-                existingItem.getItem(),
-                oraxenItem.getOraxenId(),
-                existingItem.getId(),
-                newChance,
-                existingItem.getRarity(),
-                existingItem.getOriginalConfig()
-            ) :
-            new MinecraftLootboxItem(
-                existingItem.getItem(),
-                existingItem.getId(),
-                newChance,
-                existingItem.getRarity(),
-                existingItem.getAction(),
-                existingItem.getOriginalConfig()
-            );
+        return existingItem instanceof OraxenLootboxItem oraxenItem
+                ? new OraxenLootboxItem(
+                        existingItem.getItem(),
+                        oraxenItem.getOraxenId(),
+                        existingItem.getId(),
+                        newChance,
+                        existingItem.getRarity(),
+                        existingItem.getOriginalConfig()
+                )
+                : new MinecraftLootboxItem(
+                        existingItem.getItem(),
+                        existingItem.getId(),
+                        newChance,
+                        existingItem.getRarity(),
+                        existingItem.getAction(),
+                        existingItem.getOriginalConfig()
+                );
     }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import lombok.Setter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -29,7 +30,26 @@ public abstract class LootboxItem {
     private final String rarity;
     private final RewardAction action;
     private final ConfigurationSection originalConfig;
+    /**
+     * -- GETTER -- Checks if this item's chance was manually set. Used for
+     * automatic chance recalculation.
+     * <p>
+     * -- SETTER -- Sets whether this item's chance was manually set.
+     */
+    @Setter
+    @Getter
+    private boolean isChanceManuallySet;
 
+    /**
+     * Creates a new lootbox item.
+     *
+     * @param item ItemStack to give
+     * @param id Unique identifier
+     * @param chance Drop chance percentage
+     * @param rarity Item rarity level
+     * @param action Action to execute on win
+     * @param originalConfig Original config section for saving
+     */
     public LootboxItem(ItemStack item, String id, double chance, String rarity, RewardAction action, ConfigurationSection originalConfig) {
         this.item = item;
         this.id = id;
@@ -37,8 +57,17 @@ public abstract class LootboxItem {
         this.rarity = rarity;
         this.action = action;
         this.originalConfig = originalConfig;
+
     }
 
+    /**
+     * Creates a LootboxItem from a configuration section. Handles both
+     * Minecraft and Oraxen items.
+     *
+     * @param section Configuration section to load from
+     * @return New LootboxItem instance
+     * @throws IllegalArgumentException if configuration is invalid
+     */
     public static LootboxItem fromConfig(ConfigurationSection section) {
         if (section == null) {
             throw new IllegalArgumentException("Configuration section cannot be null");
@@ -88,6 +117,13 @@ public abstract class LootboxItem {
         return new MinecraftLootboxItem(item, id, chance, rarity, action, section);
     }
 
+    /**
+     * Applies metadata to an ItemStack from configuration. Handles display name
+     * and lore with MiniMessage formatting.
+     *
+     * @param item ItemStack to modify
+     * @param itemSection Configuration section containing metadata
+     */
     protected static void applyItemMeta(ItemStack item, ConfigurationSection itemSection) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
@@ -113,7 +149,7 @@ public abstract class LootboxItem {
                     List<String> configLore = metaSection.getStringList("lore");
                     List<Component> lore = configLore.stream()
                             .map(line -> MiniMessage.miniMessage().deserialize(line)
-                                    .decoration(TextDecoration.ITALIC, false))
+                            .decoration(TextDecoration.ITALIC, false))
                             .collect(Collectors.toList());
                     meta.lore(lore);
                 }
@@ -123,6 +159,12 @@ public abstract class LootboxItem {
         item.setItemMeta(meta);
     }
 
+    /**
+     * Gets a display version of this item. Includes rarity and chance
+     * information in lore.
+     *
+     * @return ItemStack configured for display
+     */
     public ItemStack getDisplayItem() {
         ItemStack displayItem = item.clone();
         ItemMeta meta = displayItem.getItemMeta();
@@ -152,6 +194,11 @@ public abstract class LootboxItem {
         return displayItem;
     }
 
+    /**
+     * Saves this item to a configuration section.
+     *
+     * @param config Configuration section to save to
+     */
     public void save(ConfigurationSection config) {
         config.set("id", id);
         config.set("chance", chance);
@@ -161,6 +208,11 @@ public abstract class LootboxItem {
         saveSpecific(config);
     }
 
-    // Abstract method for subclass-specific save operations
+    /**
+     * Saves item-specific data to configuration. Implemented by subclasses for
+     * their unique properties.
+     *
+     * @param config Configuration section to save to
+     */
     protected abstract void saveSpecific(ConfigurationSection config);
 }

@@ -12,6 +12,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
+import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -43,23 +44,8 @@ public class ItemDeleteConfirmationGUI implements GUI {
         // Add item to delete in the middle
         inventory.setItem(13, item.getItem());
 
-        // Add confirm button (green wool)
-        ItemStack confirm = new ItemStack(Material.LIME_WOOL);
-        ItemMeta confirmMeta = confirm.getItemMeta();
-        confirmMeta.displayName(Component.text("Confirm Delete")
-            .color(ITEM_COLOR)
-            .decoration(TextDecoration.ITALIC, false));
-        confirm.setItemMeta(confirmMeta);
-        inventory.setItem(11, confirm);
-
-        // Add cancel button (red wool)
-        ItemStack cancel = new ItemStack(Material.RED_WOOL);
-        ItemMeta cancelMeta = cancel.getItemMeta();
-        cancelMeta.displayName(Component.text("Cancel")
-            .color(ERROR_COLOR)
-            .decoration(TextDecoration.ITALIC, false));
-        cancel.setItemMeta(cancelMeta);
-        inventory.setItem(15, cancel);
+        // Add confirmation buttons
+        GUIUtils.setupConfirmationButtons(inventory);
     }
 
     @Override
@@ -68,14 +54,14 @@ public class ItemDeleteConfirmationGUI implements GUI {
 
         if (event.getCurrentItem() == null) return;
 
-        if (event.getSlot() == 11) { // Confirm
+        if (GUIUtils.isConfirmButton(event.getSlot())) {
             lootbox.removeItem(item.getItem());
             LuckyRabbit.getInstance().getLootboxManager().saveLootbox(lootbox);
             player.sendMessage(Component.text("Item removed successfully!")
                 .color(ITEM_COLOR));
             player.closeInventory();
             new LootboxContentGUI(player, lootbox).show();
-        } else if (event.getSlot() == 15) { // Cancel
+        } else if (GUIUtils.isCancelButton(event.getSlot())) {
             player.closeInventory();
             new LootboxContentGUI(player, lootbox).show();
         }

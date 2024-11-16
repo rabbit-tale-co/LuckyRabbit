@@ -12,48 +12,91 @@ import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.Reward;
 
+/*
+ * ThreeInRowSpinGUI.java
+ *
+ * Triple slot machine style animation.
+ * Three slots spin independently and stop in sequence.
+ * Premium feature only.
+ *
+ * Features:
+ * - Three independent slots
+ * - Sequential stopping
+ * - Center slot emphasis
+ * - Synchronized timing
+ *
+ * Layout:
+ * - 3x9 display area
+ * - Three main slots (11, 13, 15)
+ * - Decorative glass borders
+ * - Final reward in center slot
+ */
 public class ThreeInRowSpinGUI extends BaseAnimationGUI {
 
     private static final int GUI_SIZE = 27;
-    private static final int[] ROW_SLOTS = {11, 13, 15}; // Środkowy rząd z trzema slotami
-    private static final int FINAL_REWARD_SLOT = 13; // Środkowy slot
+    private static final int[] ROW_SLOTS = {11, 13, 15}; // Middle row with three slots
+    private static final int FINAL_REWARD_SLOT = 13; // Center slot
 
+    /**
+     * Creates a new three-in-row animation GUI.
+     *
+     * @param plugin Plugin instance
+     * @param player Player viewing the animation
+     * @param lootbox Lootbox being opened
+     */
     public ThreeInRowSpinGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
         super(plugin, player, lootbox, GUI_SIZE);
         setTotalSteps(35);
     }
 
+    /**
+     * Sets up the GUI decoration. Creates glass pane border and slot markers.
+     */
     @Override
     protected void decorateGUI() {
-        // Wypełnij GUI czarnymi szybami, pozostawiając miejsca na przedmioty
+        // Fill GUI with gray glass
         fillEmptySlots(ROW_SLOTS);
 
-        // Dodaj dekoracyjne szyby wokół slotów
+        // Add glass
         ItemStack decorativeGlass = new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE);
-        for (int slot : new int[]{10, 12, 14, 16}) { // Szyby po bokach przedmiotów
+        for (int slot : new int[]{10, 12, 14, 16}) {
             inventory.setItem(slot, decorativeGlass);
         }
     }
 
+    /**
+     * Updates the animation frame. Handles item movement and slot updates.
+     */
     @Override
     protected void updateItems() {
-        // Aktualizuj przedmioty w trzech slotach
         for (int slot : ROW_SLOTS) {
             if (currentStep >= totalSteps - 5 && slot == FINAL_REWARD_SLOT) {
-                // Pokaż finalną nagrodę w środkowym slocie
+                // Show final reward in middle slot
                 inventory.setItem(slot, finalReward.displayItem());
             } else {
-                // Losowe przedmioty w pozostałych slotach
+                // Random items
                 inventory.setItem(slot, getRandomRewardItem());
             }
         }
     }
 
+    /**
+     * Gets the animation duration in ticks.
+     *
+     * @return Duration in ticks (50 = 2.5 seconds)
+     */
     @Override
     protected int getAnimationDuration() {
-        return 50; // 2.5 sekundy
+        return 50;
     }
 
+    /**
+     * Generates the sequence of items for the animation.
+     *
+     * @param totalSteps Total animation steps
+     * @param winningSlot Slot where winning item will land
+     * @return List of items for animation
+     */
     @Override
     protected List<ItemStack> generateSpinSequence(int totalSteps, int winningSlot) {
         List<ItemStack> spinSequence = new ArrayList<>();

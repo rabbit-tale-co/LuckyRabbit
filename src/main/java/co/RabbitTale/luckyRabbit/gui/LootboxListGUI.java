@@ -25,6 +25,25 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
 
+/*
+ * LootboxListGUI.java
+ *
+ * GUI for displaying all available lootboxes.
+ * Provides paginated list with lootbox information and management options.
+ *
+ * Features:
+ * - Paginated display (7x3 grid per page)
+ * - Permission-based content (admin/user views)
+ * - Interactive buttons for navigation
+ * - Detailed lootbox information display
+ * - Quick access to lootbox management
+ *
+ * Layout:
+ * - Main content: 7x3 grid of lootboxes
+ * - Navigation: Previous/Next page buttons
+ * - Controls: Close button, additional admin options
+ * - Statistics: Key count, open count, items available
+ */
 public class LootboxListGUI implements GUI {
 
     private static final int ROWS = 5;
@@ -39,6 +58,12 @@ public class LootboxListGUI implements GUI {
     private final List<Lootbox> lootboxes;
     private int currentPage = 0;
 
+    /**
+     * Creates a new lootbox list GUI. Loads appropriate lootboxes based on
+     * player permissions.
+     *
+     * @param player Player viewing the GUI
+     */
     public LootboxListGUI(Player player) {
         this.plugin = LuckyRabbit.getInstance();
         this.player = player;
@@ -63,10 +88,21 @@ public class LootboxListGUI implements GUI {
         updateInventory();
     }
 
+    /**
+     * Opens the GUI for a player. Shows first page by default.
+     *
+     * @param player Player to show GUI to
+     */
     public static void openGUI(Player player) {
         openGUI(player, 1); // Default to first page
     }
 
+    /**
+     * Opens the GUI for a player at a specific page.
+     *
+     * @param player Player to show GUI to
+     * @param page Page number to display
+     */
     public static void openGUI(Player player, int page) {
         Collection<Lootbox> lootboxes;
         if (player.hasPermission("luckyrabbit.admin")) {
@@ -92,12 +128,10 @@ public class LootboxListGUI implements GUI {
         player.openInventory(gui.getInventory());
     }
 
-    @Override
-    public @NotNull
-    Inventory getInventory() {
-        return inventory;
-    }
-
+    /**
+     * Updates the inventory contents. Refreshes lootbox display and navigation
+     * buttons.
+     */
     private void updateInventory() {
         GUIUtils.setupBorder(inventory, ROWS);
 
@@ -115,9 +149,9 @@ public class LootboxListGUI implements GUI {
 
         // Add navigation buttons - always show them, just like in LootboxContentGUI
         inventory.setItem(PREV_BUTTON_SLOT, GUIUtils.createNavigationButton("Previous Page",
-            Material.ARROW, currentPage > 0));
+                Material.ARROW, currentPage > 0));
         inventory.setItem(NEXT_BUTTON_SLOT, GUIUtils.createNavigationButton("Next Page",
-            Material.ARROW, (currentPage + 1) * PAGE_SIZE < lootboxes.size()));
+                Material.ARROW, (currentPage + 1) * PAGE_SIZE < lootboxes.size()));
 
         // Add close button
         inventory.setItem(CLOSE_BUTTON_SLOT, GUIUtils.createNavigationButton("Close", Material.BARRIER, true));
@@ -129,6 +163,13 @@ public class LootboxListGUI implements GUI {
         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
     }
 
+    /**
+     * Creates a display item for a lootbox. Includes statistics and admin
+     * options.
+     *
+     * @param lootbox Lootbox to create item for
+     * @return ItemStack configured for display
+     */
     private ItemStack createLootboxItem(Lootbox lootbox) {
         ItemStack item = new ItemStack(Material.CHEST);
         ItemMeta meta = item.getItemMeta();
@@ -144,10 +185,10 @@ public class LootboxListGUI implements GUI {
         if (plugin.getLootboxManager().isExampleLootbox(lootbox.getId())) {
             lore.add(Component.empty());
             lore.add(Component.text("EXAMPLE LOOTBOX")
-                .color(INFO_COLOR)
-                .decoration(TextDecoration.BOLD, true));
+                    .color(INFO_COLOR)
+                    .decoration(TextDecoration.BOLD, true));
             lore.add(Component.text("Cannot be placed in world")
-                .color(DESCRIPTION_COLOR));
+                    .color(DESCRIPTION_COLOR));
             lore.add(Component.empty());
         }
 
@@ -189,6 +230,13 @@ public class LootboxListGUI implements GUI {
         return item;
     }
 
+    /**
+     * Handles inventory click events. Processes navigation and lootbox
+     * interaction.
+     *
+     * @param event The click event
+     */
+    @Override
     public void handleClick(InventoryClickEvent event) {
         event.setCancelled(true);
 
@@ -234,8 +282,26 @@ public class LootboxListGUI implements GUI {
         }
     }
 
+    /**
+     * Handles inventory close events. Cleans up any necessary resources.
+     *
+     * @param event The close event
+     */
     @Override
     public void handleClose(InventoryCloseEvent event) {
         // Cleanup if needed
+    }
+
+    @Override
+    public @NotNull
+    Inventory getInventory() {
+        return inventory;
+    }
+
+    /**
+     * Shows the GUI to a player. Opens the inventory for viewing.
+     */
+    public void show() {
+        player.openInventory(inventory);
     }
 }
