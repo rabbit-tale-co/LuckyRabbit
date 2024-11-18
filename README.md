@@ -1,4 +1,4 @@
-# 🎁 LuckyRabbit - Advanced Lootbox System
+# 🎁 LuckyRabbit - Advanced Lootbox System (Outdated Description)
 
 LuckyRabbit is a premium lootbox plugin that brings engaging animations and versatile reward systems to your Minecraft server. Created by RabbitTale Studio, this plugin offers a unique and customizable way to distribute rewards to your players.
 
