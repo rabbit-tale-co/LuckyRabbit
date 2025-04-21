@@ -95,108 +95,108 @@ public class LootboxCommand implements CommandExecutor {
                     showAnimations(sender);
                 case "license" ->
                     showLicenseInfo(sender);
-                case "config" -> {
-                    if (!sender.hasPermission("luckyrabbit.admin.config")) {
-                        sender.sendMessage(Component.text("You don't have permission to modify the configuration!")
-                                .color(ERROR_COLOR));
-                        return true;
-                    }
-
-                    if (args.length < 3) {
-                        List<Component> usage = LootboxTabCompleter.getCommandUsage("config");
-                        sender.sendMessage(Component.empty());
-                        for (Component line : usage) {
-                            sender.sendMessage(line);
-                        }
-                        sender.sendMessage(Component.empty());
-                        return true;
-                    }
-
-                    String category = args[1].toLowerCase();
-                    String action = args[2].toLowerCase();
-
-                    if (category.equals("license-key")) {
-                        switch (action) {
-                            case "add" -> {
-                                if (args.length < 4) {
-                                    sender.sendMessage(Component.text("Usage: /lb config license-key add <key>")
-                                            .color(ERROR_COLOR));
-                                    return true;
-                                }
-                                String key = args[3];
-
-                                // Save old key for comparison
-                                String oldKey = plugin.getConfig().getString("license-key", "");
-
-                                // Update config
-                                plugin.getConfig().set("license-key", key);
-                                plugin.saveConfig();
-
-                                // Send initial message
-                                if (!oldKey.equals(key)) {
-                                    if (sender instanceof Player) {
-                                        sender.sendMessage(Component.text()
-                                                .append(Component.text("License key added: ", SUCCESS_COLOR))
-                                                .append(Component.text(key, TARGET_COLOR))
-                                                .build());
-                                    } else {
-                                        sender.sendMessage(Component.text("License key added: " + key));
-                                    }
-                                } else {
-                                    if (sender instanceof Player) {
-                                        sender.sendMessage(Component.text()
-                                                .append(Component.text("License key unchanged: ", INFO_COLOR))
-                                                .append(Component.text(key, TARGET_COLOR))
-                                                .build());
-                                    } else {
-                                        sender.sendMessage(Component.text("License key unchanged: " + key));
-                                    }
-                                }
-
-                                // Verify new license - this will trigger reload internally
-                                plugin.getLicenseManager().verifyLicense(key, true);
-                            }
-                            case "remove" -> {
-                                // Save old key for logging
-                                String oldKey = plugin.getConfig().getString("license-key", "");
-
-                                if (oldKey.isEmpty()) {
-                                    sender.sendMessage(Component.text("No license key to remove!")
-                                            .color(ERROR_COLOR));
-                                    return true;
-                                }
-
-                                // Remove key
-                                plugin.getConfig().set("license-key", "");
-                                plugin.saveConfig();
-
-                                // Send confirmation message
-                                if (sender instanceof Player) {
-                                    sender.sendMessage(Component.text()
-                                            .append(Component.text("License key removed: ", SUCCESS_COLOR))
-                                            .append(Component.text(oldKey, TARGET_COLOR))
-                                            .build());
-                                } else {
-                                    sender.sendMessage(Component.text("License key removed: " + oldKey));
-                                }
-
-                                // Verify empty license - this will trigger reload internally
-                                plugin.getLicenseManager().verifyLicense("", true);
-                            }
-                            default -> {
-                                List<Component> usage = LootboxTabCompleter.getCommandUsage("config license-key");
-                                sender.sendMessage(Component.empty());
-                                for (Component line : usage) {
-                                    sender.sendMessage(line);
-                                }
-                                sender.sendMessage(Component.empty());
-                            }
-                        }
-                    } else {
-                        sender.sendMessage(Component.text("Unknown config category: " + category)
-                                .color(ERROR_COLOR));
-                    }
-                }
+//                case "config" -> {
+//                    if (!sender.hasPermission("luckyrabbit.admin.config")) {
+//                        sender.sendMessage(Component.text("You don't have permission to modify the configuration!")
+//                                .color(ERROR_COLOR));
+//                        return true;
+//                    }
+//
+//                    if (args.length < 3) {
+//                        List<Component> usage = LootboxTabCompleter.getCommandUsage("config");
+//                        sender.sendMessage(Component.empty());
+//                        for (Component line : usage) {
+//                            sender.sendMessage(line);
+//                        }
+//                        sender.sendMessage(Component.empty());
+//                        return true;
+//                    }
+//
+//                    String category = args[1].toLowerCase();
+//                    String action = args[2].toLowerCase();
+//
+//                    if (category.equals("license-key")) {
+//                        switch (action) {
+//                            case "add" -> {
+//                                if (args.length < 4) {
+//                                    sender.sendMessage(Component.text("Usage: /lb config license-key add <key>")
+//                                            .color(ERROR_COLOR));
+//                                    return true;
+//                                }
+//                                String key = args[3];
+//
+//                                // Save old key for comparison
+//                                String oldKey = plugin.getConfig().getString("license-key", "");
+//
+//                                // Update config
+//                                plugin.getConfig().set("license-key", key);
+//                                plugin.saveConfig();
+//
+//                                // Send initial message
+//                                if (!oldKey.equals(key)) {
+//                                    if (sender instanceof Player) {
+//                                        sender.sendMessage(Component.text()
+//                                                .append(Component.text("License key added: ", SUCCESS_COLOR))
+//                                                .append(Component.text(key, TARGET_COLOR))
+//                                                .build());
+//                                    } else {
+//                                        sender.sendMessage(Component.text("License key added: " + key));
+//                                    }
+//                                } else {
+//                                    if (sender instanceof Player) {
+//                                        sender.sendMessage(Component.text()
+//                                                .append(Component.text("License key unchanged: ", INFO_COLOR))
+//                                                .append(Component.text(key, TARGET_COLOR))
+//                                                .build());
+//                                    } else {
+//                                        sender.sendMessage(Component.text("License key unchanged: " + key));
+//                                    }
+//                                }
+//
+//                                // Verify new license - this will trigger reload internally
+//                                plugin.getLicenseManager().verifyLicense(key, true);
+//                            }
+//                            case "remove" -> {
+//                                // Save old key for logging
+//                                String oldKey = plugin.getConfig().getString("license-key", "");
+//
+//                                if (oldKey.isEmpty()) {
+//                                    sender.sendMessage(Component.text("No license key to remove!")
+//                                            .color(ERROR_COLOR));
+//                                    return true;
+//                                }
+//
+//                                // Remove key
+//                                plugin.getConfig().set("license-key", "");
+//                                plugin.saveConfig();
+//
+//                                // Send confirmation message
+//                                if (sender instanceof Player) {
+//                                    sender.sendMessage(Component.text()
+//                                            .append(Component.text("License key removed: ", SUCCESS_COLOR))
+//                                            .append(Component.text(oldKey, TARGET_COLOR))
+//                                            .build());
+//                                } else {
+//                                    sender.sendMessage(Component.text("License key removed: " + oldKey));
+//                                }
+//
+//                                // Verify empty license - this will trigger reload internally
+//                                plugin.getLicenseManager().verifyLicense("", true);
+//                            }
+//                            default -> {
+//                                List<Component> usage = LootboxTabCompleter.getCommandUsage("config license-key");
+//                                sender.sendMessage(Component.empty());
+//                                for (Component line : usage) {
+//                                    sender.sendMessage(line);
+//                                }
+//                                sender.sendMessage(Component.empty());
+//                            }
+//                        }
+//                    } else {
+//                        sender.sendMessage(Component.text("Unknown config category: " + category)
+//                                .color(ERROR_COLOR));
+//                    }
+//                }
                 default -> {
                     if (!(sender instanceof Player player)) {
                         sender.sendMessage(Component.text("This command can only be used by players!")

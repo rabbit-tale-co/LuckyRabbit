@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import lombok.Setter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -16,6 +15,7 @@ import co.RabbitTale.luckyRabbit.utils.Logger;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import lombok.Getter;
+import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -81,27 +81,40 @@ public abstract class LootboxItem {
         // Check for Oraxen item first
         String oraxenId = section.getString("oraxen_item");
         if (oraxenId != null) {
-            // Create Oraxen item
-            ItemBuilder itemBuilder = OraxenItems.getItemById(oraxenId);
-            if (itemBuilder != null) {
-                ItemStack oraxenItem = itemBuilder.build();
+            try {
+                // Try to load Oraxen item
+                ItemBuilder itemBuilder = OraxenItems.getItemById(oraxenId);
+                if (itemBuilder != null) {
+                    ItemStack oraxenItem = itemBuilder.build();
 
-                // Apply any additional meta from config
-                ConfigurationSection itemSection = section.getConfigurationSection("item");
-                if (itemSection != null) {
-                    applyItemMeta(oraxenItem, itemSection);
+                    // Apply any additional meta from config
+                    ConfigurationSection itemSection = section.getConfigurationSection("item");
+                    if (itemSection != null) {
+                        applyItemMeta(oraxenItem, itemSection);
+                    }
+
+                    return new OraxenLootboxItem(oraxenItem, oraxenId, id, chance, rarity, section);
+                } else {
+                    Logger.error("Failed to load Oraxen item: " + oraxenId);
                 }
-
-                return new OraxenLootboxItem(oraxenItem, oraxenId, id, chance, rarity, section);
-            } else {
-                Logger.error("Failed to load Oraxen item: " + oraxenId);
+            } catch (NoClassDefFoundError e) {
+                Logger.error("Oraxen plugin is not installed or not properly loaded. Skipping Oraxen item: " + oraxenId);
             }
         }
 
         // If not Oraxen, create as Minecraft item
         ConfigurationSection itemSection = section.getConfigurationSection("item");
         if (itemSection == null) {
-            throw new IllegalArgumentException("Missing item section in config");
+            Logger.warning("Missing item section in config for item: " + id);
+            // Create a fallback item instead of throwing an error
+            ItemStack fallbackItem = new ItemStack(org.bukkit.Material.STONE);
+            ItemMeta meta = fallbackItem.getItemMeta();
+            if (meta != null) {
+                meta.displayName(Component.text("Invalid Item: " + id)
+                        .color(NamedTextColor.RED));
+                fallbackItem.setItemMeta(meta);
+            }
+            return new MinecraftLootboxItem(fallbackItem, id, chance, rarity, action, section);
         }
 
         // Get item properties

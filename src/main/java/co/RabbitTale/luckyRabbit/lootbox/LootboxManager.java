@@ -304,7 +304,7 @@ public class LootboxManager {
      * @param chance Custom chance (optional)
      */
     public void addItem(Player player, @NotNull String lootboxId, @NotNull ItemStack item, String rarity, Double chance) {
-        // Walidacja parametrów
+        // Validate parameters
         if (item.getType() == Material.AIR) {
             throw new IllegalArgumentException("Item cannot be null or AIR");
         }
@@ -318,14 +318,13 @@ public class LootboxManager {
             return;
         }
 
-        // Sprawdź, czy to przedmiot Oraxen
-        String oraxenId = OraxenItems.getIdByItem(item);
-        if (oraxenId != null && !FeatureManager.canUseOraxenItems()) {
-            if (player != null) {
-                player.sendMessage(Component.text("Oraxen items are only available in premium version!")
-                        .color(LootboxCommand.ERROR_COLOR));
-            }
-            return;
+        // Check if this is an Oraxen item
+        String oraxenId = null;
+        try {
+            oraxenId = OraxenItems.getIdByItem(item);
+        } catch (NoClassDefFoundError e) {
+            // Oraxen is not available, treat as regular item
+            oraxenId = null;
         }
 
         Map<String, LootboxItem> existingItems = lootbox.getItems();

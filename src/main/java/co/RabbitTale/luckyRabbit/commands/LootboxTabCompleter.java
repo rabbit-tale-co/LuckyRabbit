@@ -136,26 +136,26 @@ public class LootboxTabCompleter implements TabCompleter {
                     return filterCompletions(List.of("info"), args[1]);
                 }
             }
-            case "config" -> {
-                if (!sender.hasPermission("luckyrabbit.admin.config")) {
-                    return completions;
-                }
-                if (args.length == 2) {
-                    return filterCompletions(List.of("license-key"), args[1]);
-                }
-                if (args.length == 3 && args[1].equalsIgnoreCase("license-key")) {
-                    return filterCompletions(Arrays.asList("add", "remove"), args[2]);
-                }
-                if (args.length == 4 && args[1].equalsIgnoreCase("license-key") && args[2].equalsIgnoreCase("add")) {
-                    String currentKey = plugin.getConfig().getString("license-key", "");
-                    List<String> suggestions = new ArrayList<>();
-                    if (!currentKey.isEmpty()) {
-                        suggestions.add(currentKey);
-                    }
-                    suggestions.add("XXXX-XXXX-XXXX-XX");
-                    return filterCompletions(suggestions, args[3]);
-                }
-            }
+//            case "config" -> {
+//                if (!sender.hasPermission("luckyrabbit.admin.config")) {
+//                    return completions;
+//                }
+//                if (args.length == 2) {
+//                    return filterCompletions(List.of("license-key"), args[1]);
+//                }
+//                if (args.length == 3 && args[1].equalsIgnoreCase("license-key")) {
+//                    return filterCompletions(Arrays.asList("add", "remove"), args[2]);
+//                }
+//                if (args.length == 4 && args[1].equalsIgnoreCase("license-key") && args[2].equalsIgnoreCase("add")) {
+//                    String currentKey = plugin.getConfig().getString("license-key", "");
+//                    List<String> suggestions = new ArrayList<>();
+//                    if (!currentKey.isEmpty()) {
+//                        suggestions.add(currentKey);
+//                    }
+//                    suggestions.add("XXXX-XXXX-XXXX-XX");
+//                    return filterCompletions(suggestions, args[3]);
+//                }
+//            }
         }
 
         return completions;

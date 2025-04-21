@@ -5,14 +5,18 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.DESCRIPTION_COLOR;
@@ -21,6 +25,7 @@ import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.SEPARATOR_COLOR;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.TARGET_COLOR;
 import co.RabbitTale.luckyRabbit.gui.LootboxGUI;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
+import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.Reward;
 import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
@@ -29,7 +34,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.jetbrains.annotations.NotNull;
 
 /*
  * BaseAnimationGUI.java
@@ -187,8 +191,19 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     }
 
     ItemStack addGlowEffect(ItemStack item) {
+        if (item == null) {
+            return null;
+        }
+
         ItemStack glowingItem = item.clone();
         ItemMeta meta = glowingItem.getItemMeta();
+
+        // If the item doesn't have meta, create new meta
+        if (meta == null) {
+            meta = glowingItem.getItemMeta();
+        }
+
+        // Add glow effect
         meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK, 1, true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
         glowingItem.setItemMeta(meta);
@@ -288,16 +303,16 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
 
                             // Dragon breath particles rising up
                             effectLocation.getWorld().spawnParticle(
-                                Particle.DRAGON_BREATH,
-                                spawnLoc,
-                                1, 0, 0, 0, 0
+                                    Particle.DRAGON_BREATH,
+                                    spawnLoc,
+                                    1, 0, 0, 0, 0
                             );
 
                             // End rod particles for extra effect
                             effectLocation.getWorld().spawnParticle(
-                                Particle.END_ROD,
-                                spawnLoc,
-                                1, 0, 0, 0, 0.05
+                                    Particle.END_ROD,
+                                    spawnLoc,
+                                    1, 0, 0, 0, 0.05
                             );
                         }
 
@@ -320,14 +335,14 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
             ItemMeta meta = rewardItem.getItemMeta();
 
             // Initialize rewardName with a default value
-            Component rewardName = meta != null && meta.hasDisplayName() ?
-                    MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                            .serialize(Objects.requireNonNull(meta.displayName()))) :
-                    Component.text(rewardItem.getType().name());
+            Component rewardName = meta != null && meta.hasDisplayName()
+                    ? MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                            .serialize(Objects.requireNonNull(meta.displayName())))
+                    : Component.text(rewardItem.getType().name());
 
             // Check original config for amount range
-            ConfigurationSection itemSection = finalReward.item().getOriginalConfig() != null ?
-                finalReward.item().getOriginalConfig().getConfigurationSection("item") : null;
+            ConfigurationSection itemSection = finalReward.item().getOriginalConfig() != null
+                    ? finalReward.item().getOriginalConfig().getConfigurationSection("item") : null;
 
             if (itemSection != null) {
                 String amountStr = itemSection.getString("amount");
@@ -355,10 +370,10 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                     String reward = firstLoreLine.replaceFirst(".*?([0-9]+.*?)$", "$1");
 
                     // Update rewardName for virtual rewards
-                    rewardName = meta.hasDisplayName() ?
-                            MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                                    .serialize(Objects.requireNonNull(meta.displayName()))) :
-                            Component.text(reward).color(NamedTextColor.YELLOW);
+                    rewardName = meta.hasDisplayName()
+                            ? MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
+                                    .serialize(Objects.requireNonNull(meta.displayName())))
+                            : Component.text(reward).color(NamedTextColor.YELLOW);
 
                     // Execute the action
                     finalReward.action().execute(player);
@@ -371,10 +386,10 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                     // Remove amount range, chance and rarity lines
                     lore.removeIf(line -> {
                         String plainText = PlainTextComponentSerializer.plainText().serialize(line);
-                        return plainText.startsWith("Amount:") ||
-                               plainText.startsWith("Chance:") ||
-                               plainText.startsWith("Rarity:") ||
-                               plainText.isEmpty(); // Remove empty lines
+                        return plainText.startsWith("Amount:")
+                                || plainText.startsWith("Chance:")
+                                || plainText.startsWith("Rarity:")
+                                || plainText.isEmpty(); // Remove empty lines
                     });
 
                     // Remove any trailing empty lines
@@ -452,12 +467,14 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
 
     // Make sure the inventory is properly associated with this GUI
     @Override
-    public @NotNull Inventory getInventory() {
+    public @NotNull
+    Inventory getInventory() {
         if (inventory.getHolder() != this) {
             // If somehow the holder is wrong, create a new inventory with correct holder
-            Component title = inventory.getViewers().isEmpty() ?
-                Component.text("Opening Lootbox") : // Default title if no viewers
-                inventory.getViewers().get(0).getOpenInventory().title(); // Get title from view
+            Component title = inventory.getViewers().isEmpty()
+                    ? Component.text("Opening Lootbox")
+                    : // Default title if no viewers
+                    inventory.getViewers().get(0).getOpenInventory().title(); // Get title from view
 
             Inventory newInv = Bukkit.createInventory(this, inventory.getSize(), title);
             newInv.setContents(inventory.getContents());
