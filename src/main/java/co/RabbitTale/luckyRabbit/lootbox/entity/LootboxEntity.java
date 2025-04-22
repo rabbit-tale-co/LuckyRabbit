@@ -52,6 +52,24 @@ public class LootboxEntity {
         startParticleEffects();
     }
 
+    /**
+     * Gets the unique identifier for this entity.
+     *
+     * @return The entity UUID
+     */
+    public UUID getUniqueId() {
+        return uniqueId;
+    }
+
+    /**
+     * Gets the lootbox ID associated with this entity.
+     *
+     * @return The lootbox ID
+     */
+    public String getLootboxId() {
+        return lootboxId;
+    }
+
     private void setupArmorStand(Lootbox lootbox) {
         // Basic setup
         armorStand.setVisible(false);

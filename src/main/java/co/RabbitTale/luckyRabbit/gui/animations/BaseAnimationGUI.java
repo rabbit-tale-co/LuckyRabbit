@@ -32,6 +32,7 @@ import co.RabbitTale.luckyRabbit.lootbox.rewards.RewardRarity;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import static net.kyori.adventure.text.format.TextDecoration.ITALIC;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
@@ -71,11 +72,27 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     protected final List<Reward> possibleRewards;
     protected final Reward finalReward;
     protected final Lootbox lootbox;
+    protected final ItemStack finalDisplayItem;
     protected int currentStep = 0;
     protected int totalSteps;
     protected List<Integer> delays;
 
-    protected BaseAnimationGUI(LuckyRabbit plugin, Player player, Lootbox lootbox, int guiSize) {
+    protected static final Material[] GLASS_COLORS = {
+            Material.RED_STAINED_GLASS_PANE,
+            Material.ORANGE_STAINED_GLASS_PANE,
+            Material.YELLOW_STAINED_GLASS_PANE,
+            Material.LIME_STAINED_GLASS_PANE,
+            Material.LIGHT_BLUE_STAINED_GLASS_PANE,
+            Material.BLUE_STAINED_GLASS_PANE,
+            Material.PURPLE_STAINED_GLASS_PANE,
+            Material.PINK_STAINED_GLASS_PANE
+    };
+    protected int glassColorIndex = 0;
+
+    protected BaseAnimationGUI(LuckyRabbit plugin,
+                               Player player,
+                               Lootbox lootbox,
+                               int guiSize) {
         // First call super with temporary inventory
         super(plugin, Bukkit.createInventory(null, guiSize, Component.empty()));
 
@@ -98,6 +115,7 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         }
 
         this.finalReward = selectFinalReward();
+        this.finalDisplayItem = finalReward.displayItem();
 
         // Initialize delays list before starting animation
         this.delays = new ArrayList<>();
@@ -232,22 +250,53 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         return possibleRewards.get(0);
     }
 
+    /**
+     * Starts the animation sequence with gradual slowdown at the end. This new
+     * implementation supports progressive slowdown for all animation types.
+     */
     protected void startAnimation() {
         if (delays.isEmpty()) {
             throw new IllegalStateException("Animation delays not initialized!");
         }
 
-        Bukkit.getScheduler().runTaskTimer(plugin, (task) -> {
-            if (currentStep >= totalSteps) {
-                task.cancel();
-                finishAnimation();
-                return;
-            }
+        animateSequence(0);
+    }
 
-            updateItems();
-            playTickSound();
-            currentStep++;
-        }, 0L, Math.max(1, delays.get(Math.min(currentStep, delays.size() - 1))));
+    /**
+     * Animates the sequence with progressive slowdown. Can be overridden by
+     * subclasses to customize animation behavior.
+     *
+     * @param step Current animation step
+     */
+    protected void animateSequence(int step) {
+        if (step >= totalSteps) {
+            finishAnimation();
+            return;
+        }
+
+        // Update current step
+        currentStep = step;
+
+        // Update animation display
+        updateItems();
+
+        // Play tick sound with varying pitch
+        playTickSound();
+
+        // Schedule next animation frame with calculated delay
+        int delay = getDelayForStep(step);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> animateSequence(step + 1), delay);
+    }
+
+    /**
+     * Gets the delay for a specific animation step. This allows for a gradual
+     * slowdown effect as the animation progresses.
+     *
+     * @param step Current step in the animation
+     * @return Delay in ticks for the next frame
+     */
+    protected int getDelayForStep(int step) {
+        return delays.get(Math.min(step, delays.size() - 1));
     }
 
     protected void finishAnimation() {
@@ -337,7 +386,7 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
             // Initialize rewardName with a default value
             Component rewardName = meta != null && meta.hasDisplayName()
                     ? MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                            .serialize(Objects.requireNonNull(meta.displayName())))
+                    .serialize(Objects.requireNonNull(meta.displayName())))
                     : Component.text(rewardItem.getType().name());
 
             // Check original config for amount range
@@ -372,7 +421,7 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                     // Update rewardName for virtual rewards
                     rewardName = meta.hasDisplayName()
                             ? MiniMessage.miniMessage().deserialize(PlainTextComponentSerializer.plainText()
-                                    .serialize(Objects.requireNonNull(meta.displayName())))
+                            .serialize(Objects.requireNonNull(meta.displayName())))
                             : Component.text(reward).color(NamedTextColor.YELLOW);
 
                     // Execute the action
@@ -453,6 +502,19 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         return possibleRewards.get(new Random().nextInt(possibleRewards.size())).displayItem();
     }
 
+    protected void updateRainbowBorder(int... excludedSlots) {
+        glassColorIndex = (glassColorIndex + 1) % GLASS_COLORS.length;
+        outer:
+        for (int i = 0; i < inventory.getSize(); i++) {
+            for (int excluded : excludedSlots) {
+                if (i == excluded) {
+                    continue outer;
+                }
+            }
+            inventory.setItem(i, createGlassPane(GLASS_COLORS[(glassColorIndex + i) % GLASS_COLORS.length], " "));
+        }
+    }
+
     protected void fillEmptySlots(int... excludedSlots) {
         outer:
         for (int i = 0; i < inventory.getSize(); i++) {
@@ -495,4 +557,59 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
     protected abstract void updateItems();
 
     protected abstract List<ItemStack> generateSpinSequence(int totalSteps, int winningSlot);
+
+    protected ItemStack createArrow(String position, NamedTextColor color) {
+        String arrowSymbol = switch (position.toLowerCase()) {
+            case "top" ->
+                    "⬇";
+            case "bottom" ->
+                    "⬆";
+            case "left" ->
+                    "➡";
+            case "right" ->
+                    "⬅";
+            default ->
+                    "•";
+        };
+
+        ItemStack arrow = new ItemStack(Material.ARROW);
+        ItemMeta meta = arrow.getItemMeta();
+        meta.displayName(Component.text()
+                .content(arrowSymbol + " Selected Item " + arrowSymbol)
+                .color(color)
+                .decoration(ITALIC, false)
+                .build());
+        arrow.setItemMeta(meta);
+        return arrow;
+    }
+
+    protected void placeArrows(int slot, String[] positions, NamedTextColor color) {
+        for (String position : positions) {
+            int arrowSlot = switch (position.toLowerCase()) {
+                case "top" ->
+                        slot - 9;
+                case "bottom" ->
+                        slot + 9;
+                case "left" ->
+                        slot - 1;
+                case "right" ->
+                        slot + 1;
+                default ->
+                        throw new IllegalArgumentException("Invalid arrow position: " + position);
+            };
+
+            if (arrowSlot >= 0 && arrowSlot < inventory.getSize()) {
+                inventory.setItem(arrowSlot, createArrow(position, color));
+            }
+        }
+    }
+
+    protected ItemStack createGlassPane(Material material, String name) {
+        ItemStack glass = new ItemStack(material);
+        ItemMeta meta = glass.getItemMeta();
+        meta.displayName(Component.text(name));
+        glass.setItemMeta(meta);
+        return glass;
+    }
+
 }

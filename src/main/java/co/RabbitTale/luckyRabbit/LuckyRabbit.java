@@ -75,8 +75,107 @@ public class LuckyRabbit extends JavaPlugin {
     private boolean oraxenHooked = false;
 
     /**
-     * Called when the plugin is enabled.
-     * Initializes all managers, loads configurations, and sets up integrations.
+     * Gets the singleton instance of the plugin.
+     *
+     * @return The plugin instance
+     */
+    public static LuckyRabbit getInstance() {
+        return instance;
+    }
+
+    /**
+     * Gets the config manager for this plugin.
+     *
+     * @return The config manager
+     */
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    /**
+     * Gets the lootbox manager for this plugin.
+     *
+     * @return The lootbox manager
+     */
+    public LootboxManager getLootboxManager() {
+        return lootboxManager;
+    }
+
+    /**
+     * Gets the command manager for this plugin.
+     *
+     * @return The command manager
+     */
+    public CommandManager getCommandManager() {
+        return commandManager;
+    }
+
+    /**
+     * Gets the listener manager for this plugin.
+     *
+     * @return The listener manager
+     */
+    public ListenerManager getListenerManager() {
+        return listenerManager;
+    }
+
+    /**
+     * Gets the API for this plugin.
+     *
+     * @return The plugin API
+     */
+    public LuckyRabbitAPI getApi() {
+        return api;
+    }
+
+    /**
+     * Gets the user manager for this plugin.
+     *
+     * @return The user manager
+     */
+    public UserManager getUserManager() {
+        return userManager;
+    }
+
+    /**
+     * Gets the license manager for this plugin.
+     *
+     * @return The license manager
+     */
+    public LicenseManager getLicenseManager() {
+        return licenseManager;
+    }
+
+    /**
+     * Gets the feature manager for this plugin.
+     *
+     * @return The feature manager
+     */
+    public FeatureManager getFeatureManager() {
+        return featureManager;
+    }
+
+    /**
+     * Gets the creator effects manager for this plugin.
+     *
+     * @return The creator effects manager
+     */
+    public CreatorEffects getCreatorEffects() {
+        return creatorEffects;
+    }
+
+    /**
+     * Gets the economy instance for this plugin.
+     *
+     * @return The economy instance
+     */
+    public Economy getEconomy() {
+        return economy;
+    }
+
+    /**
+     * Called when the plugin is enabled. Initializes all managers, loads
+     * configurations, and sets up integrations.
      */
     @Override
     public void onEnable() {
@@ -165,8 +264,8 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
-     * Called when the plugin is disabled.
-     * Saves all data and cleans up resources.
+     * Called when the plugin is disabled. Saves all data and cleans up
+     * resources.
      */
     @Override
     public void onDisable() {
@@ -185,12 +284,9 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
-     * Reloads the plugin configuration and verifies license.
-     * This includes:
-     * - Reloading config files
-     * - Verifying license status
-     * - Reloading lootboxes
-     * - Respawning entities
+     * Reloads the plugin configuration and verifies license. This includes: -
+     * Reloading config files - Verifying license status - Reloading lootboxes -
+     * Respawning entities
      */
     public void reload() {
         reloadConfig();
@@ -239,8 +335,8 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
-     * Sets up the economy integration with Vault.
-     * This is optional - plugin will work without economy features if Vault is not present.
+     * Sets up the economy integration with Vault. This is optional - plugin
+     * will work without economy features if Vault is not present.
      *
      * @return true if economy was successfully set up, false otherwise
      */
@@ -250,40 +346,38 @@ public class LuckyRabbit extends JavaPlugin {
             return false;
         }
 
-        try {
-            RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-            if (rsp == null) {
-                Logger.warning("No economy plugin (like Essentials) found - economy features will be disabled");
-                return false;
-            }
-            this.economy = rsp.getProvider();
-            Logger.success("Successfully hooked into Vault economy!");
-            return true;
-        } catch (NoClassDefFoundError e) {
-            Logger.warning("Vault API not found - economy features will be disabled");
+        RegisteredServiceProvider<Economy> economyProvider = getServer().getServicesManager()
+                .getRegistration(Economy.class);
+
+        if (economyProvider == null) {
+            Logger.warning("Vault economy provider not found - economy features will be disabled");
             return false;
         }
+
+        economy = economyProvider.getProvider();
+        Logger.info("Found Vault economy provider: " + economy.getName());
+        return true;
     }
 
     /**
-     * Sets up Oraxen integration for custom items.
-     * This is optional - plugin will use fallback items if Oraxen is not present.
+     * Sets up the Oraxen integration. This is optional - plugin will work
+     * without custom item features if Oraxen is not present.
      *
-     * @return true if Oraxen was successfully hooked, false otherwise
+     * @return true if Oraxen was successfully set up, false otherwise
      */
     private boolean setupOraxen() {
         if (getServer().getPluginManager().getPlugin("Oraxen") == null) {
-            Logger.warning("Oraxen plugin not found - custom items will use fallback items");
+            Logger.warning("Oraxen plugin not found - custom item features will be limited");
             return false;
         }
 
         try {
             Class.forName("io.th0rgal.oraxen.api.OraxenItems");
-            this.oraxenHooked = true;
-            Logger.success("Successfully hooked into Oraxen!");
+            Logger.info("Found Oraxen - custom item features are available");
+            oraxenHooked = true;
             return true;
         } catch (ClassNotFoundException e) {
-            Logger.error("Failed to hook into Oraxen - custom items will use fallback items");
+            Logger.warning("Failed to hook into Oraxen: " + e.getMessage());
             return false;
         }
     }

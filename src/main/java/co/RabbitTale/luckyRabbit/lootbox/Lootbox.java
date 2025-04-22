@@ -18,6 +18,7 @@ import lombok.Getter;
 
 @Getter
 public class Lootbox {
+
     private final String id;
     private final String displayName;
     private List<String> lore;
@@ -93,6 +94,69 @@ public class Lootbox {
     }
 
     /**
+     * Gets the unique identifier for this lootbox.
+     *
+     * @return The lootbox ID
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Gets the display name of this lootbox.
+     *
+     * @return The display name
+     */
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    /**
+     * Gets the lore lines for this lootbox.
+     *
+     * @return The lore as a list of strings
+     */
+    public List<String> getLore() {
+        return lore;
+    }
+
+    /**
+     * Gets all items in this lootbox.
+     *
+     * @return Map of item ID to LootboxItem
+     */
+    public Map<String, LootboxItem> getItems() {
+        return items;
+    }
+
+    /**
+     * Gets all locations where this lootbox can spawn.
+     *
+     * @return List of locations
+     */
+    public List<Location> getLocations() {
+        return locations;
+    }
+
+    /**
+     * Gets the animation type for this lootbox.
+     *
+     * @return The animation type
+     */
+    public AnimationType getAnimationType() {
+        return animationType;
+    }
+
+    /**
+     * Gets the number of times this lootbox has been opened.
+     *
+     * @return The open count
+     */
+    public int getOpenCount() {
+        return openCount;
+    }
+
+    /**
      * Adds an item to the lootbox.
      *
      * @param item Item to add
@@ -157,8 +221,8 @@ public class Lootbox {
     }
 
     /**
-     * Enforces animation restrictions based on license.
-     * Forces HORIZONTAL animation for non-premium users.
+     * Enforces animation restrictions based on license. Forces HORIZONTAL
+     * animation for non-premium users.
      */
     public void enforceAnimationRestrictions() {
         if (id.startsWith("example")) {
@@ -171,8 +235,8 @@ public class Lootbox {
     }
 
     /**
-     * Enforces item restrictions based on license.
-     * Removes Oraxen items and command actions for non-premium users.
+     * Enforces item restrictions based on license. Removes Oraxen items and
+     * command actions for non-premium users.
      */
     public void enforceItemRestrictions() {
         if (FeatureManager.canUseOraxenItems() || FeatureManager.canExecuteCommands()) {
@@ -195,11 +259,13 @@ public class Lootbox {
         locations.remove(location);
 
         // If not found, try to find a location that matches coordinates
-        locations.removeIf(loc ->
-            loc.getWorld().equals(location.getWorld()) &&
-            Math.abs(loc.getX() - location.getX()) < 0.1 && // Small delta for X and Z
-            Math.abs(loc.getY() - location.getY()) < 0.5 && // Medium delta for Y to account for small animations
-            Math.abs(loc.getZ() - location.getZ()) < 0.1
+        locations.removeIf(loc
+                -> loc.getWorld().equals(location.getWorld())
+                && Math.abs(loc.getX() - location.getX()) < 0.1
+                && // Small delta for X and Z
+                Math.abs(loc.getY() - location.getY()) < 0.5
+                && // Medium delta for Y to account for small animations
+                Math.abs(loc.getZ() - location.getZ()) < 0.1
         );
 
         modified = true;

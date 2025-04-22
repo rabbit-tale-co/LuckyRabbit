@@ -57,7 +57,78 @@ public abstract class LootboxItem {
         this.rarity = rarity;
         this.action = action;
         this.originalConfig = originalConfig;
+    }
 
+    /**
+     * Gets the ItemStack associated with this lootbox item.
+     *
+     * @return The item
+     */
+    public ItemStack getItem() {
+        return item;
+    }
+
+    /**
+     * Gets the unique identifier for this item.
+     *
+     * @return The item ID
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Gets the drop chance of this item.
+     *
+     * @return The chance as a percentage
+     */
+    public double getChance() {
+        return chance;
+    }
+
+    /**
+     * Gets the rarity level of this item.
+     *
+     * @return The rarity as a string
+     */
+    public String getRarity() {
+        return rarity;
+    }
+
+    /**
+     * Gets the action to execute when this item is won.
+     *
+     * @return The reward action
+     */
+    public RewardAction getAction() {
+        return action;
+    }
+
+    /**
+     * Gets the original configuration section this item was loaded from.
+     *
+     * @return The config section
+     */
+    public ConfigurationSection getOriginalConfig() {
+        return originalConfig;
+    }
+
+    /**
+     * Checks if this item's chance was manually set.
+     *
+     * @return true if the chance was manually set, false otherwise
+     */
+    public boolean isChanceManuallySet() {
+        return isChanceManuallySet;
+    }
+
+    /**
+     * Sets whether this item's chance was manually set.
+     *
+     * @param isChanceManuallySet true if the chance was manually set
+     */
+    public void setChanceManuallySet(boolean isChanceManuallySet) {
+        this.isChanceManuallySet = isChanceManuallySet;
     }
 
     /**
@@ -148,8 +219,8 @@ public abstract class LootboxItem {
             ConfigurationSection metaSection = itemSection.getConfigurationSection("meta");
             if (metaSection != null) {
                 // Set display name with MiniMessage formatting
-                if (metaSection.contains("display-name")) {
-                    String displayName = metaSection.getString("display-name");
+                if (metaSection.contains("displayName")) {
+                    String displayName = metaSection.getString("displayName");
                     if (displayName != null) {
                         Component nameComponent = MiniMessage.miniMessage().deserialize(displayName)
                                 .decoration(TextDecoration.ITALIC, false);

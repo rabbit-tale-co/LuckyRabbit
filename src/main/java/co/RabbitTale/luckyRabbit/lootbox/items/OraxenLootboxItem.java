@@ -5,23 +5,34 @@ import org.bukkit.inventory.ItemStack;
 
 import lombok.Getter;
 
-@Getter
 public class OraxenLootboxItem extends LootboxItem {
 
+    @Getter
     private final String oraxenId;
 
-    public OraxenLootboxItem(ItemStack item, String oraxenId) {
-        super(item, generateId(oraxenId), 100.0, "COMMON", null, null);
-        this.oraxenId = oraxenId;
-    }
-
-    public OraxenLootboxItem(ItemStack item, String oraxenId, String id, double chance, String rarity, ConfigurationSection originalConfig) {
+    /**
+     * Creates a new Oraxen lootbox item.
+     *
+     * @param item ItemStack from Oraxen
+     * @param oraxenId Oraxen item ID
+     * @param id Unique identifier for this reward
+     * @param chance Drop chance percentage
+     * @param rarity Item rarity level
+     * @param originalConfig Original config section
+     */
+    public OraxenLootboxItem(ItemStack item, String oraxenId, String id, double chance, String rarity,
+            ConfigurationSection originalConfig) {
         super(item, id, chance, rarity, null, originalConfig);
         this.oraxenId = oraxenId;
     }
 
-    private static String generateId(String oraxenId) {
-        return "oraxen-" + oraxenId + "-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+    /**
+     * Gets the Oraxen item ID.
+     *
+     * @return The Oraxen item ID
+     */
+    public String getOraxenId() {
+        return oraxenId;
     }
 
     @Override
