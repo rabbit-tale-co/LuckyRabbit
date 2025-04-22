@@ -2,13 +2,19 @@ package co.RabbitTale.luckyRabbit.lootbox;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -75,6 +81,10 @@ public class LootboxManager {
     private final Map<UUID, LootboxEntity> entities;
     private int respawnTaskId = -1;
 
+    // Add reference to examples directory
+    private final File examplesFolder;
+    private final File lootboxFolder;
+
     /**
      * Initializes the LootboxManager.
      *
@@ -84,6 +94,10 @@ public class LootboxManager {
         this.plugin = plugin;
         this.lootboxes = new HashMap<>();
         this.entities = new HashMap<>();
+
+        // Initialize folder references
+        this.lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
+        this.examplesFolder = new File(lootboxFolder, "examples");
     }
 
     /**
@@ -92,8 +106,7 @@ public class LootboxManager {
      * animations and items.
      */
     public void loadLootboxes() {
-        File lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
-
+        // Create main lootbox directory if it doesn't exist
         if (!lootboxFolder.exists()) {
             Logger.debug("Lootbox folder doesn't exist, creating...");
             if (!lootboxFolder.mkdirs()) {
@@ -102,43 +115,117 @@ public class LootboxManager {
             }
         }
 
-        // Save example files from resources if they don't exist
-        String[] exampleFiles = {"example.yml", "example2.yml"};
-        for (String fileName : exampleFiles) {
-            File file = new File(lootboxFolder, fileName);
-            if (!file.exists()) {
-                try {
-                    plugin.saveResource("lootboxes/" + fileName, false);
-                    Logger.debug("Created " + fileName + " from resources");
-                } catch (IllegalArgumentException e) {
-                    Logger.error("Resource not found: " + fileName);
-                } catch (Exception e) {
-                    Logger.error("Failed to create " + fileName + ": " + e.getMessage());
-                }
+        // Create examples directory if it doesn't exist
+        if (!examplesFolder.exists()) {
+            Logger.debug("Examples folder doesn't exist, creating...");
+            if (!examplesFolder.mkdirs()) {
+                Logger.error("Failed to create examples directory!");
+                return;
             }
         }
 
-        // Load all lootbox files
-        File[] files = lootboxFolder.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null) {
-            Logger.error("Failed to list lootbox files!");
-            return;
+        // Get resource YML files using a dynamic approach
+        List<String> resourceYmlFiles = findYmlResourceFiles();
+
+        // If no files found, fall back to default list
+        if (resourceYmlFiles.isEmpty()) {
+            Logger.warning("Could not find any example YML files in resources");
+        }
+
+        Logger.debug("Found " + resourceYmlFiles.size() + " example YML files in resources");
+
+        // Process each found YML file
+        for (String fileName : resourceYmlFiles) {
+            File file = new File(examplesFolder, fileName);
+            if (!file.exists()) {
+                try {
+                    // Check if the resource exists
+                    if (plugin.getResource("lootboxes/" + fileName) != null) {
+                        plugin.saveResource("lootboxes/" + fileName, false);
+                        // Move from main directory to examples directory
+                        File tempFile = new File(lootboxFolder, fileName);
+                        if (tempFile.exists()) {
+                            if (tempFile.renameTo(file)) {
+                                Logger.debug("Created and moved " + fileName + " to examples directory");
+                            } else {
+                                Logger.error("Failed to move " + fileName + " to examples directory");
+                            }
+                        }
+                    } else {
+                        Logger.debug("Resource not found: " + fileName);
+                    }
+                } catch (Exception e) {
+                    Logger.error("Failed to create example file " + fileName + ": " + e.getMessage());
+                }
+            }
         }
 
         // Clear existing lootboxes
         lootboxes.clear();
 
-        // Load each file
+        // First load example lootboxes from examples directory
+        loadLootboxesFromDirectory(examplesFolder, true);
+
+        // Then load user lootboxes from main directory
+        loadLootboxesFromDirectory(lootboxFolder, false);
+
+        Logger.debug("Total lootboxes loaded: " + lootboxes.size());
+        Logger.debug("Lootbox IDs: " + String.join(", ", lootboxes.keySet()));
+    }
+
+    /**
+     * Loads lootboxes from the specified directory.
+     *
+     * @param directory Directory to load from
+     * @param isExampleDir Whether this is the examples directory
+     */
+    private void loadLootboxesFromDirectory(File directory, boolean isExampleDir) {
+        if (!directory.exists() || !directory.isDirectory()) {
+            return;
+        }
+
+        // Skip the examples subdirectory when loading from main directory
+        File[] files = directory.listFiles((dir, name)
+                -> name.endsWith(".yml") && (!isExampleDir || !name.equals("examples")));
+
+        if (files == null) {
+            Logger.error("Failed to list files in " + directory.getName());
+            return;
+        }
+
         for (File file : files) {
+            // Skip directories
+            if (file.isDirectory()) {
+                continue;
+            }
+
             try {
                 YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
                 String id = config.getString("id");
 
-                // Create lootbox with the formatted display name
+                if (id == null || id.isEmpty()) {
+                    // Use filename without extension as ID if not specified
+                    id = file.getName().replace(".yml", "");
+                    config.set("id", id);
+                    config.save(file);
+                }
+
+                // Skip if lootbox already loaded (prevents duplicates)
+                if (lootboxes.containsKey(id)) {
+                    Logger.warning("Duplicate lootbox ID found: " + id + " in " + file.getPath() + " - skipping");
+                    continue;
+                }
+
+                // Create lootbox from config
                 Lootbox lootbox = Lootbox.fromConfig(config);
 
+                // Set whether this is an example lootbox based on directory
+                if (isExampleDir) {
+                    lootbox.setExample(true);
+                }
+
                 // Enforce restrictions for non-example lootboxes
-                if (!isExampleLootbox(lootbox.getId())) {
+                if (!isExampleLootbox(lootbox.getId()) && !isExampleDir) {
                     lootbox.enforceAnimationRestrictions();
                     lootbox.enforceItemRestrictions();
 
@@ -149,14 +236,12 @@ public class LootboxManager {
                 }
 
                 lootboxes.put(id, lootbox);
+                Logger.debug("Loaded lootbox: " + id + " from " + (isExampleDir ? "examples" : "lootboxes"));
             } catch (Exception e) {
                 Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
-
-        Logger.debug("Total lootboxes loaded: " + lootboxes.size());
-        Logger.debug("Lootbox IDs: " + String.join(", ", lootboxes.keySet()));
     }
 
     /**
@@ -319,7 +404,7 @@ public class LootboxManager {
         }
 
         // Check if this is an Oraxen item
-        String oraxenId = null;
+        String oraxenId;
         try {
             oraxenId = OraxenItems.getIdByItem(item);
         } catch (NoClassDefFoundError e) {
@@ -535,47 +620,75 @@ public class LootboxManager {
      */
     public void saveLootbox(Lootbox lootbox) {
         // Don't save example lootboxes unless they've been modified
-        if ((lootbox.getId().equals("example") || lootbox.getId().equals("example2"))
-                && !lootbox.hasBeenModified()) {
+        if (isExampleLootbox(lootbox.getId()) && !lootbox.hasBeenModified()) {
             return;
         }
 
-        File file = new File(plugin.getDataFolder(), "lootboxes/" + lootbox.getId() + ".yml");
-        YamlConfiguration config = new YamlConfiguration();
+        // Determine the correct directory based on whether it's an example
+        File targetDir = isExampleLootbox(lootbox.getId()) ? examplesFolder : lootboxFolder;
+        File file = new File(targetDir, lootbox.getId() + ".yml");
 
-        // Basic information
+        YamlConfiguration config;
+        boolean fileExists = file.exists();
+
+        // Load existing config if the file exists to preserve data
+        if (fileExists) {
+            config = YamlConfiguration.loadConfiguration(file);
+            Logger.debug("Loaded existing configuration for lootbox: " + lootbox.getId());
+        } else {
+            config = new YamlConfiguration();
+        }
+
+        // Always update basic information
         config.set("id", lootbox.getId());
         config.set("displayName", lootbox.getDisplayName());
         config.set("animationType", lootbox.getAnimationType().name());
 
-        // Default empty lore if not set
-        List<String> defaultLore = new ArrayList<>();
-        defaultLore.add("<gray>A mysterious lootbox");
-        defaultLore.add("<gray>Contains various rewards");
-        defaultLore.add("");
-        defaultLore.add("<yellow>Right-click to preview");
-        defaultLore.add("<yellow>Use a key to open");
-        config.set("lore", lootbox.getLore().isEmpty() ? defaultLore : lootbox.getLore());
+        // Update lore only if not previously set or the lootbox lore is not empty
+        if (!fileExists || !config.contains("lore") || !lootbox.getLore().isEmpty()) {
+            List<String> defaultLore = new ArrayList<>();
+            defaultLore.add("<gray>A mysterious lootbox");
+            defaultLore.add("<gray>Contains various rewards");
+            defaultLore.add("");
+            defaultLore.add("<yellow>Right-click to preview");
+            defaultLore.add("<yellow>Use a key to open");
+            config.set("lore", lootbox.getLore().isEmpty() ? defaultLore : lootbox.getLore());
+        }
 
-        // Create empty sections if they don't exist
-        config.createSection("items");
-        config.createSection("locations");
+        // Only update items if they don't exist in config or if the lootbox has been modified
+        if (!fileExists || !config.contains("items") || lootbox.hasBeenModified()) {
+            // Keep the existing items section if there are no items to save
+            if (!lootbox.getItems().isEmpty()) {
+                // Create or get the items section
+                ConfigurationSection itemsSection = config.contains("items")
+                        ? config.getConfigurationSection("items")
+                        : config.createSection("items");
 
-        // Save items if any exist
-        if (!lootbox.getItems().isEmpty()) {
-            ConfigurationSection itemsSection = config.getConfigurationSection("items");
-            for (LootboxItem item : lootbox.getItems().values()) {
-                assert itemsSection != null;
-                item.save(itemsSection.createSection(item.getId()));
+                for (LootboxItem item : lootbox.getItems().values()) {
+                    assert itemsSection != null;
+                    // Create the section or get existing one
+                    ConfigurationSection itemSection = itemsSection.contains(item.getId())
+                            ? itemsSection.getConfigurationSection(item.getId())
+                            : itemsSection.createSection(item.getId());
+
+                    // Save item to the section
+                    item.save(itemSection);
+                }
             }
         }
 
-        // Save locations if any exist
-        if (!lootbox.getLocations().isEmpty()) {
-            ConfigurationSection locationsSection = config.getConfigurationSection("locations");
+        // Always update locations
+        if (lootbox.getLocations().isEmpty()) {
+            // If no locations, just ensure the section exists
+            if (!config.contains("locations")) {
+                config.createSection("locations");
+            }
+        } else {
+            // Clear existing locations and add new ones
+            config.set("locations", null);
+            ConfigurationSection locationsSection = config.createSection("locations");
             int locIndex = 0;
             for (Location location : lootbox.getLocations()) {
-                assert locationsSection != null;
                 ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
                 locationSection.set("world", location.getWorld().getName());
                 locationSection.set("x", location.getX());
@@ -584,12 +697,12 @@ public class LootboxManager {
             }
         }
 
-        // Statistics
+        // Update statistics
         config.set("openedCount", lootbox.getOpenCount());
 
         try {
             config.save(file);
-            Logger.debug("Saved lootbox: " + lootbox.getId());
+            Logger.debug("Saved lootbox: " + lootbox.getId() + " to " + (isExampleLootbox(lootbox.getId()) ? "examples" : "lootboxes"));
         } catch (IOException e) {
             Logger.error("Failed to save lootbox: " + lootbox.getId(), e);
         }
@@ -614,7 +727,9 @@ public class LootboxManager {
      * @return true if example lootbox
      */
     public boolean isExampleLootbox(String id) {
-        return id.equals("example") || id.equals("example2");
+        // Only use the isExample flag - no hardcoded names
+        Lootbox lootbox = lootboxes.get(id);
+        return lootbox != null && lootbox.isExample();
     }
 
     /**
@@ -996,5 +1111,62 @@ public class LootboxManager {
                         existingItem.getAction(),
                         existingItem.getOriginalConfig()
                 );
+    }
+
+    /**
+     * Finds all YML files in the resources/lootboxes directory. This uses
+     * multiple approaches to handle different environments.
+     *
+     * @return List of YML filenames found in resources
+     */
+    private List<String> findYmlResourceFiles() {
+        List<String> files = new ArrayList<>();
+        String resourcePath = "lootboxes";
+
+        try {
+            // Method 1: Try to get the URL of the resource directory
+            URL dirURL = getClass().getClassLoader().getResource(resourcePath);
+            if (dirURL != null) {
+                // Handle JAR files
+                if (dirURL.getProtocol().equals("jar")) {
+                    String jarPath = dirURL.getPath().substring(5, dirURL.getPath().indexOf("!"));
+                    JarFile jar = new JarFile(jarPath);
+                    Enumeration<JarEntry> entries = jar.entries();
+
+                    while (entries.hasMoreElements()) {
+                        JarEntry entry = entries.nextElement();
+                        String name = entry.getName();
+
+                        if (name.startsWith(resourcePath + "/") && name.endsWith(".yml")) {
+                            String fileName = name.substring(name.lastIndexOf('/') + 1);
+                            files.add(fileName);
+                        }
+                    }
+
+                    jar.close();
+                    return files;
+                }
+            }
+        } catch (Exception e) {
+            Logger.warning("Error finding resources: " + e.getMessage());
+        }
+
+        // Method 2: In development environments, scan the resource folder directly
+        try {
+            File resourceDir = new File("src/main/resources/lootboxes");
+            if (resourceDir.exists() && resourceDir.isDirectory()) {
+                File[] resourceFiles = resourceDir.listFiles((dir, name) -> name.endsWith(".yml"));
+                if (resourceFiles != null) {
+                    for (File file : resourceFiles) {
+                        files.add(file.getName());
+                    }
+                    Logger.debug("Found " + files.size() + " example files in development resource directory");
+                }
+            }
+        } catch (Exception e) {
+            Logger.warning("Failed to scan development resource directory: " + e.getMessage());
+        }
+
+        return files;
     }
 }

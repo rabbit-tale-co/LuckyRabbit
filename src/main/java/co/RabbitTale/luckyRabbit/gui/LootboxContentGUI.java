@@ -17,6 +17,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.api.FeatureManager;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.INFO_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
 import co.RabbitTale.luckyRabbit.gui.animations.BaseAnimationGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.CascadeSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.CircleSpinGUI;
@@ -25,14 +29,13 @@ import co.RabbitTale.luckyRabbit.gui.animations.PinPointSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.animations.ThreeInRowSpinGUI;
 import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
+import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-
-import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
 
 /*
  * LootboxContentGUI.java
@@ -106,7 +109,7 @@ public class LootboxContentGUI implements GUI {
 
         // Create inventory with page info in title - without color
         String displayName = PlainTextComponentSerializer.plainText()
-            .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()));
+                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()));
         this.inventory = Bukkit.createInventory(this, ROWS * 9,
                 Component.text(displayName + " (Page " + (currentPage + 1) + "/" + totalPages + ")"));
 
@@ -114,8 +117,7 @@ public class LootboxContentGUI implements GUI {
     }
 
     /**
-     * Updates the inventory contents.
-     * Refreshes items and buttons.
+     * Updates the inventory contents. Refreshes items and buttons.
      */
     private void updateInventory() {
         GUIUtils.setupBorder(inventory, ROWS);
@@ -134,9 +136,9 @@ public class LootboxContentGUI implements GUI {
 
         // Add navigation buttons
         inventory.setItem(PREV_PAGE_SLOT, GUIUtils.createNavigationButton("Previous Page",
-            Material.ARROW, currentPage > 0));
+                Material.ARROW, currentPage > 0));
         inventory.setItem(NEXT_PAGE_SLOT, GUIUtils.createNavigationButton("Next Page",
-            Material.ARROW, (currentPage + 1) * PAGE_SIZE < items.size()));
+                Material.ARROW, (currentPage + 1) * PAGE_SIZE < items.size()));
 
         // Add open button only if allowed
         if (showOpenButton) {
@@ -151,15 +153,14 @@ public class LootboxContentGUI implements GUI {
         // Update title with current page - without color
         int totalPages = Math.max(1, (int) Math.ceil(items.size() / (double) PAGE_SIZE));
         String displayName = PlainTextComponentSerializer.plainText()
-            .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()));
+                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()));
         player.openInventory(Bukkit.createInventory(this, ROWS * 9,
                 Component.text(displayName + " (Page " + (currentPage + 1) + "/" + totalPages + ")")));
         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
     }
 
     /**
-     * Updates the open button state.
-     * Shows key count and availability.
+     * Updates the open button state. Shows key count and availability.
      */
     private void updateOpenButton() {
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
@@ -237,8 +238,8 @@ public class LootboxContentGUI implements GUI {
     }
 
     /**
-     * Creates a display item with statistics.
-     * Shows chance and rarity information.
+     * Creates a display item with statistics. Shows chance and rarity
+     * information.
      *
      * @param item LootboxItem to display
      * @return Configured ItemStack
@@ -262,8 +263,12 @@ public class LootboxContentGUI implements GUI {
 
             for (Component loreLine : lore) {
                 String plainText = PlainTextComponentSerializer.plainText().serialize(loreLine);
-                if (plainText.contains("Chance:")) hasChance = true;
-                if (plainText.contains("Rarity:")) hasRarity = true;
+                if (plainText.contains("Chance:")) {
+                    hasChance = true;
+                }
+                if (plainText.contains("Rarity:")) {
+                    hasRarity = true;
+                }
             }
 
             // Add empty line before stats if needed
@@ -274,21 +279,21 @@ public class LootboxContentGUI implements GUI {
             // Add missing stats
             if (!hasChance) {
                 lore.add(Component.text("Chance: " + item.getChance() + "%")
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false));
+                        .color(NamedTextColor.GRAY)
+                        .decoration(TextDecoration.ITALIC, false));
             }
             if (!hasRarity) {
                 lore.add(Component.text("Rarity: " + item.getRarity())
-                    .color(NamedTextColor.GRAY)
-                    .decoration(TextDecoration.ITALIC, false));
+                        .color(NamedTextColor.GRAY)
+                        .decoration(TextDecoration.ITALIC, false));
             }
 
             // Add admin lore if needed
             if (player.hasPermission("luckyrabbit.admin")) {
                 lore.add(Component.empty());
                 lore.add(Component.text("ADMIN - Shift + Left Click to remove")
-                    .color(ERROR_COLOR)
-                    .decoration(TextDecoration.ITALIC, false));
+                        .color(ERROR_COLOR)
+                        .decoration(TextDecoration.ITALIC, false));
             }
 
             meta.lore(lore);
@@ -299,8 +304,8 @@ public class LootboxContentGUI implements GUI {
     }
 
     /**
-     * Handles opening the lootbox.
-     * Checks key availability and starts animation.
+     * Handles opening the lootbox. Checks key availability and starts
+     * animation.
      */
     private void handleOpenButton() {
         int keyCount = plugin.getUserManager().getKeyCount(player.getUniqueId(), lootbox.getId());
@@ -317,12 +322,28 @@ public class LootboxContentGUI implements GUI {
                 // Use key before creating animation
                 plugin.getUserManager().useKey(player.getUniqueId(), lootbox.getId());
 
-                BaseAnimationGUI animationGUI = switch (lootbox.getAnimationType()) {
-                    case PIN_POINT -> new PinPointSpinGUI(plugin, player, lootbox);
-                    case CIRCLE -> new CircleSpinGUI(plugin, player, lootbox);
-                    case CASCADE -> new CascadeSpinGUI(plugin, player, lootbox);
-                    case THREE_IN_ROW -> new ThreeInRowSpinGUI(plugin, player, lootbox);
-                    default -> new HorizontalSpinGUI(plugin, player, lootbox);
+                // First check if the requested animation is available
+                AnimationType requestedType = lootbox.getAnimationType();
+                boolean isAvailable = FeatureManager.canUseAnimation(requestedType.name());
+
+                // If not available, fall back to HORIZONTAL and inform the player
+                if (!isAvailable && requestedType != AnimationType.HORIZONTAL) {
+                    player.sendMessage(Component.text("The " + requestedType.name() + " animation is not available. Using HORIZONTAL instead.")
+                            .color(NamedTextColor.YELLOW));
+                    requestedType = AnimationType.HORIZONTAL;
+                }
+
+                BaseAnimationGUI animationGUI = switch (requestedType) {
+                    case PIN_POINT ->
+                        new PinPointSpinGUI(plugin, player, lootbox);
+                    case CIRCLE ->
+                        new CircleSpinGUI(plugin, player, lootbox);
+                    case CASCADE ->
+                        new CascadeSpinGUI(plugin, player, lootbox);
+                    case THREE_IN_ROW ->
+                        new ThreeInRowSpinGUI(plugin, player, lootbox);
+                    default ->
+                        new HorizontalSpinGUI(plugin, player, lootbox);
                 };
 
                 // Close inventory and show animation
@@ -346,8 +367,7 @@ public class LootboxContentGUI implements GUI {
     }
 
     /**
-     * Shows the GUI to a player.
-     * Opens the inventory for viewing.
+     * Shows the GUI to a player. Opens the inventory for viewing.
      */
     public void show() {
         player.openInventory(inventory);

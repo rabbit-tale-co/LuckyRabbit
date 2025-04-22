@@ -5,7 +5,7 @@
 # Unique identifier for the lootbox
 # Must be unique across all lootboxes
 # Used in commands and API
-id: example2
+id: example_custom
 
 # Display name of the lootbox
 # Supports MiniMessage format (<color>, <gradient>, etc.)
@@ -29,8 +29,7 @@ lore:
 # Animation type when opening the lootbox
 # Available types:
 # - HORIZONTAL (default sliding animation)
-# - CIRCLE (items rotate in a circle)
-animationType: CIRCLE
+animationType: HORIZONTAL
 
 # Counter for how many times this lootbox has been opened
 # Auto-incremented by the plugin
@@ -53,7 +52,7 @@ items:
       type: GOLD_INGOT  # Minecraft material type
       amount: 1
       meta:
-        display-name: "<yellow>Pouch of gold (1000)"
+        displayName: "<yellow>Pouch of gold (1000)"
         lore:
           - "<gold>1000 <white>gold"
     # Actions executed when this reward is won
@@ -70,7 +69,7 @@ items:
     item:
       type: NAME_TAG
       meta:
-        display-name: "<white>[<green>VIP<white>] <gray>Role (7 days)"
+        displayName: "<white>[<green>VIP<white>] <gray>Role (7 days)"
         lore:
           - "<white>[<green>VIP<white>] <gray>rank for 7 days"
         glow: true  # Adds enchant glint
@@ -87,7 +86,7 @@ items:
     item:
       type: ELYTRA
       meta:
-        display-name: "<light_purple>Wings of Freedom"
+        displayName: "<light_purple>Wings of Freedom"
         lore:
           - "<gray>Legendary wings that grant"
           - "<gray>unlimited flight"
@@ -104,7 +103,7 @@ items:
     item:
       type: TOTEM_OF_UNDYING
       meta:
-        display-name: "<white>[<gold>MVP<red>++<white>] <gray>Role (30 days)"
+        displayName: "<white>[<gold>MVP<red>++<white>] <gray>Role (30 days)"
         lore:
           - "<white>[<gold>MVP<red>++<white>] <gray>rank for 30 days"
         glow: true
@@ -121,7 +120,7 @@ items:
     item:
       type: DRAGON_EGG
       meta:
-        display-name: "<white>[<dark_red><bold>Owner</bold><white>] <gray>Role (Permanent)"
+        displayName: "<white>[<dark_red><bold>Owner</bold><white>] <gray>Role (Permanent)"
         lore:
           - "<white>[<dark_red><bold>Owner</bold><white>] <gray>rank <gray>permanent"
         glow: true

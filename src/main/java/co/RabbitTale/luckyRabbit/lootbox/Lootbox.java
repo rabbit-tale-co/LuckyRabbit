@@ -27,6 +27,7 @@ public class Lootbox {
     private AnimationType animationType;
     private int openCount;
     private boolean modified = false;
+    private boolean isExample = false;
 
     /**
      * Creates a new lootbox instance.
@@ -204,20 +205,37 @@ public class Lootbox {
     }
 
     /**
-     * Marks the lootbox as modified.
+     * Sets the modified flag for this lootbox.
      */
     public void setModified() {
         this.modified = true;
     }
 
     /**
-     * Sets the animation type for this lootbox.
+     * Sets the animation type for this lootbox. If the requested animation is
+     * not available, falls back to HORIZONTAL.
      *
      * @param animationType The new animation type
+     * @return Whether the requested animation was available and set
+     * successfully
      */
-    public void setAnimationType(AnimationType animationType) {
-        this.animationType = animationType;
-        this.modified = true;
+    public boolean setAnimationType(AnimationType animationType) {
+        // Always allow HORIZONTAL
+        if (animationType == AnimationType.HORIZONTAL) {
+            this.animationType = animationType;
+            this.modified = true;
+            return true;
+        }
+
+        // Check if the requested animation is available
+        if (FeatureManager.canUseAnimation(animationType.name())) {
+            this.animationType = animationType;
+            this.modified = true;
+            return true;
+        } else {
+            // If not available, keep the current animation and return false
+            return false;
+        }
     }
 
     /**
@@ -226,11 +244,13 @@ public class Lootbox {
      */
     public void enforceAnimationRestrictions() {
         if (id.startsWith("example")) {
-            return;
+            return; // Don't enforce restrictions on example lootboxes
         }
 
-        if (FeatureManager.canUseAnimation(animationType.name())) {
+        // Only fallback to HORIZONTAL if the requested animation is not available
+        if (!FeatureManager.canUseAnimation(animationType.name()) && animationType != AnimationType.HORIZONTAL) {
             this.animationType = AnimationType.HORIZONTAL;
+            this.modified = true;
         }
     }
 
@@ -279,5 +299,23 @@ public class Lootbox {
     public void setLore(List<String> lore) {
         this.lore = new ArrayList<>(lore);
         this.modified = true;
+    }
+
+    /**
+     * Checks if this is an example lootbox.
+     *
+     * @return true if this is an example lootbox, false otherwise
+     */
+    public boolean isExample() {
+        return isExample;
+    }
+
+    /**
+     * Sets whether this is an example lootbox.
+     *
+     * @param isExample true to mark as example, false otherwise
+     */
+    public void setExample(boolean isExample) {
+        this.isExample = isExample;
     }
 }

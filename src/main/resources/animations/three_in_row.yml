@@ -1,0 +1,16 @@
+# Three In Row Animation Configuration
+# This premium animation is available on Patreon
+
+name: "Three In Row"
+id: "THREE_IN_ROW"
+description: "Triple slot-machine style animation with jackpot mechanics"
+enabled: true
+
+# Validation data - must match the code in the plugin
+validation_key: "3R-6359-PRMM-8742-SLOT"
+checksum: "c5f83d47a9e12b45d8c73e6a4f1b2d9e"
+api_version: "1.0.0"
+
+# Metadata
+author: "RabbitTale"
+website: "https://patreon.com/rabbittale"

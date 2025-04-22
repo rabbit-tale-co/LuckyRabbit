@@ -1,11 +1,13 @@
 package co.RabbitTale.luckyRabbit.api;
 
-import lombok.Getter;
+import java.io.File;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.commands.LootboxCommand;
+import lombok.Getter;
 import net.kyori.adventure.text.Component;
 
 /*
@@ -34,8 +36,8 @@ public class FeatureManager {
     private static LuckyRabbit plugin;
 
     /**
-     * Creates a new feature manager.
-     * Initializes license checking and plan type.
+     * Creates a new feature manager. Initializes license checking and plan
+     * type.
      *
      * @param licenseManager License manager instance
      * @param plugin Plugin instance
@@ -47,8 +49,8 @@ public class FeatureManager {
     }
 
     /**
-     * Updates the current plan type.
-     * Handles notifications and plugin reload if needed.
+     * Updates the current plan type. Handles notifications and plugin reload if
+     * needed.
      */
     public static void updatePlanType() {
         String newPlanType = LicenseManager.isPremium() ? "PREMIUM"
@@ -90,8 +92,8 @@ public class FeatureManager {
     }
 
     /**
-     * Notifies admins about plan changes.
-     * Shows feature availability and limitations.
+     * Notifies admins about plan changes. Shows feature availability and
+     * limitations.
      *
      * @param oldPlan Previous plan type
      * @param newPlan New plan type
@@ -192,17 +194,19 @@ public class FeatureManager {
     }
 
     /**
-     * Gets the numeric value of a plan type.
-     * Used for comparing plan levels.
+     * Gets the numeric value of a plan type. Used for comparing plan levels.
      *
      * @param plan Plan type to check
      * @return Numeric value (3=PREMIUM, 2=TRIAL, 1=FREE)
      */
     private static int getPlanValue(String plan) {
         return switch (plan) {
-            case "PREMIUM" -> 3;
-            case "TRIAL" -> 2;
-            default -> 1;
+            case "PREMIUM" ->
+                3;
+            case "TRIAL" ->
+                2;
+            default ->
+                1;
         };
     }
 
@@ -214,15 +218,17 @@ public class FeatureManager {
      */
     private static net.kyori.adventure.text.format.TextColor getStatusColor(String status) {
         return switch (status) {
-            case "PREMIUM" -> LootboxCommand.SUCCESS_COLOR;
-            case "TRIAL" -> LootboxCommand.INFO_COLOR;
-            default -> LootboxCommand.ERROR_COLOR;
+            case "PREMIUM" ->
+                LootboxCommand.SUCCESS_COLOR;
+            case "TRIAL" ->
+                LootboxCommand.INFO_COLOR;
+            default ->
+                LootboxCommand.ERROR_COLOR;
         };
     }
 
     /**
-     * Gets the maximum allowed lootboxes.
-     * Based on current plan type.
+     * Gets the maximum allowed lootboxes. Based on current plan type.
      *
      * @return Maximum lootboxes (-1 for unlimited)
      */
@@ -255,17 +261,42 @@ public class FeatureManager {
     }
 
     /**
-     * Checks if an animation type is restricted.
+     * Checks if an animation type is available based on license file existence.
      *
      * @param animationType Animation type to check
-     * @return true if animation is restricted
+     * @return true if animation is available
      */
     public static boolean canUseAnimation(String animationType) {
-        if (LicenseManager.isPremium() || LicenseManager.isTrialActive()) {
+        if (animationType == null || animationType.isEmpty()) {
             return false;
         }
-        // Free version only allows HORIZONTAL animation
-        return !"HORIZONTAL".equalsIgnoreCase(animationType);
+
+        // Always allow HORIZONTAL as the default animation
+        if ("HORIZONTAL".equalsIgnoreCase(animationType)) {
+            return true;
+        }
+
+        // Use AnimationManager if available
+        if (plugin.getAnimationManager() != null) {
+            boolean isAvailable = plugin.getAnimationManager().isAnimationAvailable(animationType);
+
+            if (!isAvailable) {
+                plugin.getLogger().warning("Animation '" + animationType + "' was requested but is not available. "
+                        + "Make sure you have the correct license file in the animations folder.");
+            }
+
+            return isAvailable;
+        }
+
+        // Fallback to file check if AnimationManager is not initialized yet
+        File animationFile = new File(plugin.getDataFolder(), "animations/" + animationType.toLowerCase() + ".yml");
+        boolean exists = animationFile.exists();
+
+        if (!exists) {
+            plugin.getLogger().warning("Animation '" + animationType + "' was requested but no license file was found.");
+        }
+
+        return exists;
     }
 
     /**
@@ -274,7 +305,7 @@ public class FeatureManager {
      * @return true if Oraxen items allowed
      */
     public static boolean canUseOraxenItems() {
-        return !LicenseManager.isPremium() && !LicenseManager.isTrialActive();
+        return true; // Now all features are available to everyone
     }
 
     /**
@@ -283,6 +314,6 @@ public class FeatureManager {
      * @return true if command rewards allowed
      */
     public static boolean canExecuteCommands() {
-        return !LicenseManager.isPremium() && !LicenseManager.isTrialActive();
+        return true; // Now all features are available to everyone
     }
 }

@@ -5,7 +5,7 @@
 # Unique identifier for the lootbox
 # Must be unique across all lootboxes
 # Used in commands like /lb give <player> example
-id: example
+id: horizontal_normal
 
 # Display name shown in inventory and when hovering
 # Supports MiniMessage format for colors and effects
@@ -27,7 +27,6 @@ lore:
 # Animation type when opening the lootbox
 # Available types:
 # - HORIZONTAL (default side-scrolling)
-# - CIRCLE (rotating circle)
 animationType: HORIZONTAL
 
 # Tracks how many times this lootbox has been opened

@@ -1,0 +1,20 @@
+# Circle Animation Configuration
+# This premium animation is available on Patreon
+
+name: "Circle Spin"
+id: "CIRCLE"
+description: "Items spin in a circular pattern around a center point"
+enabled: true
+
+# Validation data - must match the code in the plugin
+validation_key: "CR-2947-PRMM-5231-RING"
+checksum: "b8c45e89d7a23c9fa5d62b1f9c0e3a54"
+api_version: "1.0.0"
+
+# Metadata
+author: "RabbitTale"
+website: "https://patreon.com/rabbittale"
+
+# Premium animation - requires downloading this file
+default: false
+version: 1.0

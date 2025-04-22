@@ -1,0 +1,20 @@
+# Horizontal Animation Configuration
+# This is the default animation provided with Lucky Rabbit
+
+name: "Horizontal Spin"
+id: "HORIZONTAL"
+description: "Classic slot machine style animation with items scrolling horizontally"
+enabled: true
+
+# Validation data - must match the code in the plugin
+validation_key: "HR-7821-DFLT-9433-BASE"
+checksum: "a7f92e36d8c14b8fb2ed0a5a6a7f7cb2"
+api_version: "1.0.0"
+
+# Metadata
+author: "RabbitTale"
+website: "https://patreon.com/rabbittale"
+
+# This is the default free animation available to all users
+default: true
+version: 1.0

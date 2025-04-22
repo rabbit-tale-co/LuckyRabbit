@@ -16,14 +16,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.DESCRIPTION_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.INFO_COLOR;
+import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
 import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-
-import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.*;
 
 /*
  * LootboxListGUI.java
@@ -200,6 +202,7 @@ public class LootboxListGUI implements GUI {
         }
 
         // Add statistics
+        // FIXME: make example lootbox show on left side (as first in list) next in list show normal lootboxes (also add option to filter (next gui) - name, open count, items count, type (example, normal) ect.)
         // TODO: open count and items count make as separated color
         lore.add(Component.empty());
         lore.add(Component.text("Statistics:")

@@ -6,6 +6,7 @@ import java.util.List;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import co.RabbitTale.luckyRabbit.api.AnimationManager;
 import co.RabbitTale.luckyRabbit.api.FeatureManager;
 import co.RabbitTale.luckyRabbit.api.LicenseManager;
 import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPI;
@@ -67,6 +68,8 @@ public class LuckyRabbit extends JavaPlugin {
     private FeatureManager featureManager;
     @Getter
     private CreatorEffects creatorEffects;
+    @Getter
+    private AnimationManager animationManager;
 
     @Getter
     private Economy economy = null;
@@ -165,6 +168,15 @@ public class LuckyRabbit extends JavaPlugin {
     }
 
     /**
+     * Gets the animation manager for this plugin.
+     *
+     * @return The animation manager
+     */
+    public AnimationManager getAnimationManager() {
+        return animationManager;
+    }
+
+    /**
      * Gets the economy instance for this plugin.
      *
      * @return The economy instance
@@ -195,6 +207,7 @@ public class LuckyRabbit extends JavaPlugin {
         this.configManager = new ConfigManager(this);
         this.licenseManager = new LicenseManager(this);
         this.featureManager = new FeatureManager(licenseManager, this);
+        this.animationManager = new AnimationManager(this);
         this.lootboxManager = new LootboxManager(this);
         this.commandManager = new CommandManager(this);
         this.listenerManager = new ListenerManager(this);

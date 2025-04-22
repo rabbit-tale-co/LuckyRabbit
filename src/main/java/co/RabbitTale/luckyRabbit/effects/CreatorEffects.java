@@ -37,6 +37,7 @@ public class CreatorEffects implements Listener {
     /* === STATE ===================================================== */
     private final LuckyRabbit plugin;
     private final Map<UUID, Boolean> particlesEnabled = new HashMap<>();
+    private final Map<UUID, Boolean> parrotsEnabled = new HashMap<>(); // Track if creators want parrots
     private final Map<UUID, UUID> creatorParrots = new HashMap<>();
 
     private double angleX = 0, angleY = 0, angleZ = 0;
@@ -52,8 +53,14 @@ public class CreatorEffects implements Listener {
             return;
         }
 
+        // Initialize default values for new players
         particlesEnabled.putIfAbsent(player.getUniqueId(), true);
-        spawnOrGetParrot(player);
+        parrotsEnabled.putIfAbsent(player.getUniqueId(), true);
+
+        // Only spawn parrot if enabled for this player
+        if (parrotsEnabled.getOrDefault(player.getUniqueId(), true)) {
+            spawnOrGetParrot(player);
+        }
 
         new BukkitRunnable() {
             @Override
@@ -63,7 +70,7 @@ public class CreatorEffects implements Listener {
                     return;
                 }
 
-                if (particlesEnabled.get(player.getUniqueId())) {
+                if (particlesEnabled.getOrDefault(player.getUniqueId(), true)) {
                     spawnAtomicAnimation(player);
                 }
 
@@ -152,7 +159,7 @@ public class CreatorEffects implements Listener {
         parrot.setTamed(true);
         parrot.setOwner(player);
         parrot.setInvulnerable(true);
-        parrot.customName(Component.text("✦ Lucky Rabbit Companion ✦").color(INFO_COLOR));
+        parrot.customName(Component.text("✦ Mango ✦").color(INFO_COLOR));
         parrot.setCustomNameVisible(true);
 
         // Choose a random variant
@@ -237,6 +244,12 @@ public class CreatorEffects implements Listener {
     }
 
     /* === TOGGLE COMMAND HELPERS =================================== */
+    /**
+     * Toggles halo (particle) visibility for a creator.
+     *
+     * @param p The creator
+     * @return The new state (true = visible, false = hidden)
+     */
     public boolean toggleParticlesVisibility(Player p) {
         if (!isCreator(p.getUniqueId())) {
             return false;
@@ -244,6 +257,84 @@ public class CreatorEffects implements Listener {
         boolean newState = !particlesEnabled.getOrDefault(p.getUniqueId(), true);
         particlesEnabled.put(p.getUniqueId(), newState);
         return newState;
+    }
+
+    /**
+     * Gets the current state of particles for a creator.
+     *
+     * @param player The creator
+     * @return True if particles are enabled, false otherwise
+     */
+    public boolean areParticlesEnabled(Player player) {
+        return particlesEnabled.getOrDefault(player.getUniqueId(), true);
+    }
+
+    /**
+     * Gets the current state of parrot for a creator.
+     *
+     * @param player The creator
+     * @return True if parrot is enabled, false otherwise
+     */
+    public boolean isParrotEnabled(Player player) {
+        return parrotsEnabled.getOrDefault(player.getUniqueId(), true);
+    }
+
+    /**
+     * Toggles parrot visibility for a creator.
+     *
+     * @param player The creator
+     * @return The new state (true = visible, false = hidden)
+     */
+    public boolean toggleParrot(Player player) {
+        if (!isCreator(player.getUniqueId())) {
+            return false;
+        }
+
+        boolean newState = !parrotsEnabled.getOrDefault(player.getUniqueId(), true);
+        parrotsEnabled.put(player.getUniqueId(), newState);
+
+        // Apply the change immediately
+        if (newState) {
+            // Spawn parrot if it should be visible
+            spawnOrGetParrot(player);
+        } else {
+            // Remove parrot if it should be hidden
+            removeAllParrotsFor(player.getUniqueId());
+        }
+
+        return newState;
+    }
+
+    /**
+     * Spawns a parrot for a creator.
+     *
+     * @param player The creator
+     * @return True if parrot was spawned, false otherwise
+     */
+    public boolean spawnParrot(Player player) {
+        if (!isCreator(player.getUniqueId())) {
+            return false;
+        }
+
+        parrotsEnabled.put(player.getUniqueId(), true);
+        spawnOrGetParrot(player);
+        return true;
+    }
+
+    /**
+     * Despawns a parrot for a creator.
+     *
+     * @param player The creator
+     * @return True if parrot was despawned, false otherwise
+     */
+    public boolean despawnParrot(Player player) {
+        if (!isCreator(player.getUniqueId())) {
+            return false;
+        }
+
+        parrotsEnabled.put(player.getUniqueId(), false);
+        removeAllParrotsFor(player.getUniqueId());
+        return true;
     }
 
     /* === UTILITIES ================================================= */
@@ -288,8 +379,14 @@ public class CreatorEffects implements Listener {
 
         // Schedule a delayed task to handle parrot spawning
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // This will remove all existing parrots and spawn exactly one new one
-            spawnOrGetParrot(player);
+            // Only spawn a parrot if the creator has them enabled
+            if (parrotsEnabled.getOrDefault(player.getUniqueId(), true)) {
+                // This will remove all existing parrots and spawn exactly one new one
+                spawnOrGetParrot(player);
+            } else {
+                // Make sure no parrots exist for this player
+                removeAllParrotsFor(player.getUniqueId());
+            }
         }, 20L); // 1 second delay
     }
 }

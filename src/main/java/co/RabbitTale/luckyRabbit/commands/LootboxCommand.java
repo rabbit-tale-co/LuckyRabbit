@@ -502,19 +502,70 @@ public class LootboxCommand implements CommandExecutor {
                 }
 
                 String creatorAction = args[1].toLowerCase();
-                if (creatorAction.equals("particles")) {
-                    if (args.length > 2 && args[2].equalsIgnoreCase("toggle")) {
-                        boolean newState = plugin.getCreatorEffects().toggleParticlesVisibility(player);
-                        player.sendMessage(Component.text("Creator particles are now ")
-                                .color(DESCRIPTION_COLOR)
-                                .append(Component.text(newState ? "visible" : "hidden")
-                                        .color(newState ? SUCCESS_COLOR : ERROR_COLOR))
-                                .append(Component.text(" for you", DESCRIPTION_COLOR)));
-                    } else {
-                        showCreatorHelp(player);
+                switch (creatorAction) {
+                    case "particles", "halo" -> {
+                        if (args.length > 2 && args[2].equalsIgnoreCase("toggle")) {
+                            boolean newState = plugin.getCreatorEffects().toggleParticlesVisibility(player);
+                            player.sendMessage(Component.text("Creator halo is now ")
+                                    .color(DESCRIPTION_COLOR)
+                                    .append(Component.text(newState ? "visible" : "hidden")
+                                            .color(newState ? SUCCESS_COLOR : ERROR_COLOR))
+                                    .append(Component.text(" for you", DESCRIPTION_COLOR)));
+                        } else {
+                            showCreatorHelp(player);
+                        }
                     }
-                } else {
-                    showCreatorHelp(player);
+                    case "parrot" -> {
+                        if (args.length > 2) {
+                            switch (args[2].toLowerCase()) {
+                                case "toggle" -> {
+                                    boolean newState = plugin.getCreatorEffects().toggleParrot(player);
+                                    player.sendMessage(Component.text("Creator parrot is now ")
+                                            .color(DESCRIPTION_COLOR)
+                                            .append(Component.text(newState ? "enabled" : "disabled")
+                                                    .color(newState ? SUCCESS_COLOR : ERROR_COLOR))
+                                            .append(Component.text(" for you", DESCRIPTION_COLOR)));
+                                }
+                                case "spawn", "on" -> {
+                                    plugin.getCreatorEffects().spawnParrot(player);
+                                    player.sendMessage(Component.text("Creator parrot has been ")
+                                            .color(DESCRIPTION_COLOR)
+                                            .append(Component.text("spawned")
+                                                    .color(SUCCESS_COLOR))
+                                            .append(Component.text(" for you", DESCRIPTION_COLOR)));
+                                }
+                                case "despawn", "off" -> {
+                                    plugin.getCreatorEffects().despawnParrot(player);
+                                    player.sendMessage(Component.text("Creator parrot has been ")
+                                            .color(DESCRIPTION_COLOR)
+                                            .append(Component.text("removed")
+                                                    .color(ERROR_COLOR))
+                                            .append(Component.text(" for you", DESCRIPTION_COLOR)));
+                                }
+                                default ->
+                                    showCreatorHelp(player);
+                            }
+                        } else {
+                            showCreatorHelp(player);
+                        }
+                    }
+                    case "status" -> {
+                        boolean parrotEnabled = plugin.getCreatorEffects().isParrotEnabled(player);
+                        boolean particlesEnabled = plugin.getCreatorEffects().areParticlesEnabled(player);
+
+                        player.sendMessage(Component.text("Creator Status:")
+                                .color(INFO_COLOR));
+                        player.sendMessage(Component.text("• Parrot: ")
+                                .color(DESCRIPTION_COLOR)
+                                .append(Component.text(parrotEnabled ? "Enabled" : "Disabled")
+                                        .color(parrotEnabled ? SUCCESS_COLOR : ERROR_COLOR)));
+                        player.sendMessage(Component.text("• Halo: ")
+                                .color(DESCRIPTION_COLOR)
+                                .append(Component.text(particlesEnabled ? "Enabled" : "Disabled")
+                                        .color(particlesEnabled ? SUCCESS_COLOR : ERROR_COLOR)));
+                    }
+                    default ->
+                        showCreatorHelp(player);
                 }
             }
             case "entity" -> {
@@ -898,22 +949,27 @@ public class LootboxCommand implements CommandExecutor {
     }
 
     private void showCreatorHelp(Player player) {
-        player.sendMessage(Component.empty());
-        player.sendMessage(Component.text("=== Creator Commands ===")
+        player.sendMessage(Component.text("Creator Commands:")
                 .color(INFO_COLOR));
-        player.sendMessage(Component.empty());
-
-        // Add creator commands with descriptions
-        Component particlesCommand = Component.text("» ", SEPARATOR_COLOR)
-                .append(Component.text("/lb ", SEPARATOR_COLOR))
-                .append(Component.text("creator ", ACTION_COLOR))
-                .append(Component.text("particles ", ITEM_COLOR))
-                .append(Component.text("toggle", TARGET_COLOR))
-                .append(Component.text(" - Toggle particle visibility", DESCRIPTION_COLOR));
-
-        player.sendMessage(particlesCommand);
-        // Add more creator commands here in the future
-
-        player.sendMessage(Component.empty());
+        player.sendMessage(Component.text("• /lb creator parrot toggle")
+                .color(DESCRIPTION_COLOR)
+                .append(Component.text(" - Toggle parrot on/off")
+                        .color(TARGET_COLOR)));
+        player.sendMessage(Component.text("• /lb creator parrot spawn")
+                .color(DESCRIPTION_COLOR)
+                .append(Component.text(" - Spawn parrot")
+                        .color(TARGET_COLOR)));
+        player.sendMessage(Component.text("• /lb creator parrot despawn")
+                .color(DESCRIPTION_COLOR)
+                .append(Component.text(" - Remove parrot")
+                        .color(TARGET_COLOR)));
+        player.sendMessage(Component.text("• /lb creator halo toggle")
+                .color(DESCRIPTION_COLOR)
+                .append(Component.text(" - Toggle halo on/off")
+                        .color(TARGET_COLOR)));
+        player.sendMessage(Component.text("• /lb creator status")
+                .color(DESCRIPTION_COLOR)
+                .append(Component.text(" - Show current settings")
+                        .color(TARGET_COLOR)));
     }
 }
