@@ -185,6 +185,7 @@ public class LootboxManager {
         // Process each found YML file
         for (String fileName : resourceYmlFiles) {
             File file = new File(examplesFolder, fileName);
+            // Tylko tworz plik jesli nie istnieje
             if (!file.exists()) {
                 try {
                     // Check if the resource exists
@@ -192,10 +193,8 @@ public class LootboxManager {
                     if (resource != null) {
                         // Save to examples directory, not main lootboxes directory
                         File targetFile = new File(examplesFolder, fileName);
-                        if (!targetFile.exists()) {
-                            Files.copy(resource, targetFile.toPath());
-                            Logger.debug("Created example file: " + targetFile.getPath());
-                        }
+                        Files.copy(resource, targetFile.toPath());
+                        Logger.debug("Created example file: " + targetFile.getPath());
                         resource.close();
                     } else {
                         Logger.debug("Resource not found: " + fileName);
@@ -203,6 +202,8 @@ public class LootboxManager {
                 } catch (Exception e) {
                     Logger.error("Failed to create example file " + fileName + ": " + e.getMessage());
                 }
+            } else {
+                Logger.debug("Example file already exists, skipping: " + file.getPath());
             }
         }
 
@@ -636,15 +637,14 @@ public class LootboxManager {
      * @param lootbox The lootbox to save
      */
     public void saveLootbox(Lootbox lootbox) {
-        File file = new File(lootboxFolder, lootbox.getId() + ".yml");
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        File file = new File(lootbox.isExample() ? examplesFolder : lootboxFolder, lootbox.getId() + ".yml");
+        YamlConfiguration config = new YamlConfiguration();
 
-        // Basic info
+        // Save basic info
         config.set("id", lootbox.getId());
-        config.set("title", lootbox.getTitle());
-        config.set("description", lootbox.getDescriptions());
-        config.set("lore", lootbox.getLore());
-
+        config.set("title", lootbox.getTitle()); // Already a string
+        config.set("description", lootbox.getDescriptions()); // Already a list of strings
+        config.set("lore", lootbox.getLore()); // Already a list of strings
         config.set("animationType", lootbox.getAnimationType().name());
         config.set("openedCount", lootbox.getOpenCount());
         config.set("created", lootbox.getCreated());
@@ -678,9 +678,9 @@ public class LootboxManager {
      * Saves all lootboxes to disk. Only saves modified example lootboxes.
      */
     public void saveAll() {
-        // Save all lootboxes
+        // Save only non-example lootboxes
         for (Lootbox lootbox : lootboxes.values()) {
-            if (!isExampleLootbox(lootbox.getId()) || lootbox.hasBeenModified()) {
+            if (!lootbox.isExample()) {
                 saveLootbox(lootbox);
             }
         }

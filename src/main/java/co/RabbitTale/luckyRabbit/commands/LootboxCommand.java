@@ -216,11 +216,18 @@ public class LootboxCommand implements CommandExecutor {
             plugin.getUserManager().saveAllUsers();
             plugin.getLootboxManager().saveAll();
 
+            // Remove all existing lootbox entities
+            plugin.getLootboxManager().removeAllEntities();
+
             // Reload the plugin
             plugin.reload();
 
+            // Respawn all lootbox entities with new settings
+            plugin.getLootboxManager().respawnEntities();
+
             sender.sendMessage(Component.empty());
             sender.sendMessage(Component.text("Plugin reloaded successfully!", SUCCESS_COLOR));
+            sender.sendMessage(Component.text("All lootboxes have been respawned with new settings.", SUCCESS_COLOR));
             sender.sendMessage(Component.empty());
         } catch (Exception e) {
             sender.sendMessage(Component.text("An error occurred while reloading: " + e.getMessage())
@@ -254,6 +261,10 @@ public class LootboxCommand implements CommandExecutor {
                 handleSpawn(player, args);
             case "despawn" ->
                 handleDespawn(player, args);
+            case "despawnall" ->
+                handleDespawnAll(player);
+            case "respawnall" ->
+                handleRespawnAll(player);
             case "particles" -> {
                 // Only allow creators to use this command
                 if (!CreatorEffects.isCreator(player.getUniqueId())) {
@@ -514,6 +525,30 @@ public class LootboxCommand implements CommandExecutor {
         player.sendMessage(Component.text("Successfully despawned all ").color(SUCCESS_COLOR)
                 .append(MiniMessage.miniMessage().deserialize(lootbox.getTitle()))
                 .append(Component.text(" entities!").color(SUCCESS_COLOR)));
+    }
+
+    private void handleDespawnAll(Player player) {
+        if (!player.hasPermission("luckyrabbit.admin.place")) {
+            player.sendMessage(Component.text("You don't have permission to manage lootboxes!").color(ERROR_COLOR));
+            return;
+        }
+
+        // Get all non-example lootboxes
+        for (Lootbox lootbox : plugin.getLootboxManager().getAllLootboxes()) {
+            plugin.getLootboxManager().removeAllEntities(lootbox.getId());
+        }
+
+        player.sendMessage(Component.text("Successfully despawned all lootbox entities!").color(SUCCESS_COLOR));
+    }
+
+    private void handleRespawnAll(Player player) {
+        if (!player.hasPermission("luckyrabbit.admin.place")) {
+            player.sendMessage(Component.text("You don't have permission to manage lootboxes!").color(ERROR_COLOR));
+            return;
+        }
+
+        plugin.getLootboxManager().respawnEntities();
+        player.sendMessage(Component.text("Successfully respawned all lootbox entities!").color(SUCCESS_COLOR));
     }
 
     private void showHelp(Player player, int page) {

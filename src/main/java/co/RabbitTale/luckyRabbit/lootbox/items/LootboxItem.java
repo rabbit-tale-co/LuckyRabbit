@@ -282,23 +282,27 @@ public abstract class LootboxItem {
      * @param section Configuration section to save to
      */
     public void saveToConfig(ConfigurationSection section) {
+        // Save basic properties
         section.set("id", id);
         section.set("chance", chance);
-        section.set("rarity", rarity); // rarity is already a String
+        section.set("rarity", rarity);
 
-        // Save item
+        // Save item data
         ConfigurationSection itemSection = section.createSection("item");
         itemSection.set("type", item.getType().name());
+        itemSection.set("amount", item.getAmount());
 
-        // Save meta
-        ConfigurationSection metaSection = itemSection.createSection("meta");
-        if (item.hasItemMeta()) {
-            ItemMeta meta = item.getItemMeta();
+        // Save item meta
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
             if (meta.hasDisplayName()) {
-                metaSection.set("displayName", meta.displayName());
+                itemSection.set("displayName", MiniMessage.miniMessage().serialize(meta.displayName()));
             }
             if (meta.hasLore()) {
-                metaSection.set("lore", meta.lore());
+                List<String> serializedLore = meta.lore().stream()
+                        .map(component -> MiniMessage.miniMessage().serialize(component))
+                        .collect(Collectors.toList());
+                itemSection.set("lore", serializedLore);
             }
         }
 
@@ -307,6 +311,9 @@ public abstract class LootboxItem {
             ConfigurationSection actionSection = section.createSection("action");
             action.save(actionSection);
         }
+
+        // Save specific implementation details
+        saveSpecific(section);
     }
 
     /**

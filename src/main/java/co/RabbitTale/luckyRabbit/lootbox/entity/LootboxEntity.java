@@ -92,12 +92,13 @@ public class LootboxEntity {
         }
 
         // Ustaw bazowa wysokosc nad skrzynia
-        double baseHeight = 2.0;
-        double spacing = 0.2; // Odstep miedzy liniami
+        double baseHeight = 2.5; // Zwiekszona bazowa wysokosc
+        double spacing = 0.25; // Zwiekszony odstep miedzy liniami
 
         // Dostosuj wysokosc bazowa w zaleznosci od ilosci linii
-        if (actualLines > 3) {
-            baseHeight += (actualLines - 3) * 0.15; // Zwiększone z 0.1 na 0.15 dla lepszej skali
+        // Kazda linia powyzej 1 zwieksza wysokosc o pelny odstep
+        if (actualLines > 1) {
+            baseHeight += (actualLines - 1) * spacing;
         }
 
         double currentY = location.getY() + baseHeight;

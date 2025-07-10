@@ -40,14 +40,11 @@ import lombok.Getter;
  * - Supports debug mode for detailed logging
  * - License key management through commands
  * TODO:
- *  - add multiple entity title column (max 5) (for example title and description)
  *  - add gui to choose how many creates user would like to open (1..n)
- *  - add minecraft:kill @e[type=armor_stand,distance=..3] force to /lb entity despawn command
- *  - remove old license code
  *  - manager to access *premium* animations via yml file from patreon
  *
  * FIXME:
- *  -
+ *  - when changed data in .yml and used reload command it back to old data before change.
  *
  */
 public class LuckyRabbit extends JavaPlugin {
