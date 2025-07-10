@@ -1,0 +1,312 @@
+# ===========================================
+# CIRCLE ANIMATION LOOTBOX CONFIGURATION
+# ===========================================
+# Designed for the CircleSpinGUI animation
+# Items spin in a circular pattern creating
+# a mesmerizing visual effect!
+
+# Unique identifier for the lootbox
+id: example_circle_premium
+
+# Title of the lootbox
+# Supports MiniMessage format
+title: <gradient:#FF69B4:#9370DB>Mystic Circle</gradient>
+
+# Description shown when hovering over the lootbox
+# Supports MiniMessage format
+# Each line is a new element in the list
+# Use '' for empty lines
+description:
+  - <gray> • Virtual items
+  - <gray> • Custom weapons
+  - <gray> • Rare roles
+  - ''  # Empty line
+  - <gold>Good luck!
+
+# Lore shown when hovering over the lootbox
+lore:
+  - <gray>A magical lootbox with mystical powers
+  - <gray>Items dance in a sacred circle
+  - ''
+  - <light_purple>✨ Premium Circle Animation ✨
+
+# Animation type for this lootbox
+# Using CIRCLE for circular spinning animation
+animationType: CIRCLE
+
+# Counter for how many times this lootbox has been opened
+openedCount: 0
+
+# Create date
+created: 2025-07-07 20:00:00
+
+# List of possible rewards
+# Themed around magic and mysticism to match the circle animation
+items:
+  # =====================
+  # LEGENDARY TIER (5% total chance)
+  # Extremely rare magical items
+  # =====================
+  '0':
+    id: ancient-staff
+    chance: 2.0
+    rarity: LEGENDARY
+    item:
+      type: BLAZE_ROD
+      meta:
+        displayName: "<light_purple><bold>Ancient Staff of Power</bold>"
+        lore:
+          - "<gray>An ancient staff pulsing with"
+          - "<gray>mystical energy from the void"
+          - ""
+          - "<light_purple>Legendary Artifact"
+        enchants:
+          KNOCKBACK: 10
+          FIRE_ASPECT: 2
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "give {player} diamond 64"
+        - "eco give {player} 50000"
+        - "broadcast <light_purple>{player} <gray>has obtained the <light_purple><bold>Ancient Staff of Power</bold><gray>!"
+
+  '1':
+    id: void-crystal
+    chance: 3.0
+    rarity: LEGENDARY
+    item:
+      type: AMETHYST_SHARD
+      meta:
+        displayName: "<dark_purple><bold>Void Crystal</bold>"
+        lore:
+          - "<gray>A crystallized fragment of pure void"
+          - "<gray>energy, shimmering with dark power"
+          - ""
+          - "<dark_purple>Reality Bender"
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "give {player} netherite_ingot 32"
+        - "eco give {player} 25000"
+
+  # =====================
+  # EPIC TIER (15% total chance)
+  # Powerful magical items
+  # =====================
+  '2':
+    id: mystic-orb
+    chance: 5.0
+    rarity: EPIC
+    item:
+      type: ENDER_PEARL
+      meta:
+        displayName: "<aqua>Mystic Orb of Teleportation"
+        lore:
+          - "<gray>A shimmering orb that bends"
+          - "<gray>space and time to your will"
+          - ""
+          - "<aqua>Teleportation Device"
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "give {player} ender_pearl 64"
+        - "eco give {player} 10000"
+
+  '3':
+    id: enchanted-book-ultimate
+    chance: 5.0
+    rarity: EPIC
+    item:
+      type: ENCHANTED_BOOK
+      meta:
+        displayName: "<gold>Ultimate Enchantment Tome"
+        lore:
+          - "<gray>Contains the most powerful"
+          - "<gray>enchantments known to magic"
+          - ""
+          - "<gold>Knowledge is Power"
+        stored-enchants:
+          PROTECTION_ENVIRONMENTAL: 10
+          DAMAGE_ALL: 10
+          EFFICIENCY: 10
+        glow: true
+
+  '4':
+    id: phoenix-feather
+    chance: 5.0
+    rarity: EPIC
+    item:
+      type: FEATHER
+      meta:
+        displayName: "<red><bold>Phoenix Feather</bold>"
+        lore:
+          - "<gray>A feather from the legendary"
+          - "<gray>phoenix, still warm to the touch"
+          - ""
+          - "<red>Grants temporary flight"
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 15000"
+        - "effect give {player} minecraft:levitation 60 0"
+
+  # =====================
+  # RARE TIER (25% total chance)
+  # Valuable magical components
+  # =====================
+  '5':
+    id: mana-crystal
+    chance: 8.0
+    rarity: RARE
+    item:
+      type: PRISMARINE_CRYSTALS
+      amount: 3
+      meta:
+        displayName: "<blue>Mana Crystal"
+        lore:
+          - "<gray>Crystallized mana used by"
+          - "<gray>ancient wizards for spells"
+          - ""
+          - "<blue>Magical Component"
+        glow: true
+
+  '6':
+    id: spirit-essence
+    chance: 8.0
+    rarity: RARE
+    item:
+      type: GHAST_TEAR
+      amount: 2
+      meta:
+        displayName: "<white>Spirit Essence"
+        lore:
+          - "<gray>The concentrated essence"
+          - "<gray>of a wandering spirit"
+          - ""
+          - "<white>Ethereal Material"
+        glow: true
+
+  '7':
+    id: dragon-scale
+    chance: 9.0
+    rarity: RARE
+    item:
+      type: DRAGON_BREATH
+      amount: 5
+      meta:
+        displayName: "<dark_green>Dragon Scale Powder"
+        lore:
+          - "<gray>Ground scales from an ancient"
+          - "<gray>dragon, still radiating power"
+          - ""
+          - "<dark_green>Draconic Material"
+
+  # =====================
+  # UNCOMMON TIER (30% total chance)
+  # Decent magical items
+  # =====================
+  '8':
+    id: enchanted-dust
+    chance: 10.0
+    rarity: UNCOMMON
+    item:
+      type: GLOWSTONE_DUST
+      amount: 16
+      meta:
+        displayName: "<yellow>Enchanted Dust"
+        lore:
+          - "<gray>Magical dust that glows"
+          - "<gray>with inner light"
+
+  '9':
+    id: spell-scroll
+    chance: 10.0
+    rarity: UNCOMMON
+    item:
+      type: PAPER
+      amount: 8
+      meta:
+        displayName: "<gray>Blank Spell Scroll"
+        lore:
+          - "<gray>A scroll ready to be"
+          - "<gray>inscribed with magic"
+
+  '10':
+    id: mystic-potion
+    chance: 10.0
+    rarity: UNCOMMON
+    item:
+      type: POTION
+      meta:
+        displayName: "<light_purple>Mystic Regeneration Potion"
+        potion-effects:
+          - "REGENERATION:120:2"
+          - "ABSORPTION:60:1"
+
+  # =====================
+  # COMMON TIER (25% total chance)
+  # Basic magical supplies
+  # =====================
+  '11':
+    id: magic-herbs
+    chance: 8.0
+    rarity: COMMON
+    item:
+      type: WHEAT_SEEDS
+      amount: 32
+      meta:
+        displayName: "<green>Magic Herbs"
+        lore:
+          - "<gray>Common herbs used in"
+          - "<gray>basic magical preparations"
+
+  '12':
+    id: candle-wax
+    chance: 8.0
+    rarity: COMMON
+    item:
+      type: HONEYCOMB
+      amount: 16
+      meta:
+        displayName: "<yellow>Ritual Candle Wax"
+        lore:
+          - "<gray>Wax for creating ritual"
+          - "<gray>candles and circles"
+
+  '13':
+    id: crystal-fragments
+    chance: 9.0
+    rarity: COMMON
+    item:
+      type: QUARTZ
+      amount: 24
+      meta:
+        displayName: "<white>Crystal Fragments"
+        lore:
+          - "<gray>Small fragments of magical"
+          - "<gray>crystals, still useful"
+
+# List of placed lootbox locations
+locations: {}
+
+# Optional key requirement
+# INFO: do not support real keys yet
+key_required: true
+key:
+  material: AMETHYST_SHARD
+  name: "<light_purple>🔮 Mystic Key 🔮"
+  lore:
+    - "<gray>A crystalline key that resonates"
+    - "<gray>with the Mystic Circle's energy"
+    - ""
+    - "<light_purple>Unlocks premium circle animation"
+
+# Notes:
+# - Total chances add up to 100%
+# - Themed around magic and mysticism
+# - Designed to showcase the CIRCLE animation
+# - Higher value rewards due to premium nature

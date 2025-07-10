@@ -15,7 +15,6 @@ import co.RabbitTale.luckyRabbit.utils.Logger;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import lombok.Getter;
-import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -31,13 +30,9 @@ public abstract class LootboxItem {
     private final RewardAction action;
     private final ConfigurationSection originalConfig;
     /**
-     * -- GETTER -- Checks if this item's chance was manually set. Used for
-     * automatic chance recalculation.
-     * <p>
-     * -- SETTER -- Sets whether this item's chance was manually set.
+     * Checks if this item's chance was manually set. Used for automatic chance
+     * recalculation.
      */
-    @Setter
-    @Getter
     private boolean isChanceManuallySet;
 
     /**
@@ -219,8 +214,11 @@ public abstract class LootboxItem {
             ConfigurationSection metaSection = itemSection.getConfigurationSection("meta");
             if (metaSection != null) {
                 // Set display name with MiniMessage formatting
-                if (metaSection.contains("displayName")) {
+                if (metaSection.contains("displayName") || metaSection.contains("display-name")) {
                     String displayName = metaSection.getString("displayName");
+                    if (displayName == null) {
+                        displayName = metaSection.getString("display-name");
+                    }
                     if (displayName != null) {
                         Component nameComponent = MiniMessage.miniMessage().deserialize(displayName)
                                 .decoration(TextDecoration.ITALIC, false);
@@ -281,15 +279,34 @@ public abstract class LootboxItem {
     /**
      * Saves this item to a configuration section.
      *
-     * @param config Configuration section to save to
+     * @param section Configuration section to save to
      */
-    public void save(ConfigurationSection config) {
-        config.set("id", id);
-        config.set("chance", chance);
-        config.set("rarity", rarity);
+    public void saveToConfig(ConfigurationSection section) {
+        section.set("id", id);
+        section.set("chance", chance);
+        section.set("rarity", rarity); // rarity is already a String
 
-        // Let subclasses handle their specific save operations
-        saveSpecific(config);
+        // Save item
+        ConfigurationSection itemSection = section.createSection("item");
+        itemSection.set("type", item.getType().name());
+
+        // Save meta
+        ConfigurationSection metaSection = itemSection.createSection("meta");
+        if (item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta.hasDisplayName()) {
+                metaSection.set("displayName", meta.displayName());
+            }
+            if (meta.hasLore()) {
+                metaSection.set("lore", meta.lore());
+            }
+        }
+
+        // Save action
+        if (action != null) {
+            ConfigurationSection actionSection = section.createSection("action");
+            action.save(actionSection);
+        }
     }
 
     /**

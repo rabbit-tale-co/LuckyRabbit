@@ -38,12 +38,12 @@ public class PlayerListener implements Listener {
      */
     public PlayerListener(LuckyRabbit plugin) {
         this.plugin = plugin;
-        this.creatorEffects = new CreatorEffects(plugin);
+        this.creatorEffects = plugin.getCreatorEffects();
     }
 
     /**
-     * Handles player join events.
-     * Loads user data and updates entity visibility.
+     * Handles player join events. Loads user data and updates entity
+     * visibility.
      *
      * @param event The join event
      */
@@ -74,8 +74,7 @@ public class PlayerListener implements Listener {
     }
 
     /**
-     * Handles player quit events.
-     * Saves and unloads user data.
+     * Handles player quit events. Saves and unloads user data.
      *
      * @param event The quit event
      */

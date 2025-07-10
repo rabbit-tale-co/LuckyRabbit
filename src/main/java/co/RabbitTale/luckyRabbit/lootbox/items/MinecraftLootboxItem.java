@@ -64,5 +64,29 @@ public class MinecraftLootboxItem extends LootboxItem {
     protected void saveSpecific(ConfigurationSection config) {
         config.set("item.type", getItem().getType().name());
         config.set("item.amount", getItem().getAmount());
+
+        // Save item meta if it exists
+        if (getItem().hasItemMeta()) {
+            org.bukkit.inventory.meta.ItemMeta meta = getItem().getItemMeta();
+            if (meta != null) {
+                ConfigurationSection metaSection = config.createSection("item.meta");
+
+                // Save display name with MiniMessage formatting preserved
+                if (meta.hasDisplayName() && meta.displayName() != null) {
+                    String displayName = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                            .serialize(meta.displayName());
+                    metaSection.set("display-name", displayName);
+                }
+
+                // Save lore with MiniMessage formatting preserved
+                if (meta.hasLore() && meta.lore() != null) {
+                    java.util.List<String> loreStrings = meta.lore().stream()
+                            .map(component -> net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                            .serialize(component))
+                            .collect(java.util.stream.Collectors.toList());
+                    metaSection.set("lore", loreStrings);
+                }
+            }
+        }
     }
 }

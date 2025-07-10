@@ -17,7 +17,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.INFO_COLOR;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
@@ -109,7 +108,7 @@ public class LootboxContentGUI implements GUI {
 
         // Create inventory with page info in title - without color
         String displayName = PlainTextComponentSerializer.plainText()
-                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()));
+                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getTitle()));
         this.inventory = Bukkit.createInventory(this, ROWS * 9,
                 Component.text(displayName + " (Page " + (currentPage + 1) + "/" + totalPages + ")"));
 
@@ -153,7 +152,7 @@ public class LootboxContentGUI implements GUI {
         // Update title with current page - without color
         int totalPages = Math.max(1, (int) Math.ceil(items.size() / (double) PAGE_SIZE));
         String displayName = PlainTextComponentSerializer.plainText()
-                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()));
+                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getTitle()));
         player.openInventory(Bukkit.createInventory(this, ROWS * 9,
                 Component.text(displayName + " (Page " + (currentPage + 1) + "/" + totalPages + ")")));
         player.getOpenInventory().getTopInventory().setContents(inventory.getContents());
@@ -322,29 +321,7 @@ public class LootboxContentGUI implements GUI {
                 // Use key before creating animation
                 plugin.getUserManager().useKey(player.getUniqueId(), lootbox.getId());
 
-                // First check if the requested animation is available
-                AnimationType requestedType = lootbox.getAnimationType();
-                boolean isAvailable = FeatureManager.canUseAnimation(requestedType.name());
-
-                // If not available, fall back to HORIZONTAL and inform the player
-                if (!isAvailable && requestedType != AnimationType.HORIZONTAL) {
-                    player.sendMessage(Component.text("The " + requestedType.name() + " animation is not available. Using HORIZONTAL instead.")
-                            .color(NamedTextColor.YELLOW));
-                    requestedType = AnimationType.HORIZONTAL;
-                }
-
-                BaseAnimationGUI animationGUI = switch (requestedType) {
-                    case PIN_POINT ->
-                        new PinPointSpinGUI(plugin, player, lootbox);
-                    case CIRCLE ->
-                        new CircleSpinGUI(plugin, player, lootbox);
-                    case CASCADE ->
-                        new CascadeSpinGUI(plugin, player, lootbox);
-                    case THREE_IN_ROW ->
-                        new ThreeInRowSpinGUI(plugin, player, lootbox);
-                    default ->
-                        new HorizontalSpinGUI(plugin, player, lootbox);
-                };
+                BaseAnimationGUI animationGUI = getAnimationGUI();
 
                 // Close inventory and show animation
                 player.closeInventory();
@@ -352,7 +329,7 @@ public class LootboxContentGUI implements GUI {
 
             } catch (Exception e) {
                 plugin.getLogger().log(Level.SEVERE, "Error creating animation GUI: {0}", e.getMessage());
-                e.printStackTrace();
+                e.fillInStackTrace();
 
                 // Refund the key and show error message
                 plugin.getUserManager().addKeys(player.getUniqueId(), lootbox.getId(), 1);
@@ -364,6 +341,23 @@ public class LootboxContentGUI implements GUI {
             player.sendMessage(Component.text("You don't have a key for this lootbox!")
                     .color(ERROR_COLOR));
         }
+    }
+
+    private @NotNull BaseAnimationGUI getAnimationGUI() {
+        AnimationType requestedType = lootbox.getAnimationType();
+
+        return switch (requestedType) {
+            case PIN_POINT ->
+                new PinPointSpinGUI(plugin, player, lootbox);
+            case CIRCLE ->
+                new CircleSpinGUI(plugin, player, lootbox);
+            case CASCADE ->
+                new CascadeSpinGUI(plugin, player, lootbox);
+            case THREE_IN_ROW ->
+                new ThreeInRowSpinGUI(plugin, player, lootbox);
+            default ->
+                new HorizontalSpinGUI(plugin, player, lootbox);
+        };
     }
 
     /**

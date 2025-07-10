@@ -5,15 +5,26 @@
 # Unique identifier for the lootbox
 # Must be unique across all lootboxes
 # Used in commands like /lb give <player> example
-id: horizontal_normal
+id: example_horizontal_normal
 
-# Display name shown in inventory and when hovering
+# Title of the lootbox
 # Supports MiniMessage format for colors and effects
 # Examples:
 # - Simple gradient: <gradient:gold:yellow>Example Lootbox</gradient>
 # - Rainbow text: <rainbow>Example Box</rainbow>
 # - Basic color: <gold>Example Box</gold>
-displayName: <gradient:gold:yellow>Example Lootbox</gradient>
+title: <gradient:gold:yellow>Example Lootbox</gradient>
+
+# Description shown when hovering over the lootbox
+# Supports MiniMessage format
+# Each line is a new element in the list
+# Use '' for empty lines
+description:
+  - <gray> • Virtual items
+  - <gray> • Custom weapons
+  - <gray> • Rare roles
+  - ''  # Empty line
+  - <gold>Good luck!
 
 # Lore shown when hovering over the lootbox
 # Each line supports MiniMessage format
@@ -32,6 +43,9 @@ animationType: HORIZONTAL
 # Tracks how many times this lootbox has been opened
 # Automatically updated by the plugin
 openedCount: 0
+
+# Create date
+created: 2024-11-15 19:57:00
 
 # List of all possible rewards
 # Organized by rarity tiers for better readability

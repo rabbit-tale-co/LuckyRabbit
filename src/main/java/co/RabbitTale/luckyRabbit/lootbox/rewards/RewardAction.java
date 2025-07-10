@@ -97,21 +97,13 @@ public record RewardAction(ActionType type, List<String> commands, String group,
     }
 
     /**
-     * Saves the action to a configuration section.
+     * Saves this action to a configuration section.
      *
-     * @param config Configuration section to save to
+     * @param section Configuration section to save to
      */
-    public void save(ConfigurationSection config) {
-        config.set("type", type.name());
-        if (commands != null && !commands.isEmpty()) {
-            config.set("commands", commands);
-        }
-        if (group != null) {
-            config.set("group", group);
-        }
-        if (duration != null) {
-            config.set("duration", duration);
-        }
+    public void save(ConfigurationSection section) {
+        section.set("type", type.name());
+        section.set("commands", commands);
     }
 
     /**

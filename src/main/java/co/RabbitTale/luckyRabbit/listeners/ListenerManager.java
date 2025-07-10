@@ -33,5 +33,6 @@ public class ListenerManager {
         // Register all listeners
         pm.registerEvents(new PlayerListener(plugin), plugin);
         pm.registerEvents(new GUIListener(), plugin);
+        pm.registerEvents(plugin.getCreatorEffects(), plugin);
     }
 }

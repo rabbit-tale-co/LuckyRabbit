@@ -5,15 +5,26 @@
 # Unique identifier for the lootbox
 # Must be unique across all lootboxes
 # Used in commands and API
-id: example_custom
+id: example_horizontal_custom
 
-# Display name of the lootbox
+# Title of the lootbox
 # Supports MiniMessage format (<color>, <gradient>, etc.)
 # Examples:
 # - "<red>Basic Lootbox"
 # - "<gradient:red:gold>Epic Rewards</gradient>"
 # - "<rainbow>Special Box</rainbow>"
-displayName: <gradient:red:gold>Epic Rewards</gradient>
+title: <gradient:red:gold>Epic Rewards</gradient>
+
+# Description shown when hovering over the lootbox
+# Supports MiniMessage format
+# Each line is a new element in the list
+# Use '' for empty lines
+description:
+  - <gray> • Virtual items
+  - <gray> • Custom weapons
+  - <gray> • Rare roles
+  - ''  # Empty line
+  - <gold>Good luck!
 
 # Lore shown when hovering over the lootbox
 # Supports MiniMessage format
@@ -34,6 +45,9 @@ animationType: HORIZONTAL
 # Counter for how many times this lootbox has been opened
 # Auto-incremented by the plugin
 openedCount: 0
+
+# Create date
+created: 2024-11-16 19:57:00
 
 # List of possible rewards
 # Each reward must have a unique ID within the lootbox

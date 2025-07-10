@@ -71,7 +71,7 @@ public class LootboxDeleteConfirmationGUI implements GUI {
         ItemMeta meta = lootboxItem.getItemMeta();
         meta.displayName(Component.text("Delete: ")
             .color(ERROR_COLOR)
-            .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+            .append(MiniMessage.miniMessage().deserialize(lootbox.getTitle()))
             .decoration(TextDecoration.ITALIC, false));
         lootboxItem.setItemMeta(meta);
         inventory.setItem(13, lootboxItem);

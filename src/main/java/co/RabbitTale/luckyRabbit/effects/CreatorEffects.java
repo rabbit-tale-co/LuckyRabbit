@@ -57,8 +57,9 @@ public class CreatorEffects implements Listener {
         particlesEnabled.putIfAbsent(player.getUniqueId(), true);
         parrotsEnabled.putIfAbsent(player.getUniqueId(), true);
 
-        // Only spawn parrot if enabled for this player
-        if (parrotsEnabled.getOrDefault(player.getUniqueId(), true)) {
+        // Only spawn parrot if enabled for this player and they don't already have one
+        if (parrotsEnabled.getOrDefault(player.getUniqueId(), true)
+                && !creatorParrots.containsKey(player.getUniqueId())) {
             spawnOrGetParrot(player);
         }
 
@@ -171,6 +172,7 @@ public class CreatorEffects implements Listener {
     }
 
     /* Helper method to remove all parrots for a player */
+    @SuppressWarnings("deprecation")
     private void removeAllParrotsFor(UUID playerId) {
         // Remove any existing entry in our tracking map
         if (creatorParrots.containsKey(playerId)) {
@@ -180,6 +182,17 @@ public class CreatorEffects implements Listener {
                 entity.remove();
             }
             creatorParrots.remove(playerId);
+        }
+
+        // Explicitly remove parrots from player's shoulders if the player is online
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null && player.isOnline()) {
+            if (player.getShoulderEntityLeft() instanceof Parrot) {
+                player.setShoulderEntityLeft(null);
+            }
+            if (player.getShoulderEntityRight() instanceof Parrot) {
+                player.setShoulderEntityRight(null);
+            }
         }
 
         // Find and remove all parrots owned by this player in all worlds
@@ -335,6 +348,61 @@ public class CreatorEffects implements Listener {
         parrotsEnabled.put(player.getUniqueId(), false);
         removeAllParrotsFor(player.getUniqueId());
         return true;
+    }
+
+    /* === CLEANUP UTILITIES ======================================== */
+    /**
+     * Clean up all orphaned creator parrots from previous server sessions. This
+     * should be called on plugin startup to prevent parrot duplication.
+     */
+    public void cleanupAllOrphanedParrots() {
+        plugin.getLogger().info("Cleaning up orphaned creator parrots...");
+
+        int removedCount = 0;
+
+        // Check all worlds for tamed parrots owned by creators
+        for (org.bukkit.World world : Bukkit.getWorlds()) {
+            List<Parrot> parrotsToRemove = world.getEntitiesByClass(Parrot.class).stream()
+                    .filter(parrot -> parrot.isTamed()
+                    && parrot.getOwner() != null
+                    && isCreator(parrot.getOwner().getUniqueId()))
+                    .toList();
+
+            for (Parrot parrot : parrotsToRemove) {
+                parrot.remove();
+                removedCount++;
+            }
+        }
+
+        // Clear our tracking map since we removed all parrots
+        creatorParrots.clear();
+
+        if (removedCount > 0) {
+            plugin.getLogger().info("Removed " + removedCount + " orphaned creator parrots");
+        }
+    }
+
+    /**
+     * Clean up all creator parrots (used during plugin disable/reload).
+     */
+    public void cleanupAllParrots() {
+        // Remove all tracked parrots
+        for (UUID parrotId : creatorParrots.values()) {
+            Entity entity = Bukkit.getEntity(parrotId);
+            if (entity != null) {
+                entity.remove();
+            }
+        }
+        creatorParrots.clear();
+
+        // Also remove any untracked parrots owned by creators
+        for (org.bukkit.World world : Bukkit.getWorlds()) {
+            world.getEntitiesByClass(Parrot.class).stream()
+                    .filter(parrot -> parrot.isTamed()
+                    && parrot.getOwner() != null
+                    && isCreator(parrot.getOwner().getUniqueId()))
+                    .forEach(Entity::remove);
+        }
     }
 
     /* === UTILITIES ================================================= */

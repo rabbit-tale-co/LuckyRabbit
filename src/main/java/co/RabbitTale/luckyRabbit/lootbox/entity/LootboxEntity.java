@@ -1,5 +1,7 @@
 package co.RabbitTale.luckyRabbit.lootbox.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -18,17 +20,13 @@ import org.bukkit.util.EulerAngle;
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.utils.Logger;
-import lombok.Getter;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
 public class LootboxEntity {
 
     private final LuckyRabbit plugin;
     private final ArmorStand armorStand;
-    @Getter
     private final String lootboxId;
-    @Getter
     private final UUID uniqueId;
     private double time = 0;
     private BukkitTask animationTask;
@@ -36,6 +34,8 @@ public class LootboxEntity {
     private boolean isAnimating = false;
     private static final double HOVER_HEIGHT = 0.15;
     private static final double ROTATION_SPEED = 0.05;
+    private final List<ArmorStand> nameStands = new ArrayList<>();
+    private final List<Double> yOffsets = new ArrayList<>();
 
     public LootboxEntity(LuckyRabbit plugin, Location location, Lootbox lootbox) {
         this.plugin = plugin;
@@ -45,42 +45,59 @@ public class LootboxEntity {
         // Center the location
         location = location.getBlock().getLocation().add(0.5, 0, 0.5);
 
-        // Create armor stand
+        // Create main armor stand without name
         this.armorStand = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-        setupArmorStand(lootbox);
+        setupMainArmorStand(lootbox);
+
+        // Calculate total content height
+        List<String> descriptions = lootbox.getDescriptions();
+        int totalLines = 1 + descriptions.size(); // title + descriptions
+        double lineHeight = 0.25; // height between lines
+        double totalHeight = totalLines * lineHeight;
+
+        // Start from calculated height above chest
+        double baseNameY = location.getY() + 2.0; // Base height above chest
+
+        // Title at top
+        ArmorStand titleStand = spawnNameStand(
+                new Location(location.getWorld(), location.getX(), baseNameY + totalHeight, location.getZ()),
+                lootbox.getTitle()
+        );
+        nameStands.add(titleStand);
+        yOffsets.add(baseNameY + totalHeight - location.getY());
+
+        // Descriptions (max 5) below title
+        double currentY = baseNameY + totalHeight - lineHeight; // Start below title
+        for (int i = 0; i < Math.min(5, descriptions.size()); i++) {
+            ArmorStand descStand = spawnNameStand(
+                    new Location(location.getWorld(), location.getX(), currentY, location.getZ()),
+                    descriptions.get(i)
+            );
+            nameStands.add(descStand);
+            yOffsets.add(currentY - location.getY());
+            currentY -= lineHeight;
+        }
+
         startAnimation();
         startParticleEffects();
     }
 
-    /**
-     * Gets the unique identifier for this entity.
-     *
-     * @return The entity UUID
-     */
     public UUID getUniqueId() {
         return uniqueId;
     }
 
-    /**
-     * Gets the lootbox ID associated with this entity.
-     *
-     * @return The lootbox ID
-     */
     public String getLootboxId() {
         return lootboxId;
     }
 
-    private void setupArmorStand(Lootbox lootbox) {
+    private void setupMainArmorStand(Lootbox lootbox) {
         // Basic setup
         armorStand.setVisible(false);
         armorStand.setGravity(false);
         armorStand.setCanPickupItems(false);
         armorStand.setInvulnerable(true);
-        armorStand.setCustomNameVisible(true);
-
-        // Convert display name to Component
-        Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
-        armorStand.customName(displayName);
+        armorStand.setCustomNameVisible(false); // No name on main
+        armorStand.customName(null);
 
         armorStand.setPersistent(true);
         armorStand.setRemoveWhenFarAway(false);
@@ -112,6 +129,18 @@ public class LootboxEntity {
         Logger.debug("Set metadata for lootbox: " + lootboxId + " with UUID: " + uniqueId);
     }
 
+    private ArmorStand spawnNameStand(Location loc, String text) {
+        ArmorStand stand = (ArmorStand) loc.getWorld().spawnEntity(loc, EntityType.ARMOR_STAND);
+        stand.setVisible(false);
+        stand.setGravity(false);
+        stand.setMarker(true);
+        stand.setCustomNameVisible(true);
+        stand.customName(MiniMessage.miniMessage().deserialize(text));
+        stand.setMetadata("LootboxEntity", new FixedMetadataValue(plugin, lootboxId));
+        stand.setMetadata("LootboxEntityUUID", new FixedMetadataValue(plugin, uniqueId.toString()));
+        return stand;
+    }
+
     private void startAnimation() {
         if (isAnimating || armorStand.isDead() || !armorStand.isValid()) {
             return;
@@ -139,17 +168,23 @@ public class LootboxEntity {
                 time += ROTATION_SPEED;
                 double yOffset = Math.sin(time) * HOVER_HEIGHT;
 
-                // Update position
+                // Update main position
                 Location newLoc = baseLocation.clone();
                 newLoc.setY(baseLocation.getY() + yOffset);
 
                 // Only update if position changed significantly
                 if (Math.abs(newLoc.getY() - lastY) > 0.001) {
                     armorStand.teleport(newLoc);
+                    // Update name stands positions
+                    for (int i = 0; i < nameStands.size(); i++) {
+                        Location nameLoc = newLoc.clone();
+                        nameLoc.setY(newLoc.getY() + yOffsets.get(i));
+                        nameStands.get(i).teleport(nameLoc);
+                    }
                     lastY = newLoc.getY();
                 }
 
-                // Update rotation
+                // Update rotation (only main)
                 armorStand.setHeadPose(new EulerAngle(0, time, 0));
             }
         }.runTaskTimer(plugin, 0L, 1L);
@@ -171,7 +206,6 @@ public class LootboxEntity {
                 particleTime += 0.15;
                 Location loc = armorStand.getLocation().add(0, 1.2, 0);
 
-                //TODO: add option to choose from preset animations (get from lootbox_id.yml (particle)
                 // Create perfect circle with more points
                 double radius = 0.4;
                 int points = 4;
@@ -231,7 +265,15 @@ public class LootboxEntity {
         if (particleTask != null) {
             particleTask.cancel();
         }
-        if (!armorStand.isDead()) {
+        // Remove name stands first
+        for (ArmorStand stand : nameStands) {
+            if (stand != null && !stand.isDead()) {
+                stand.remove();
+            }
+        }
+        nameStands.clear();
+        yOffsets.clear();
+        if (armorStand != null && !armorStand.isDead()) {
             armorStand.remove();
         }
     }

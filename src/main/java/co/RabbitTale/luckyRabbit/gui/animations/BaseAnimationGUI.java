@@ -100,7 +100,7 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
         this.inventory = Bukkit.createInventory(this, guiSize,
                 Component.text("Opening: ")
                         .append(Component.text(PlainTextComponentSerializer.plainText()
-                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName())))));
+                                .serialize(MiniMessage.miniMessage().deserialize(lootbox.getTitle())))));
 
         this.player = player;
         this.lootbox = lootbox;
@@ -472,7 +472,7 @@ public abstract class BaseAnimationGUI extends LootboxGUI {
                             .color(finalReward.rarity().getColor()))
                     .append(Component.text(") from ")
                             .color(DESCRIPTION_COLOR))
-                    .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                    .append(MiniMessage.miniMessage().deserialize(lootbox.getTitle()))
                     .append(Component.text("!")
                             .color(DESCRIPTION_COLOR));
 

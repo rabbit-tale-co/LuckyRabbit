@@ -6,12 +6,6 @@ import java.util.List;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import co.RabbitTale.luckyRabbit.api.AnimationManager;
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
-import co.RabbitTale.luckyRabbit.api.LicenseManager;
-import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPI;
-import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIImpl;
-import co.RabbitTale.luckyRabbit.api.LuckyRabbitAPIProvider;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
 import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
@@ -20,7 +14,6 @@ import co.RabbitTale.luckyRabbit.listeners.ListenerManager;
 import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 import co.RabbitTale.luckyRabbit.user.UserManager;
 import co.RabbitTale.luckyRabbit.utils.Logger;
-import lombok.Getter;
 import net.milkbowl.vault.economy.Economy;
 
 /*
@@ -44,146 +37,25 @@ import net.milkbowl.vault.economy.Economy;
  * - Reads main config from config.yml
  * - Supports debug mode for detailed logging
  * - License key management through commands
+ * TODO:
+ *  - add multiple entity title column (max 5) (for example title and description)
+ *  - add gui to choose how many creates user would like to open (1..n)
+ *  - add minecraft:kill @e[type=armor_stand,distance=..3] force to /lb entity despawn command
+ *  - remove old license code
+ *  - manager to access *premium* animations via yml file from patreon
+ *
+ * FIXME:
+ *  -
  *
  */
 public class LuckyRabbit extends JavaPlugin {
 
-    @Getter
     private static LuckyRabbit instance;
-    @Getter
+
     private ConfigManager configManager;
-    @Getter
     private LootboxManager lootboxManager;
-    @Getter
-    private CommandManager commandManager;
-    @Getter
-    private ListenerManager listenerManager;
-    @Getter
-    private LuckyRabbitAPI api;
-    @Getter
     private UserManager userManager;
-    @Getter
-    private LicenseManager licenseManager;
-    @Getter
-    private FeatureManager featureManager;
-    @Getter
     private CreatorEffects creatorEffects;
-    @Getter
-    private AnimationManager animationManager;
-
-    @Getter
-    private Economy economy = null;
-
-    @Getter
-    private boolean oraxenHooked = false;
-
-    /**
-     * Gets the singleton instance of the plugin.
-     *
-     * @return The plugin instance
-     */
-    public static LuckyRabbit getInstance() {
-        return instance;
-    }
-
-    /**
-     * Gets the config manager for this plugin.
-     *
-     * @return The config manager
-     */
-    public ConfigManager getConfigManager() {
-        return configManager;
-    }
-
-    /**
-     * Gets the lootbox manager for this plugin.
-     *
-     * @return The lootbox manager
-     */
-    public LootboxManager getLootboxManager() {
-        return lootboxManager;
-    }
-
-    /**
-     * Gets the command manager for this plugin.
-     *
-     * @return The command manager
-     */
-    public CommandManager getCommandManager() {
-        return commandManager;
-    }
-
-    /**
-     * Gets the listener manager for this plugin.
-     *
-     * @return The listener manager
-     */
-    public ListenerManager getListenerManager() {
-        return listenerManager;
-    }
-
-    /**
-     * Gets the API for this plugin.
-     *
-     * @return The plugin API
-     */
-    public LuckyRabbitAPI getApi() {
-        return api;
-    }
-
-    /**
-     * Gets the user manager for this plugin.
-     *
-     * @return The user manager
-     */
-    public UserManager getUserManager() {
-        return userManager;
-    }
-
-    /**
-     * Gets the license manager for this plugin.
-     *
-     * @return The license manager
-     */
-    public LicenseManager getLicenseManager() {
-        return licenseManager;
-    }
-
-    /**
-     * Gets the feature manager for this plugin.
-     *
-     * @return The feature manager
-     */
-    public FeatureManager getFeatureManager() {
-        return featureManager;
-    }
-
-    /**
-     * Gets the creator effects manager for this plugin.
-     *
-     * @return The creator effects manager
-     */
-    public CreatorEffects getCreatorEffects() {
-        return creatorEffects;
-    }
-
-    /**
-     * Gets the animation manager for this plugin.
-     *
-     * @return The animation manager
-     */
-    public AnimationManager getAnimationManager() {
-        return animationManager;
-    }
-
-    /**
-     * Gets the economy instance for this plugin.
-     *
-     * @return The economy instance
-     */
-    public Economy getEconomy() {
-        return economy;
-    }
 
     /**
      * Called when the plugin is enabled. Initializes all managers, loads
@@ -205,26 +77,25 @@ public class LuckyRabbit extends JavaPlugin {
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
-        this.licenseManager = new LicenseManager(this);
-        this.featureManager = new FeatureManager(licenseManager, this);
-        this.animationManager = new AnimationManager(this);
         this.lootboxManager = new LootboxManager(this);
-        this.commandManager = new CommandManager(this);
-        this.listenerManager = new ListenerManager(this);
-        this.api = new LuckyRabbitAPIImpl(this);
-        LuckyRabbitAPIProvider.setAPI(this.api);
+        CommandManager commandManager = new CommandManager(this);
+        ListenerManager listenerManager = new ListenerManager(this);
         this.userManager = new UserManager(this);
         this.creatorEffects = new CreatorEffects(this);
 
         // Load configurations
         configManager.loadConfigs();
+        lootboxManager.loadLootboxes();
+
+        // Clean up any orphaned entities from previous server crashes
+        lootboxManager.cleanupAllOrphanedEntities();
+
+        // Clean up any orphaned creator parrots from previous server crashes
+        creatorEffects.cleanupAllOrphanedParrots();
 
         // Register commands and listeners
         commandManager.registerCommands();
         listenerManager.registerListeners();
-
-        // Initialize API
-        LuckyRabbitAPIProvider.setAPI(this.api);
 
         // Register entity listener
         getServer().getPluginManager().registerEvents(new EntityListener(this), this);
@@ -241,34 +112,15 @@ public class LuckyRabbit extends JavaPlugin {
                 hookedPlugins.add("Oraxen");
             }
 
-            // Get current plan type (bez ponownego sprawdzania)
-            String planType;
-            if (LicenseManager.isPremium()) {
-                planType = "PREMIUM";
-            } else if (LicenseManager.isTrialActive()) {
-                planType = "TRIAL";
-            } else {
-                planType = "FREE";
-            }
-
             boolean debugMode = getConfig().getBoolean("settings.debug", false);
 
             // Display startup banner
             Logger.info("==========================================");
             Logger.info("        LuckyRabbit v" + getDescription().getVersion() + (debugMode ? " - DEBUG" : ""));
-            Logger.info("        Running in " + planType + " mode");
             if (!hookedPlugins.isEmpty()) {
                 Logger.info("        Hooked plugins: " + String.join(", ", hookedPlugins));
             }
             Logger.info("==========================================");
-
-            // Load lootboxes based on plan
-            if (LicenseManager.isPremium()) {
-                lootboxManager.loadLootboxes();
-            } else {
-                Logger.warning("Running in limited mode. Some features are disabled.");
-                lootboxManager.loadLimitedLootboxes();
-            }
 
             // Respawn entities
             lootboxManager.respawnEntities();
@@ -288,12 +140,18 @@ public class LuckyRabbit extends JavaPlugin {
             lootboxManager.cleanup();
         }
 
+        // Clean up creator parrots
+        if (creatorEffects != null) {
+            creatorEffects.cleanupAllParrots();
+        }
+
         // Save all user data
         if (userManager != null) {
             userManager.saveAllUsers();
         }
 
         Logger.info("Plugin disabled successfully!");
+        instance = null;
     }
 
     /**
@@ -303,43 +161,16 @@ public class LuckyRabbit extends JavaPlugin {
      */
     public void reload() {
         reloadConfig();
-        String licenseKey = getConfig().getString("license-key", "");
 
         // First reload configs
         configManager.loadConfigs();
 
-        // Sprawdź licencję tylko jeśli nie jest aktualnie weryfikowana
-        if (!LicenseManager.isVerifying()) {
-            if (!licenseKey.isEmpty()) {
-                licenseManager.verifyLicense(licenseKey, false);
-            } else {
-                LicenseManager.checkTrialStatus();
-            }
-
-            // Wait for license check to complete
-            try {
-                Thread.sleep(1000); // Give time for async license check
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        // Cleanup existing entities
+        // Cleanup existing entities and any orphaned ones
         lootboxManager.cleanup();
+        lootboxManager.cleanupAllOrphanedEntities();
 
-        // Reload lootboxes based on plan
-        if (LicenseManager.isPremium()) {
-            Logger.success("Reloading with PREMIUM access");
-            lootboxManager.loadLootboxes();
-        } else {
-            String planType = LicenseManager.isTrialActive() ? "TRIAL" : "FREE";
-            int maxLootboxes = FeatureManager.getMaxLootboxes();
-
-            Logger.info("Reloading in " + planType + " mode");
-            Logger.info("Maximum lootboxes allowed: " + maxLootboxes);
-
-            lootboxManager.loadLimitedLootboxes();
-        }
+        // Clean up creator parrots before respawning
+        creatorEffects.cleanupAllParrots();
 
         // Respawn all entities
         lootboxManager.respawnEntities();
@@ -367,7 +198,7 @@ public class LuckyRabbit extends JavaPlugin {
             return false;
         }
 
-        economy = economyProvider.getProvider();
+        Economy economy = economyProvider.getProvider();
         Logger.info("Found Vault economy provider: " + economy.getName());
         return true;
     }
@@ -387,11 +218,55 @@ public class LuckyRabbit extends JavaPlugin {
         try {
             Class.forName("io.th0rgal.oraxen.api.OraxenItems");
             Logger.info("Found Oraxen - custom item features are available");
-            oraxenHooked = true;
             return true;
         } catch (ClassNotFoundException e) {
             Logger.warning("Failed to hook into Oraxen: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Gets the lootbox manager instance.
+     *
+     * @return The lootbox manager
+     */
+    public LootboxManager getLootboxManager() {
+        return lootboxManager;
+    }
+
+    /**
+     * Gets the user manager instance.
+     *
+     * @return The user manager
+     */
+    public UserManager getUserManager() {
+        return userManager;
+    }
+
+    /**
+     * Gets the config manager instance.
+     *
+     * @return The config manager
+     */
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    /**
+     * Gets the creator effects instance.
+     *
+     * @return The creator effects
+     */
+    public CreatorEffects getCreatorEffects() {
+        return creatorEffects;
+    }
+
+    /**
+     * Gets the singleton instance of the plugin.
+     *
+     * @return The plugin instance
+     */
+    public static LuckyRabbit getInstance() {
+        return instance;
     }
 }

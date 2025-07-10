@@ -3,11 +3,8 @@ package co.RabbitTale.luckyRabbit.lootbox.items;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 
-import lombok.Getter;
-
 public class OraxenLootboxItem extends LootboxItem {
 
-    @Getter
     private final String oraxenId;
 
     /**

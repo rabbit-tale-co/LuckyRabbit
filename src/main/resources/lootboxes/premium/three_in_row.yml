@@ -8,11 +8,22 @@
 
 # Unique identifier for the lootbox
 # Must be unique across all lootboxes
-id: example3
+id: example_three_in_row_premium
 
-# Display name of the lootbox
+# Title of the lootbox
 # Supports MiniMessage format (<color>, <gradient>, etc.)
-displayName: <gradient:#FFD700:#FF6347>Lucky Slots</gradient>
+title: <gradient:#FFD700:#FF6347>Lucky Slots</gradient>
+
+# Description shown when hovering over the lootbox
+# Supports MiniMessage format
+# Each line is a new element in the list
+# Use '' for empty lines
+description:
+  - <gray> • Virtual items
+  - <gray> • Custom weapons
+  - <gray> • Rare roles
+  - ''  # Empty line
+  - <gold>Good luck!
 
 # Lore shown when hovering over the lootbox
 lore:
@@ -29,6 +40,9 @@ animationType: THREE_IN_ROW
 # Auto-incremented by the plugin
 openedCount: 0
 
+# Create date
+created: 2024-12-14 13:13:13
+
 # List of possible rewards
 # For THREE_IN_ROW, the first reward (highest rarity)
 # will be used as the jackpot reward. All others are
@@ -39,7 +53,7 @@ items:
   # =====================
   '0':
     id: grand-jackpot
-    chance: 25.0     # ThreeInRowSpinGUI uses 25% chance by default
+    chance: 5.0     # ThreeInRowSpinGUI uses 25% chance by default
     rarity: LEGENDARY
     item:
       type: DRAGON_EGG
@@ -48,12 +62,10 @@ items:
         lore:
           - "<yellow>Congratulations!"
           - "<yellow>You've hit the jackpot!"
-        glow: true
     action:
       type: COMMAND
       commands:
         - "eco give {player} 10000"
-        - "broadcast <gold>🎰 {player} just hit the JACKPOT in Lucky Slots! 🎰"
 
   # =====================
   # FILLER REWARDS (Used in animation)
@@ -61,53 +73,67 @@ items:
   # =====================
   '1':
     id: diamond-symbol
-    chance: 15.0    # Not used in THREE_IN_ROW animation
+    chance: 0    # Not used in THREE_IN_ROW animation
     rarity: EPIC
     item:
       type: DIAMOND
       meta:
         displayName: "<aqua>Diamond Symbol"
-        glow: true
-
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 5000"
   '2':
     id: emerald-symbol
-    chance: 15.0
+    chance: 0
     rarity: RARE
     item:
       type: EMERALD
       meta:
         displayName: "<green>Emerald Symbol"
-        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 3500"
 
   '3':
     id: gold-symbol
-    chance: 15.0
+    chance: 0
     rarity: UNCOMMON
     item:
       type: GOLD_INGOT
       meta:
         displayName: "<yellow>Gold Symbol"
-        glow: false
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 2500"
 
   '4':
     id: apple-symbol
-    chance: 15.0
+    chance: 0
     rarity: UNCOMMON
     item:
       type: GOLDEN_APPLE
       meta:
         displayName: "<gold>Apple Symbol"
-        glow: false
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 1500"
 
   '5':
     id: xp-symbol
-    chance: 15.0
+    chance: 0
     rarity: UNCOMMON
     item:
       type: EXPERIENCE_BOTTLE
       meta:
         displayName: "<green>XP Symbol"
-        glow: false
+    action:
+      type: COMMAND
+      commands:
+        - "xp give {player} 100 levels"
 
   # =====================
   # CONSOLATION PRIZE
@@ -116,7 +142,7 @@ items:
   # =====================
   '6':
     id: consolation-prize
-    chance: 0.0    # Not used in probability calc for THREE_IN_ROW
+    chance: 0    # Not used in probability calc for THREE_IN_ROW
     rarity: COMMON
     item:
       type: COOKIE
@@ -138,7 +164,6 @@ key:
     - "<gray>Insert this token into"
     - "<gray>the Lucky Slots machine"
     - "<gray>for a chance to win big!"
-  glow: true
 
 # =====================
 # NOTES ABOUT THREE_IN_ROW ANIMATION

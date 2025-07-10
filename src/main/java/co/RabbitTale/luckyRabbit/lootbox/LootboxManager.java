@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -30,8 +32,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
-import co.RabbitTale.luckyRabbit.api.LicenseManager;
 import co.RabbitTale.luckyRabbit.commands.LootboxCommand;
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
@@ -60,7 +60,7 @@ public class LootboxManager {
      * - License-based feature restrictions
      *
      * File Structure:
-     * lootboxes/
+     * lootboxes/example
      *   ├── example.yml  - Example lootbox template
      *   ├── example2.yml - Additional example template
      *   └── custom/      - User-created lootboxes
@@ -140,17 +140,15 @@ public class LootboxManager {
             if (!file.exists()) {
                 try {
                     // Check if the resource exists
-                    if (plugin.getResource("lootboxes/" + fileName) != null) {
-                        plugin.saveResource("lootboxes/" + fileName, false);
-                        // Move from main directory to examples directory
-                        File tempFile = new File(lootboxFolder, fileName);
-                        if (tempFile.exists()) {
-                            if (tempFile.renameTo(file)) {
-                                Logger.debug("Created and moved " + fileName + " to examples directory");
-                            } else {
-                                Logger.error("Failed to move " + fileName + " to examples directory");
-                            }
+                    InputStream resource = plugin.getResource("lootboxes/" + fileName);
+                    if (resource != null) {
+                        // Save to examples directory, not main lootboxes directory
+                        File targetFile = new File(examplesFolder, fileName);
+                        if (!targetFile.exists()) {
+                            java.nio.file.Files.copy(resource, targetFile.toPath());
+                            Logger.debug("Created example file: " + targetFile.getPath());
                         }
+                        resource.close();
                     } else {
                         Logger.debug("Resource not found: " + fileName);
                     }
@@ -164,13 +162,28 @@ public class LootboxManager {
         lootboxes.clear();
 
         // First load example lootboxes from examples directory
+        Logger.debug("Loading examples from: " + examplesFolder.getAbsolutePath());
         loadLootboxesFromDirectory(examplesFolder, true);
 
-        // Then load user lootboxes from main directory
+        // Then load user lootboxes from main directory (excluding examples subdirectory)
+        Logger.debug("Loading user lootboxes from: " + lootboxFolder.getAbsolutePath());
         loadLootboxesFromDirectory(lootboxFolder, false);
 
         Logger.debug("Total lootboxes loaded: " + lootboxes.size());
         Logger.debug("Lootbox IDs: " + String.join(", ", lootboxes.keySet()));
+
+        // Debug: show which are examples
+        List<String> exampleIds = lootboxes.values().stream()
+                .filter(Lootbox::isExample)
+                .map(Lootbox::getId)
+                .toList();
+        Logger.debug("Example lootboxes: " + String.join(", ", exampleIds));
+
+        List<String> normalIds = lootboxes.values().stream()
+                .filter(lootbox -> !lootbox.isExample())
+                .map(Lootbox::getId)
+                .toList();
+        Logger.debug("Normal lootboxes: " + String.join(", ", normalIds));
     }
 
     /**
@@ -183,63 +196,29 @@ public class LootboxManager {
         if (!directory.exists() || !directory.isDirectory()) {
             return;
         }
+        loadRecursive(directory, isExampleDir);
+    }
 
-        // Skip the examples subdirectory when loading from main directory
-        File[] files = directory.listFiles((dir, name)
-                -> name.endsWith(".yml") && (!isExampleDir || !name.equals("examples")));
-
+    private void loadRecursive(File dir, boolean isExample) {
+        File[] files = dir.listFiles();
         if (files == null) {
-            Logger.error("Failed to list files in " + directory.getName());
             return;
         }
 
         for (File file : files) {
-            // Skip directories
             if (file.isDirectory()) {
-                continue;
-            }
-
-            try {
+                if (!isExample && file.getName().equals("examples")) {
+                    continue; // Skip examples subdir when loading main
+                }
+                loadRecursive(file, isExample);
+            } else if (file.getName().endsWith(".yml")) {
                 YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-                String id = config.getString("id");
-
-                if (id == null || id.isEmpty()) {
-                    // Use filename without extension as ID if not specified
-                    id = file.getName().replace(".yml", "");
-                    config.set("id", id);
-                    config.save(file);
+                Lootbox lootbox = Lootbox.fromConfig(file, config);
+                if (lootbox != null) {
+                    lootbox.setExample(isExample);
+                    lootboxes.put(lootbox.getId(), lootbox);
+                    Logger.debug("Loaded " + (isExample ? "example " : "") + "lootbox: " + lootbox.getId() + " from " + file.getPath());
                 }
-
-                // Skip if lootbox already loaded (prevents duplicates)
-                if (lootboxes.containsKey(id)) {
-                    Logger.warning("Duplicate lootbox ID found: " + id + " in " + file.getPath() + " - skipping");
-                    continue;
-                }
-
-                // Create lootbox from config
-                Lootbox lootbox = Lootbox.fromConfig(config);
-
-                // Set whether this is an example lootbox based on directory
-                if (isExampleDir) {
-                    lootbox.setExample(true);
-                }
-
-                // Enforce restrictions for non-example lootboxes
-                if (!isExampleLootbox(lootbox.getId()) && !isExampleDir) {
-                    lootbox.enforceAnimationRestrictions();
-                    lootbox.enforceItemRestrictions();
-
-                    // Save if modifications were made
-                    if (lootbox.hasBeenModified()) {
-                        saveLootbox(lootbox);
-                    }
-                }
-
-                lootboxes.put(id, lootbox);
-                Logger.debug("Loaded lootbox: " + id + " from " + (isExampleDir ? "examples" : "lootboxes"));
-            } catch (Exception e) {
-                Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
-                e.printStackTrace();
             }
         }
     }
@@ -254,33 +233,6 @@ public class LootboxManager {
      * @throws IllegalArgumentException if lootbox already exists
      */
     public void createLootbox(String name, AnimationType animationType) {
-        // If free version, force HORIZONTAL animation
-        if (FeatureManager.canUseAnimation(animationType.name())) {
-            animationType = AnimationType.HORIZONTAL;
-            // Notify the admin
-            Logger.warning("Free version only supports HORIZONTAL animation. Animation type has been changed.");
-        }
-
-        // Count existing custom lootboxes (excluding examples)
-        long existingCustomLootboxes = lootboxes.values().stream()
-                .filter(lb -> !isExampleLootbox(lb.getId()))
-                .count();
-
-        // Get the maximum allowed lootboxes
-        int maxLootboxes = FeatureManager.getMaxLootboxes();
-
-        // Check if we've reached the limit
-        if (maxLootboxes != -1 && existingCustomLootboxes >= maxLootboxes) {
-            String planType = LicenseManager.isPremium() ? "Premium"
-                    : LicenseManager.isTrialActive() ? "Trial" : "Free";
-
-            throw new IllegalStateException(
-                    String.format("""
-                                  Cannot create more lootboxes! You have reached the limit (%d/%d) for your %s plan.
-                                  Upgrade your plan to create more lootboxes!""",
-                            existingCustomLootboxes, maxLootboxes, planType)
-            );
-        }
 
         // Create safe file name by removing all formatting tags and special characters
         String id = getId(name);
@@ -342,10 +294,10 @@ public class LootboxManager {
         }
 
         // Store the display name before deletion
-        Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
+        Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getTitle());
 
         // Remove all entities
-        for (Location location : lootbox.getLocations()) {
+        for (Location location : lootbox.getLocations().values()) {
             for (Entity entity : location.getWorld().getEntities()) {
                 if (entity instanceof ArmorStand && entity.hasMetadata("LootboxEntity")) {
                     String lootboxId = entity.getMetadata("LootboxEntity").get(0).asString();
@@ -552,7 +504,7 @@ public class LootboxManager {
 
         Component message = Component.text("Removed item from ")
                 .color(LootboxCommand.SUCCESS_COLOR)
-                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
+                .append(MiniMessage.miniMessage().deserialize(lootbox.getTitle()))
                 .append(Component.text(" (")
                         .color(LootboxCommand.DESCRIPTION_COLOR))
                 .append(Component.text(item.getType().toString())
@@ -563,6 +515,37 @@ public class LootboxManager {
     }
 
     /**
+     * Places a lootbox at the player's location.
+     *
+     * @param player The player placing the lootbox
+     * @param id The ID of the lootbox to place
+     */
+    public void placeLootbox(Player player, String id) {
+        Lootbox lootbox = getLootbox(id);
+        if (lootbox == null) {
+            player.sendMessage(Component.text("Lootbox not found: " + id).color(LootboxCommand.ERROR_COLOR));
+            return;
+        }
+
+        if (lootbox.isExample()) {
+            player.sendMessage(Component.text("Cannot place example lootboxes!").color(LootboxCommand.ERROR_COLOR));
+            return;
+        }
+
+        Location location = player.getLocation();
+        if (placeLootbox(lootbox, location)) {
+            lootbox.setModified(true);
+            saveLootbox(lootbox);
+            player.sendMessage(Component.text("Successfully placed ").color(LootboxCommand.SUCCESS_COLOR)
+                    .append(MiniMessage.miniMessage().deserialize(lootbox.getTitle()))
+                    .append(Component.text(" at your location!").color(LootboxCommand.SUCCESS_COLOR)));
+        } else {
+            player.sendMessage(Component.text("Failed to place lootbox - location already occupied or invalid!")
+                    .color(LootboxCommand.ERROR_COLOR));
+        }
+    }
+
+    /**
      * Places a lootbox in the world. Creates a new LootboxEntity at the
      * player's location.
      *
@@ -570,141 +553,80 @@ public class LootboxManager {
      * @param id Lootbox ID to place
      * @throws IllegalArgumentException if lootbox doesn't exist
      */
-    public void placeLootbox(Player player, String id) {
-        Lootbox lootbox = lootboxes.get(id);
-        if (lootbox == null) {
-            throw new IllegalArgumentException("Lootbox with ID " + id + " does not exist!");
+    public boolean placeLootbox(Lootbox lootbox, Location location) {
+        // Don't allow placing example lootboxes
+        if (lootbox.isExample()) {
+            Logger.debug("Attempted to place example lootbox: " + lootbox.getId());
+            return false;
         }
 
-        Location location = player.getLocation().clone();
-        location.setY(location.getY() - 1); // Place at feet level
-
-        // Center the coordinates
-        location.setX(Math.floor(location.getX()) + 0.5);
-        location.setZ(Math.floor(location.getZ()) + 0.5);
-
-        // Ensure chunk is loaded
-        Chunk chunk = location.getChunk();
-        if (!chunk.isLoaded()) {
-            chunk.load();
-        }
-        chunk.setForceLoaded(true);
-
-        // Create entity
-        LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
-        entities.put(entity.getUniqueId(), entity);
-
-        // Save location
-        lootbox.addLocation(location);
-        saveLootbox(lootbox);
-
-        // Special message for example lootboxes
-        if (isExampleLootbox(lootbox.getId())) {
-            player.sendMessage(Component.text("Note: This is an example lootbox - only admins can open it!")
-                    .color(LootboxCommand.INFO_COLOR));
+        // Check if location is already occupied
+        if (hasEntityAtLocation(location)) {
+            Logger.debug("Location already occupied: " + location);
+            return false;
         }
 
-        Component message = Component.text("Successfully placed ")
-                .color(LootboxCommand.SUCCESS_COLOR)
-                .append(MiniMessage.miniMessage().deserialize(lootbox.getDisplayName()))
-                .append(Component.text(" at your location")
-                        .color(LootboxCommand.SUCCESS_COLOR));
-        player.sendMessage(message);
+        // Generate a new UUID for this placement
+        UUID uuid = UUID.randomUUID();
+
+        // Add location to lootbox config
+        lootbox.addLocation(uuid, location);
+
+        // Spawn entity
+        LootboxEntity entity = spawnEntity(lootbox, location, uuid);
+        if (entity == null) {
+            Logger.error("Failed to spawn lootbox entity at " + location);
+            return false;
+        }
+
+        Logger.debug("Placed lootbox: " + lootbox.getId() + " at " + location + " with UUID: " + uuid);
+        return true;
     }
 
     /**
-     * Saves a lootbox to its configuration file. Skips saving unmodified
-     * example lootboxes.
+     * Saves a lootbox configuration to file.
      *
-     * @param lootbox Lootbox to save
+     * @param lootbox The lootbox to save
      */
     public void saveLootbox(Lootbox lootbox) {
-        // Don't save example lootboxes unless they've been modified
-        if (isExampleLootbox(lootbox.getId()) && !lootbox.hasBeenModified()) {
-            return;
-        }
+        File file = new File(lootboxFolder, lootbox.getId() + ".yml");
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 
-        // Determine the correct directory based on whether it's an example
-        File targetDir = isExampleLootbox(lootbox.getId()) ? examplesFolder : lootboxFolder;
-        File file = new File(targetDir, lootbox.getId() + ".yml");
-
-        YamlConfiguration config;
-        boolean fileExists = file.exists();
-
-        // Load existing config if the file exists to preserve data
-        if (fileExists) {
-            config = YamlConfiguration.loadConfiguration(file);
-            Logger.debug("Loaded existing configuration for lootbox: " + lootbox.getId());
-        } else {
-            config = new YamlConfiguration();
-        }
-
-        // Always update basic information
+        // Basic info
         config.set("id", lootbox.getId());
-        config.set("displayName", lootbox.getDisplayName());
+        config.set("title", lootbox.getTitle());
         config.set("animationType", lootbox.getAnimationType().name());
-
-        // Update lore only if not previously set or the lootbox lore is not empty
-        if (!fileExists || !config.contains("lore") || !lootbox.getLore().isEmpty()) {
-            List<String> defaultLore = new ArrayList<>();
-            defaultLore.add("<gray>A mysterious lootbox");
-            defaultLore.add("<gray>Contains various rewards");
-            defaultLore.add("");
-            defaultLore.add("<yellow>Right-click to preview");
-            defaultLore.add("<yellow>Use a key to open");
-            config.set("lore", lootbox.getLore().isEmpty() ? defaultLore : lootbox.getLore());
-        }
-
-        // Only update items if they don't exist in config or if the lootbox has been modified
-        if (!fileExists || !config.contains("items") || lootbox.hasBeenModified()) {
-            // Keep the existing items section if there are no items to save
-            if (!lootbox.getItems().isEmpty()) {
-                // Create or get the items section
-                ConfigurationSection itemsSection = config.contains("items")
-                        ? config.getConfigurationSection("items")
-                        : config.createSection("items");
-
-                for (LootboxItem item : lootbox.getItems().values()) {
-                    assert itemsSection != null;
-                    // Create the section or get existing one
-                    ConfigurationSection itemSection = itemsSection.contains(item.getId())
-                            ? itemsSection.getConfigurationSection(item.getId())
-                            : itemsSection.createSection(item.getId());
-
-                    // Save item to the section
-                    item.save(itemSection);
-                }
-            }
-        }
-
-        // Always update locations
-        if (lootbox.getLocations().isEmpty()) {
-            // If no locations, just ensure the section exists
-            if (!config.contains("locations")) {
-                config.createSection("locations");
-            }
-        } else {
-            // Clear existing locations and add new ones
-            config.set("locations", null);
-            ConfigurationSection locationsSection = config.createSection("locations");
-            int locIndex = 0;
-            for (Location location : lootbox.getLocations()) {
-                ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
-                locationSection.set("world", location.getWorld().getName());
-                locationSection.set("x", location.getX());
-                locationSection.set("y", location.getY());
-                locationSection.set("z", location.getZ());
-            }
-        }
-
-        // Update statistics
         config.set("openedCount", lootbox.getOpenCount());
+        config.set("created", lootbox.getCreated());
+
+        // Save descriptions
+        config.set("description", lootbox.getDescriptions());
+
+        // Save lore
+        config.set("lore", lootbox.getLore());
+
+        // Save items
+        ConfigurationSection itemsSection = config.createSection("items");
+        for (Map.Entry<String, LootboxItem> entry : lootbox.getItems().entrySet()) {
+            ConfigurationSection itemSection = itemsSection.createSection(entry.getKey());
+            entry.getValue().saveToConfig(itemSection);
+        }
+
+        // Save locations
+        ConfigurationSection locationsSection = config.createSection("locations");
+        for (Map.Entry<UUID, Location> entry : lootbox.getLocations().entrySet()) {
+            ConfigurationSection locationSection = locationsSection.createSection(entry.getKey().toString());
+            Map<String, Object> serialized = entry.getValue().serialize();
+            for (Map.Entry<String, Object> serEntry : serialized.entrySet()) {
+                locationSection.set(serEntry.getKey(), serEntry.getValue());
+            }
+        }
 
         try {
             config.save(file);
-            Logger.debug("Saved lootbox: " + lootbox.getId() + " to " + (isExampleLootbox(lootbox.getId()) ? "examples" : "lootboxes"));
+            lootbox.setModified(false);
         } catch (IOException e) {
-            Logger.error("Failed to save lootbox: " + lootbox.getId(), e);
+            Logger.error("Failed to save lootbox " + lootbox.getId() + ": " + e.getMessage());
         }
     }
 
@@ -785,147 +707,115 @@ public class LootboxManager {
     }
 
     /**
-     * Loads lootboxes with restrictions based on license. Enforces lootbox
-     * limits for free/trial users.
+     * Public method to clean up orphaned entities. Called during plugin startup
+     * to ensure clean state.
      */
-    public void loadLimitedLootboxes() {
-        // First check trial status
-        boolean isTrial = LicenseManager.isTrialActive();
-        int maxLootboxes = FeatureManager.getMaxLootboxes();
-
-        // Ensure lootbox folder exists
-        File lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
-        if (!lootboxFolder.exists()) {
-            if (!lootboxFolder.mkdirs()) {
-                Logger.error("Failed to create lootboxes directory!");
-                return;
-            }
-        }
-
-        // Save example file if it doesn't exist
-        File exampleFile = new File(lootboxFolder, "example.yml");
-        if (!exampleFile.exists()) {
-            plugin.saveResource("lootboxes/example.yml", false);
-            Logger.debug("Created example.yml from resources");
-        }
-
-        // Get all yml files
-        File[] files = lootboxFolder.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null) {
-            Logger.error("Failed to list lootbox files!");
-            return;
-        }
-
-        // Clear existing lootboxes
-        lootboxes.clear();
-
-        // First, load example lootboxes
-        for (File file : files) {
-            try {
-                YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-                String id = config.getString("id", "");
-
-                if (id.isEmpty()) {
-                    // If no ID in config, use filename without extension
-                    id = file.getName().replace(".yml", "");
-                    config.set("id", id);
-                    config.save(file);
+    public void cleanupAllOrphanedEntities() {
+        int removed = 0;
+        for (World world : Bukkit.getWorlds()) {
+            for (ArmorStand stand : world.getEntitiesByClass(ArmorStand.class)) {
+                if (stand.hasMetadata("LootboxEntity")) {
+                    String id = stand.getMetadata("LootboxEntity").get(0).asString();
+                    Lootbox lootbox = getLootbox(id);
+                    if (lootbox == null || !lootbox.getLocations().containsValue(stand.getLocation())) {
+                        stand.remove();
+                        removed++;
+                    }
                 }
-
-                Lootbox lootbox = Lootbox.fromConfig(config);
-                lootboxes.put(id, lootbox);
-                Logger.debug("Loaded lootbox: " + id);
-            } catch (IOException e) {
-                Logger.error("Failed to load lootbox from " + file.getName() + ": " + e.getMessage());
-                e.printStackTrace();
             }
         }
-
-        int totalLoaded = lootboxes.size();
-        int exampleCount = (int) lootboxes.values().stream()
-                .filter(lb -> isExampleLootbox(lb.getId()))
-                .count();
-        int customCount = totalLoaded - exampleCount;
-
-        Logger.info(String.format("Loaded %d lootboxes (%d custom, %d example) in %s mode",
-                totalLoaded, customCount, exampleCount, isTrial ? "trial" : "free"));
-
-        if (customCount >= maxLootboxes && maxLootboxes != -1) {
-            Logger.warning(String.format("Reached %s mode limit of %d custom lootboxes",
-                    isTrial ? "trial" : "free", maxLootboxes));
+        if (removed > 0) {
+            plugin.getLogger().info("Removed " + removed + " orphaned lootbox entities");
         }
     }
 
-    /**
-     * Respawns all lootbox entities in the world. Handles chunk loading and
-     * entity creation.
-     */
+    public LootboxEntity spawnEntity(Lootbox lootbox, Location location, UUID uuid) {
+        // First check if we already have an entity at this location
+        if (hasEntityAtLocation(location)) {
+            Logger.debug("Entity already exists at location " + location);
+            return null;
+        }
+
+        // Check if we already have an entity with this UUID
+        if (entities.containsKey(uuid)) {
+            Logger.debug("Entity already exists with UUID " + uuid);
+            return null;
+        }
+
+        // Remove any existing entities at this exact location (cleanup)
+        location.getWorld().getEntities().stream()
+                .filter(entity -> entity instanceof ArmorStand
+                && entity.hasMetadata("LootboxEntity")
+                && entity.getLocation().distance(location) < 0.1)
+                .forEach(Entity::remove);
+
+        // Create new entity
+        LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
+        entities.put(entity.getUniqueId(), entity);
+        return entity;
+    }
+
     public void respawnEntities() {
-        // Add a respawning flag to prevent multiple concurrent respawns
-        if (plugin.getServer().getScheduler().isCurrentlyRunning(respawnTaskId)) {
-            Logger.debug("Respawn task already running, skipping...");
-            return;
-        }
+        Logger.debug("Respawning all lootbox entities...");
 
-        int totalLocations = 0;
-        Map<Chunk, Boolean> chunksToLoad = new HashMap<>();
+        // First, remove all existing entities
+        removeAllEntities();
 
-        // First count valid locations and identify chunks to load
+        // Clear the entities map since we removed all entities
+        entities.clear();
+
+        // Now respawn entities for each lootbox
         for (Lootbox lootbox : lootboxes.values()) {
-            List<Location> locations = lootbox.getLocations();
-            if (locations != null && !locations.isEmpty()) {
-                for (Location location : locations) {
-                    if (location != null && location.getWorld() != null) {
-                        totalLocations++;
-                        Chunk chunk = location.getChunk();
-                        chunksToLoad.put(chunk, !chunk.isLoaded());
+            for (Map.Entry<UUID, Location> entry : lootbox.getLocations().entrySet()) {
+                UUID uuid = entry.getKey();
+                Location location = entry.getValue();
+
+                // Only spawn if no entity exists at this location
+                if (!hasEntityAtLocation(location)) {
+                    LootboxEntity entity = spawnEntity(lootbox, location, uuid);
+                    if (entity != null) {
+                        Logger.debug("Respawned entity for lootbox: " + lootbox.getId()
+                                + " at " + location.getX() + ", " + location.getY() + ", " + location.getZ());
                     }
                 }
             }
         }
+    }
 
-        if (totalLocations == 0) {
-            Logger.debug("No lootbox locations to respawn");
-            return;
+    public void removeAllEntities() {
+        Logger.debug("Removing all lootbox entities...");
+
+        // Remove all entities and their name tags
+        for (World world : plugin.getServer().getWorlds()) {
+            world.getEntities().stream()
+                    .filter(entity -> entity instanceof ArmorStand
+                    && (entity.hasMetadata("LootboxEntity")
+                    || entity.hasMetadata("LootboxEntityUUID")))
+                    .forEach(Entity::remove);
         }
 
-        // Load necessary chunks
-        chunksToLoad.forEach((chunk, needsLoading) -> {
-            if (needsLoading) {
-                chunk.load();
-            }
-            chunk.setForceLoaded(true);
-        });
+        // Clear the entities map
+        entities.clear();
+    }
 
-        // Wait a bit to ensure chunks are loaded
-        int finalTotalLocations = totalLocations;
-        respawnTaskId = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            // Remove any existing lootbox entities first
-            for (World world : plugin.getServer().getWorlds()) {
-                world.getEntities().stream()
-                        .filter(entity -> entity instanceof ArmorStand
-                        && entity.hasMetadata("LootboxEntity"))
-                        .forEach(Entity::remove);
-            }
+    /**
+     * Checks if a lootbox entity already exists at the given location.
+     *
+     * @param location Location to check
+     * @return true if entity exists, false otherwise
+     */
+    private boolean hasEntityAtLocation(Location location) {
+        double radius = 1.0; // Check within 1 block radius
 
-            // Clear existing entities map
-            entities.clear();
-
-            // Spawn new entities
-            int respawnedCount = 0;
-            for (Lootbox lootbox : lootboxes.values()) {
-                for (Location location : lootbox.getLocations()) {
-                    if (location != null && location.getWorld() != null) {
-                        LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
-                        entities.put(entity.getUniqueId(), entity);
-                        respawnedCount++;
-                    }
-                }
-            }
-
-            Logger.debug("Respawned " + respawnedCount + " lootbox entities (from " + finalTotalLocations + " valid locations)");
-            respawnTaskId = -1;
-        }, 20L).getTaskId(); // Store the task ID
+        return location.getWorld().getEntities().stream()
+                .filter(entity -> entity instanceof ArmorStand && entity.hasMetadata("LootboxEntity"))
+                .anyMatch(entity -> {
+                    Location entityLoc = entity.getLocation();
+                    return entityLoc.getWorld().equals(location.getWorld())
+                            && Math.abs(entityLoc.getX() - location.getX()) < 0.1
+                            && Math.abs(entityLoc.getY() - location.getY()) < 0.1
+                            && Math.abs(entityLoc.getZ() - location.getZ()) < 0.1;
+                });
     }
 
     /**
@@ -946,7 +836,7 @@ public class LootboxManager {
 
         // Unforce-load chunks
         for (Lootbox lootbox : lootboxes.values()) {
-            for (Location location : lootbox.getLocations()) {
+            for (Location location : lootbox.getLocations().values()) {
                 Chunk chunk = location.getChunk();
                 if (chunk.isForceLoaded()) {
                     chunk.setForceLoaded(false);
@@ -1016,7 +906,7 @@ public class LootboxManager {
             Location loc = entity.getLocation();
 
             // Remove location from lootbox data
-            lootbox.removeLocation(loc);
+            lootbox.removeLocation(entity.getUniqueId());
 
             // Save the updated lootbox file
             File file = new File(plugin.getDataFolder(), "lootboxes/" + lootbox.getId() + ".yml");
@@ -1038,7 +928,7 @@ public class LootboxManager {
             }
 
             // Create components for success message
-            Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getDisplayName());
+            Component displayName = MiniMessage.miniMessage().deserialize(lootbox.getTitle());
             Component locationText = Component.text("at ")
                     .color(LootboxCommand.DESCRIPTION_COLOR)
                     .append(Component.text(String.format("%.1f, %.1f, %.1f",
@@ -1074,7 +964,7 @@ public class LootboxManager {
         // Add remaining locations with fresh indices if any exist
         if (!lootbox.getLocations().isEmpty()) {
             int locIndex = 0;
-            for (Location location : lootbox.getLocations()) {
+            for (Location location : lootbox.getLocations().values()) {
                 ConfigurationSection locationSection = locationsSection.createSection(String.valueOf(locIndex++));
                 locationSection.set("world", location.getWorld().getName());
                 locationSection.set("x", location.getX());
@@ -1168,5 +1058,125 @@ public class LootboxManager {
         }
 
         return files;
+    }
+
+    public void removeAllEntities(String id) {
+        Lootbox lootbox = getLootbox(id);
+        if (lootbox == null) {
+            return;
+        }
+
+        // Remove all entities and their name tags
+        for (Location location : lootbox.getLocations().values()) {
+            for (Entity entity : location.getWorld().getEntities()) {
+                if (entity instanceof ArmorStand && entity.hasMetadata("LootboxEntity")) {
+                    String lootboxId = entity.getMetadata("LootboxEntity").get(0).asString();
+                    if (lootboxId.equals(id)) {
+                        String entityUUID = entity.getMetadata("LootboxEntityUUID").get(0).asString();
+
+                        // Remove all related name tags
+                        location.getWorld().getEntities().stream()
+                                .filter(e -> e instanceof ArmorStand
+                                && e.hasMetadata("LootboxEntityUUID")
+                                && e.getMetadata("LootboxEntityUUID").get(0).asString().equals(entityUUID))
+                                .forEach(Entity::remove);
+
+                        entity.remove();
+                        entities.remove(UUID.fromString(entityUUID));
+                    }
+                }
+            }
+        }
+
+        // Clear locations
+        lootbox.getLocations().clear();
+
+        // Mark as modified and save
+        lootbox.setModified(true);
+        saveLootbox(lootbox);
+    }
+
+    /**
+     * Removes a lootbox entity by UUID.
+     *
+     * @param uuid The UUID of the lootbox entity to remove
+     * @return true if removed, false if not found
+     */
+    public boolean removeLootbox(UUID uuid) {
+        // Find the entity
+        LootboxEntity entity = entities.get(uuid);
+        if (entity == null) {
+            Logger.debug("No entity found with UUID: " + uuid);
+            return false;
+        }
+
+        // Get the lootbox config
+        Lootbox lootbox = getLootbox(entity.getLootboxId());
+        if (lootbox == null) {
+            Logger.error("Lootbox config not found for entity: " + entity.getLootboxId());
+            return false;
+        }
+
+        // Remove the entity
+        entity.remove();
+        entities.remove(uuid);
+
+        // Remove the location from config
+        lootbox.removeLocation(uuid);
+        lootbox.setModified(true);
+        saveLootbox(lootbox);
+
+        Logger.debug("Removed lootbox entity: " + uuid);
+        return true;
+    }
+
+    /**
+     * Removes a lootbox at the specified location.
+     *
+     * @param location The location to remove from
+     * @return true if removed, false if not found
+     */
+    public boolean removeLootbox(Location location) {
+        // Find entity at location
+        for (LootboxEntity entity : entities.values()) {
+            if (entity.getLocation().distance(location) < 0.1) {
+                return removeLootbox(entity.getUniqueId());
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Removes a lootbox at the player's location.
+     *
+     * @param player The player removing the lootbox
+     */
+    public void removeLootbox(Player player) {
+        Location location = player.getLocation();
+        for (LootboxEntity entity : entities.values()) {
+            if (entity.getLocation().distance(location) < 0.1) {
+                removeLootboxByUUID(entity.getUniqueId());
+                player.sendMessage(Component.text("Successfully removed lootbox!").color(LootboxCommand.SUCCESS_COLOR));
+                return;
+            }
+        }
+        player.sendMessage(Component.text("No lootbox found at your location!").color(LootboxCommand.ERROR_COLOR));
+    }
+
+    public void removeLootboxByUUID(UUID uuid) {
+        LootboxEntity entity = entities.get(uuid);
+        if (entity != null) {
+            entity.remove();
+            entities.remove(uuid);
+        }
+    }
+
+    public void removeLootboxByLocation(Location location) {
+        for (LootboxEntity entity : entities.values()) {
+            if (entity.getLocation().distance(location) < 0.1) {
+                removeLootboxByUUID(entity.getUniqueId());
+                break;
+            }
+        }
     }
 }

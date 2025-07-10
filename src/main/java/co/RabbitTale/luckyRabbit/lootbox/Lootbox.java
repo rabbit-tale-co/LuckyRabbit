@@ -1,49 +1,96 @@
 package co.RabbitTale.luckyRabbit.lootbox;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import io.th0rgal.oraxen.utils.drops.Loot;
+import java.io.File;
+import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
+import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 
-import co.RabbitTale.luckyRabbit.api.FeatureManager;
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
 import lombok.Getter;
+import co.RabbitTale.luckyRabbit.utils.Logger;
 
 @Getter
 public class Lootbox {
 
+    /**
+     * -- GETTER -- Gets the unique identifier for this lootbox.
+     *
+     */
+    @Getter
     private final String id;
-    private final String displayName;
+    /**
+     * -- GETTER -- Gets the display name of this lootbox.
+     *
+     */
+    @Getter
+    private final String title;
+    /**
+     * -- GETTER -- Gets the lore lines for this lootbox.
+     *
+     */
+    @Getter
     private List<String> lore;
+    /**
+     * -- GETTER -- Gets all items in this lootbox.
+     *
+     */
+    @Getter
     private final Map<String, LootboxItem> items;
-    private final List<Location> locations;
+    /**
+     * -- GETTER -- Gets all locations where this lootbox can spawn.
+     *
+     */
+    private Map<UUID, Location> locations = new HashMap<>();
+    /**
+     * -- GETTER -- Gets the animation type for this lootbox.
+     *
+     */
+    @Getter
     private AnimationType animationType;
+    /**
+     * -- GETTER -- Gets the number of times this lootbox has been opened.
+     *
+     */
+    @Getter
+    @Setter
+    private long created;
+
     private int openCount;
     private boolean modified = false;
     private boolean isExample = false;
+    private List<String> descriptions = new ArrayList<>();
 
     /**
      * Creates a new lootbox instance.
      *
      * @param id Unique identifier
-     * @param displayName Display name (supports MiniMessage format)
+     * @param title Display name (supports MiniMessage format)
      * @param animationType Animation type to use
      */
-    public Lootbox(String id, String displayName, AnimationType animationType) {
+    public Lootbox(String id, String title, AnimationType animationType) {
         this.id = id;
-        this.displayName = displayName;
+        this.title = title;
         this.lore = new ArrayList<>();
         this.items = new HashMap<>();
-        this.locations = new ArrayList<>();
+        this.locations = new HashMap<>();
         this.animationType = animationType;
         this.openCount = 0;
+        this.created = System.currentTimeMillis(); // Set current timestamp for new lootboxes
     }
 
     /**
@@ -52,17 +99,41 @@ public class Lootbox {
      * @param config YAML configuration to load from
      * @return New Lootbox instance
      */
-    public static Lootbox fromConfig(FileConfiguration config) {
+    public static Lootbox fromConfig(File file, FileConfiguration config) {
         String id = config.getString("id");
-        String displayName = config.getString("displayName", id);
+        String title = config.getString("title", id);
         AnimationType animationType = AnimationType.valueOf(
                 config.getString("animationType", "HORIZONTAL").toUpperCase()
         );
 
-        Lootbox lootbox = new Lootbox(id, displayName, animationType);
+        Lootbox lootbox = new Lootbox(id, title, animationType);
+
+        Object createdObj = config.get("created");
+        long created;
+
+        if (createdObj instanceof Number n) {               // zapis w millis
+            created = n.longValue();
+        } else if (createdObj instanceof String s) {        // zapis jako data
+            created = parseDateString(s, System.currentTimeMillis()); // Use current time as fallback, not file time
+        } else if (createdObj instanceof java.util.Date date) { // Handle Date objects from YAML
+            created = date.getTime();
+        } else {
+            // If no created field in YAML, use current time and mark as modified so it gets saved
+            created = System.currentTimeMillis();
+            lootbox.setModified();
+        }
+        lootbox.setCreated(created);
 
         // Load lore
         lootbox.lore.addAll(config.getStringList("lore"));
+
+        // Load descriptions (max 5)
+        List<String> descs = config.getStringList("description");
+        if (descs.size() > 5) {
+            descs = descs.subList(0, 5);
+            lootbox.setModified(true);
+        }
+        lootbox.descriptions = descs;
 
         // Load items
         ConfigurationSection itemsSection = config.getConfigurationSection("items");
@@ -82,8 +153,13 @@ public class Lootbox {
             for (String key : locationsSection.getKeys(false)) {
                 ConfigurationSection locationSection = locationsSection.getConfigurationSection(key);
                 if (locationSection != null) {
-                    Location location = Location.deserialize(locationSection.getValues(true));
-                    lootbox.locations.add(location);
+                    try {
+                        UUID uuid = UUID.fromString(key);
+                        Location location = Location.deserialize(locationSection.getValues(true));
+                        lootbox.locations.put(uuid, location);
+                    } catch (IllegalArgumentException e) {
+                        Logger.error("Invalid UUID key '" + key + "' in locations for " + file.getName() + " - skipping location");
+                    }
                 }
             }
         }
@@ -94,67 +170,37 @@ public class Lootbox {
         return lootbox;
     }
 
-    /**
-     * Gets the unique identifier for this lootbox.
-     *
-     * @return The lootbox ID
-     */
-    public String getId() {
-        return id;
-    }
+    private static long parseDateString(String s, long fallback) {
+        if (s == null || s.trim().isEmpty()) {
+            return fallback;
+        }
 
-    /**
-     * Gets the display name of this lootbox.
-     *
-     * @return The display name
-     */
-    public String getDisplayName() {
-        return displayName;
-    }
+        s = s.trim(); // Remove any whitespace
 
-    /**
-     * Gets the lore lines for this lootbox.
-     *
-     * @return The lore as a list of strings
-     */
-    public List<String> getLore() {
-        return lore;
-    }
+        try {
+            // Support different date formats found in YAML files
+            DateTimeFormatter[] formatters = {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"), // 2024-11-16 19:57:00
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"), // 2024-11-16 19:57
+                DateTimeFormatter.ofPattern("yyyy-MM-dd"), // 2024-11-16
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME, // ISO format
+                DateTimeFormatter.ISO_INSTANT // Instant format
+            };
 
-    /**
-     * Gets all items in this lootbox.
-     *
-     * @return Map of item ID to LootboxItem
-     */
-    public Map<String, LootboxItem> getItems() {
-        return items;
-    }
+            for (DateTimeFormatter formatter : formatters) {
+                try {
+                    LocalDateTime dateTime = LocalDateTime.parse(s, formatter);
+                    return dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                } catch (Exception ignored) {
+                    // Try next format
+                }
+            }
 
-    /**
-     * Gets all locations where this lootbox can spawn.
-     *
-     * @return List of locations
-     */
-    public List<Location> getLocations() {
-        return locations;
-    }
-
-    /**
-     * Gets the animation type for this lootbox.
-     *
-     * @return The animation type
-     */
-    public AnimationType getAnimationType() {
-        return animationType;
-    }
-
-    /**
-     * Gets the number of times this lootbox has been opened.
-     *
-     * @return The open count
-     */
-    public int getOpenCount() {
-        return openCount;
+            // If no format worked, use fallback silently
+        } catch (Exception ignored) {
+            // Use fallback silently
+        }
+        return fallback;
     }
 
     /**
@@ -180,11 +226,31 @@ public class Lootbox {
     /**
      * Adds a spawn location for this lootbox.
      *
+     * @param uuid Unique identifier for the location
+     * @param location Location to add
+     */
+    public void addLocation(UUID uuid, Location location) {
+        locations.put(uuid, location);
+        modified = true;
+    }
+
+    /**
+     * Adds a spawn location for this lootbox.
+     *
      * @param location Location to add
      */
     public void addLocation(Location location) {
-        locations.add(location);
+        locations.put(UUID.randomUUID(), location);
         modified = true;
+    }
+
+    /**
+     * Gets the number of times this lootbox has been opened.
+     *
+     * @return Number of times opened
+     */
+    public int getOpenCount() {
+        return openCount;
     }
 
     /**
@@ -212,82 +278,57 @@ public class Lootbox {
     }
 
     /**
-     * Sets the animation type for this lootbox. If the requested animation is
-     * not available, falls back to HORIZONTAL.
+     * Sets the modified flag for this lootbox.
      *
-     * @param animationType The new animation type
-     * @return Whether the requested animation was available and set
-     * successfully
+     * @param modified The new modified state
      */
-    public boolean setAnimationType(AnimationType animationType) {
-        // Always allow HORIZONTAL
-        if (animationType == AnimationType.HORIZONTAL) {
-            this.animationType = animationType;
-            this.modified = true;
-            return true;
-        }
-
-        // Check if the requested animation is available
-        if (FeatureManager.canUseAnimation(animationType.name())) {
-            this.animationType = animationType;
-            this.modified = true;
-            return true;
-        } else {
-            // If not available, keep the current animation and return false
-            return false;
-        }
+    public void setModified(boolean modified) {
+        this.modified = modified;
     }
 
     /**
      * Enforces animation restrictions based on license. Forces HORIZONTAL
-     * animation for non-premium users.
+     * animation for non-premium users. FIXME: use new animation manager (yml)
      */
     public void enforceAnimationRestrictions() {
-        if (id.startsWith("example")) {
-            return; // Don't enforce restrictions on example lootboxes
-        }
-
-        // Only fallback to HORIZONTAL if the requested animation is not available
-        if (!FeatureManager.canUseAnimation(animationType.name()) && animationType != AnimationType.HORIZONTAL) {
-            this.animationType = AnimationType.HORIZONTAL;
-            this.modified = true;
-        }
+//        if (id.startsWith("example")) {
+//            return; // Don't enforce restrictions on example lootboxes
+//        }
+//
+//        // Only fallback to HORIZONTAL if the requested animation is not available
+//        if (!FeatureManager.canUseAnimation(animationType.name()) && animationType != AnimationType.HORIZONTAL) {
+//            this.animationType = AnimationType.HORIZONTAL;
+//            this.modified = true;
+//        }
     }
 
     /**
-     * Enforces item restrictions based on license. Removes Oraxen items and
-     * command actions for non-premium users.
-     */
-    public void enforceItemRestrictions() {
-        if (FeatureManager.canUseOraxenItems() || FeatureManager.canExecuteCommands()) {
-            items.values().removeIf(item -> {
-                boolean isOraxenItem = item instanceof OraxenLootboxItem;
-                boolean hasCommandAction = item.getAction() != null;
-                return isOraxenItem || hasCommandAction;
-            });
-            modified = true;
-        }
-    }
-
-    /**
-     * Removes a spawn location.
+     * Checks if a location with the given UUID exists.
      *
-     * @param location Location to remove
+     * @param uuid The UUID of the location to check
+     * @return true if the location exists, false otherwise
      */
-    public void removeLocation(Location location) {
-        // Remove the exact location if it exists
-        locations.remove(location);
+    public boolean hasLocation(UUID uuid) {
+        return locations.containsKey(uuid);
+    }
 
-        // If not found, try to find a location that matches coordinates
-        locations.removeIf(loc
-                -> loc.getWorld().equals(location.getWorld())
-                && Math.abs(loc.getX() - location.getX()) < 0.1
-                && // Small delta for X and Z
-                Math.abs(loc.getY() - location.getY()) < 0.5
-                && // Medium delta for Y to account for small animations
-                Math.abs(loc.getZ() - location.getZ()) < 0.1
-        );
+    /**
+     * Checks if a location with the given Location object exists.
+     *
+     * @param location The Location object to check
+     * @return true if the location exists, false otherwise
+     */
+    public boolean hasLocation(Location location) {
+        return locations.values().stream().anyMatch(loc -> loc.equals(location));
+    }
 
+    /**
+     * Removes a spawn location by UUID.
+     *
+     * @param uuid The UUID of the location to remove
+     */
+    public void removeLocation(UUID uuid) {
+        locations.remove(uuid);
         modified = true;
     }
 
@@ -317,5 +358,13 @@ public class Lootbox {
      */
     public void setExample(boolean isExample) {
         this.isExample = isExample;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public List<String> getDescriptions() {
+        return descriptions;
     }
 }

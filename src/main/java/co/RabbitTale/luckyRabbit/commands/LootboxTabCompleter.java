@@ -40,34 +40,9 @@ public class LootboxTabCompleter implements TabCompleter {
                 commands.add("creator");
             }
             if (sender.hasPermission("luckyrabbit.admin")) {
-                commands.addAll(Arrays.asList("create", "delete", "item", "entity", "key", "reload", "animations", "license", "config", "place"));
+                commands.addAll(Arrays.asList("create", "delete", "item", "spawn", "despawn", "key", "reload", "config"));
             }
             return filterCompletions(commands, args[0]);
-        }
-
-        if (args[0].equalsIgnoreCase("entity")) {
-            if (args.length == 2) {
-                return filterCompletions(Arrays.asList("spawn", "despawn"), args[1]);
-            }
-            if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-                if (sender.hasPermission("luckyrabbit.admin")) {
-                    return filterCompletions(plugin.getLootboxManager().getLootboxNamesAdmin(), args[2]);
-                } else {
-                    return filterCompletions(plugin.getLootboxManager().getLootboxNames(), args[2]);
-                }
-            }
-        }
-
-        if (args[0].equalsIgnoreCase("creator")) {
-            if (sender instanceof Player && CreatorEffects.isCreator(((Player) sender).getUniqueId())) {
-                if (args.length == 2) {
-                    return filterCompletions(List.of("particles"), args[1]);
-                }
-                if (args.length == 3 && args[1].equalsIgnoreCase("particles")) {
-                    return filterCompletions(List.of("toggle"), args[2]);
-                }
-            }
-            return completions;
         }
 
         if (!sender.hasPermission("luckyrabbit.admin")) {
@@ -75,6 +50,22 @@ public class LootboxTabCompleter implements TabCompleter {
         }
 
         switch (args[0].toLowerCase()) {
+            case "spawn" -> {
+                if (args.length == 2) {
+                    List<String> lootboxes = plugin.getLootboxManager().getLootboxNamesAdmin().stream()
+                            .filter(id -> !plugin.getLootboxManager().isExampleLootbox(id))
+                            .collect(Collectors.toList());
+                    return filterCompletions(lootboxes, args[1]);
+                }
+            }
+            case "despawn" -> {
+                if (args.length == 2) {
+                    List<String> lootboxes = plugin.getLootboxManager().getLootboxNamesAdmin().stream()
+                            .filter(id -> !plugin.getLootboxManager().isExampleLootbox(id))
+                            .collect(Collectors.toList());
+                    return filterCompletions(lootboxes, args[1]);
+                }
+            }
             case "create" -> {
                 if (args.length == 2) {
                     completions.add("<name>");
@@ -132,31 +123,6 @@ public class LootboxTabCompleter implements TabCompleter {
                     return filterCompletions(Arrays.asList("1", "2", "3"), args[1]);
                 }
             }
-            case "license" -> {
-                if (args.length == 2) {
-                    return filterCompletions(List.of("info"), args[1]);
-                }
-            }
-//            case "config" -> {
-//                if (!sender.hasPermission("luckyrabbit.admin.config")) {
-//                    return completions;
-//                }
-//                if (args.length == 2) {
-//                    return filterCompletions(List.of("license-key"), args[1]);
-//                }
-//                if (args.length == 3 && args[1].equalsIgnoreCase("license-key")) {
-//                    return filterCompletions(Arrays.asList("add", "remove"), args[2]);
-//                }
-//                if (args.length == 4 && args[1].equalsIgnoreCase("license-key") && args[2].equalsIgnoreCase("add")) {
-//                    String currentKey = plugin.getConfig().getString("license-key", "");
-//                    List<String> suggestions = new ArrayList<>();
-//                    if (!currentKey.isEmpty()) {
-//                        suggestions.add(currentKey);
-//                    }
-//                    suggestions.add("XXXX-XXXX-XXXX-XX");
-//                    return filterCompletions(suggestions, args[3]);
-//                }
-//            }
         }
 
         return completions;
@@ -274,36 +240,22 @@ public class LootboxTabCompleter implements TabCompleter {
                 Component.text("- amount: ", LootboxCommand.DESCRIPTION_COLOR)
                 .append(Component.text("Number of keys to remove", LootboxCommand.NAME_COLOR))
                 );
-            case "entity" ->
-                Arrays.asList(
-                Component.text("Available entity commands:", LootboxCommand.INFO_COLOR),
-                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
-                .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
-                .append(Component.text("entity spawn ", LootboxCommand.ACTION_COLOR))
-                .append(Component.text("lootbox_id", LootboxCommand.ITEM_COLOR))
-                .append(Component.text(" - Spawn a lootbox entity", LootboxCommand.DESCRIPTION_COLOR)),
-                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
-                .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
-                .append(Component.text("entity despawn", LootboxCommand.ACTION_COLOR))
-                .append(Component.text(" - Remove the lootbox entity you're looking at", LootboxCommand.DESCRIPTION_COLOR)),
-                Component.text("\nType the command for more information", LootboxCommand.DESCRIPTION_COLOR)
-                );
-            case "entity spawn" ->
+            case "spawn" ->
                 Arrays.asList(
                 Component.text("Command: ", LootboxCommand.INFO_COLOR)
                 .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
-                .append(Component.text("entity spawn ", LootboxCommand.ACTION_COLOR))
+                .append(Component.text("spawn ", LootboxCommand.ACTION_COLOR))
                 .append(Component.text("lootbox_id", LootboxCommand.ITEM_COLOR)),
                 Component.text("Spawns a lootbox entity at your location", LootboxCommand.DESCRIPTION_COLOR),
                 Component.text("Required:", LootboxCommand.INFO_COLOR),
                 Component.text("- lootbox_id: ", LootboxCommand.DESCRIPTION_COLOR)
                 .append(Component.text("ID of the lootbox to spawn", LootboxCommand.ITEM_COLOR))
                 );
-            case "entity despawn" ->
+            case "despawn" ->
                 Arrays.asList(
                 Component.text("Command: ", LootboxCommand.INFO_COLOR)
                 .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
-                .append(Component.text("entity despawn", LootboxCommand.ACTION_COLOR)),
+                .append(Component.text("despawn", LootboxCommand.ACTION_COLOR)),
                 Component.text("Removes the lootbox entity you're looking at", LootboxCommand.DESCRIPTION_COLOR),
                 Component.text("Note: ", LootboxCommand.INFO_COLOR)
                 .append(Component.text("You must be looking at a lootbox entity", LootboxCommand.DESCRIPTION_COLOR))
