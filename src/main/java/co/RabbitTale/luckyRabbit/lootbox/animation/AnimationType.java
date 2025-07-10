@@ -1,47 +1,42 @@
 package co.RabbitTale.luckyRabbit.lootbox.animation;
 
-import lombok.Getter;
+import org.bukkit.entity.Player;
 
-@Getter
+import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.gui.animations.*;
+import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
+
 public enum AnimationType {
-    /**
-     * Classic horizontal spinning animation.
-     * Default animation for free version.
-     */
-    HORIZONTAL("Classic horizontal spinning animation"),
+    HORIZONTAL {
+        @Override
+        public BaseAnimationGUI createGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
+            return new HorizontalSpinGUI(plugin, player, lootbox);
+        }
+    },
+    CIRCLE {
+        @Override
+        public BaseAnimationGUI createGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
+            return new CircleSpinGUI(plugin, player, lootbox);
+        }
+    },
+    CASCADE {
+        @Override
+        public BaseAnimationGUI createGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
+            return new CascadeSpinGUI(plugin, player, lootbox);
+        }
+    },
+    PIN_POINT {
+        @Override
+        public BaseAnimationGUI createGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
+            return new PinPointSpinGUI(plugin, player, lootbox);
+        }
+    },
+    THREE_IN_ROW {
+        @Override
+        public BaseAnimationGUI createGUI(LuckyRabbit plugin, Player player, Lootbox lootbox) {
+            return new ThreeInRowSpinGUI(plugin, player, lootbox);
+        }
+    };
 
-    /**
-     * Items appear one by one in a fixed spot.
-     * Premium only.
-     */
-    PIN_POINT("Items appear one by one in a fixed spot"),
-
-    /**
-     * Items spin in a circle pattern.
-     * Premium only.
-     */
-    CIRCLE("Items spin in a circle pattern"),
-
-    /**
-     * Items cascade across the screen.
-     * Premium only.
-     */
-    CASCADE("Items cascade across the screen"),
-
-    /**
-     * Three items spinning in a row.
-     * Premium only.
-     */
-    THREE_IN_ROW("Three items spinning in a row");
-
-    private final String description;
-
-    /**
-     * Creates a new animation type.
-     *
-     * @param description Human-readable description
-     */
-    AnimationType(String description) {
-        this.description = description;
-    }
+    public abstract BaseAnimationGUI createGUI(LuckyRabbit plugin, Player player, Lootbox lootbox);
 }

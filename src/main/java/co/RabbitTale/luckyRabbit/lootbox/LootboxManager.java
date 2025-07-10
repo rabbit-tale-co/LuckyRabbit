@@ -44,6 +44,9 @@ import co.RabbitTale.luckyRabbit.utils.Logger;
 import io.th0rgal.oraxen.api.OraxenItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.NamespacedKey;
 
 public class LootboxManager {
 
@@ -85,6 +88,17 @@ public class LootboxManager {
     private final Set<String> activeLootboxUUIDs;
     private int respawnTaskId = -1;
 
+    // Klucze PDC dla lootboxow
+    public static final NamespacedKey LOOTBOX_ID_KEY;
+    public static final NamespacedKey LOOTBOX_UUID_KEY;
+    public static final NamespacedKey LOOTBOX_TYPE_KEY; // main, title, description
+
+    static {
+        LOOTBOX_ID_KEY = new NamespacedKey(LuckyRabbit.getInstance(), "lootbox_id");
+        LOOTBOX_UUID_KEY = new NamespacedKey(LuckyRabbit.getInstance(), "lootbox_uuid");
+        LOOTBOX_TYPE_KEY = new NamespacedKey(LuckyRabbit.getInstance(), "lootbox_type");
+    }
+
     // Add reference to examples directory
     private final File examplesFolder;
     private final File lootboxFolder;
@@ -105,8 +119,11 @@ public class LootboxManager {
         this.lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
         this.examplesFolder = new File(lootboxFolder, "examples");
 
-        // Load active lootbox UUIDs
+        // Load active lootboxes file
         loadActiveLootboxes();
+
+        // Schedule delayed cleanup
+        Bukkit.getScheduler().runTaskLater(plugin, this::cleanupGhostEntities, 20L);
     }
 
     private void loadActiveLootboxes() {
@@ -757,6 +774,8 @@ public class LootboxManager {
     }
 
     public LootboxEntity spawnEntity(Lootbox lootbox, Location location, UUID uuid) {
+        Logger.debug("Spawning entity for lootbox: " + lootbox.getId() + " at " + formatLocation(location));
+
         // First check if we already have an entity at this location
         if (hasEntityAtLocation(location)) {
             Logger.debug("Entity already exists at location " + location);
@@ -772,12 +791,31 @@ public class LootboxManager {
         // Remove any existing entities at this exact location (cleanup)
         location.getWorld().getEntities().stream()
                 .filter(entity -> entity instanceof ArmorStand
-                && entity.hasMetadata("LootboxEntity")
+                && entity.getPersistentDataContainer().has(LOOTBOX_ID_KEY, PersistentDataType.STRING)
                 && entity.getLocation().distance(location) < 0.1)
                 .forEach(Entity::remove);
 
         // Create new entity
-        LootboxEntity entity = new LootboxEntity(plugin, location, lootbox);
+        Location spawnLoc = location.getBlock().getLocation().add(0.5, -0.5, 0.5);
+        ArmorStand stand = location.getWorld().spawn(spawnLoc, ArmorStand.class, as -> {
+            // Podstawowa konfiguracja
+            as.setVisible(false);
+            as.setGravity(false);
+            as.setBasePlate(false);
+            as.setInvulnerable(true);
+            as.setCustomNameVisible(false);
+
+            // Ustaw PDC
+            PersistentDataContainer pdc = as.getPersistentDataContainer();
+            pdc.set(LOOTBOX_ID_KEY, PersistentDataType.STRING, lootbox.getId());
+            pdc.set(LOOTBOX_UUID_KEY, PersistentDataType.STRING, uuid.toString());
+            pdc.set(LOOTBOX_TYPE_KEY, PersistentDataType.STRING, "main");
+
+            // Wylacz persistent
+            as.setPersistent(false);
+        });
+
+        LootboxEntity entity = new LootboxEntity(plugin, stand, lootbox);
         entities.put(entity.getUniqueId(), entity);
         return entity;
     }
@@ -795,25 +833,25 @@ public class LootboxManager {
         for (World world : plugin.getServer().getWorlds()) {
             // First pass - collect all potential lootbox entities
             List<ArmorStand> potentialLootboxes = world.getEntitiesByClass(ArmorStand.class).stream()
-                .filter(stand -> {
-                    // Check if it's a known lootbox
-                    if (stand.hasMetadata("LootboxEntity") || stand.hasMetadata("LootboxEntityUUID")) {
-                        return true;
-                    }
+                    .filter(stand -> {
+                        // Check if it's a known lootbox
+                        if (stand.hasMetadata("LootboxEntity") || stand.hasMetadata("LootboxEntityUUID")) {
+                            return true;
+                        }
 
-                    // Check if it might be a ghost lootbox:
-                    // 1. Invisible
-                    // 2. No gravity
-                    // 3. Has chest as head or no name visible
-                    // 4. No base plate
-                    if (!stand.isVisible() && !stand.hasGravity() && !stand.hasBasePlate()) {
-                        ItemStack helmet = stand.getEquipment().getHelmet();
-                        return helmet != null && helmet.getType() == Material.CHEST;
-                    }
+                        // Check if it might be a ghost lootbox:
+                        // 1. Invisible
+                        // 2. No gravity
+                        // 3. Has chest as head or no name visible
+                        // 4. No base plate
+                        if (!stand.isVisible() && !stand.hasGravity() && !stand.hasBasePlate()) {
+                            ItemStack helmet = stand.getEquipment().getHelmet();
+                            return helmet != null && helmet.getType() == Material.CHEST;
+                        }
 
-                    return false;
-                })
-                .toList();
+                        return false;
+                    })
+                    .toList();
 
             // Process each potential lootbox
             for (ArmorStand stand : potentialLootboxes) {
@@ -835,12 +873,12 @@ public class LootboxManager {
                 if (isGhost) {
                     // Remove all nearby ArmorStands (main entity and potential name tags)
                     world.getNearbyEntities(baseLoc.clone().add(0.5, 0.5, 0.5), 3, 3, 3).stream()
-                        .filter(e -> e instanceof ArmorStand)
-                        .forEach(e -> {
-                            e.remove();
-                            removed.incrementAndGet();
-                            Logger.debug("Removed entity at " + formatLocation(e.getLocation()));
-                        });
+                            .filter(e -> e instanceof ArmorStand)
+                            .forEach(e -> {
+                                e.remove();
+                                removed.incrementAndGet();
+                                Logger.debug("Removed entity at " + formatLocation(e.getLocation()));
+                            });
 
                     cleanedLocations.add(baseLoc);
                 }
@@ -849,14 +887,14 @@ public class LootboxManager {
             // Second pass - check for orphaned name tags
             // These might be floating text without a main stand
             world.getEntitiesByClass(ArmorStand.class).stream()
-                .filter(stand -> !stand.isVisible() && !stand.hasGravity() && stand.isCustomNameVisible())
-                .forEach(stand -> {
-                    Location loc = stand.getLocation();
-                    stand.remove();
-                    removed.incrementAndGet();
-                    Logger.debug("Removed orphaned name tag at " + formatLocation(loc));
-                    cleanedLocations.add(loc.getBlock().getLocation());
-                });
+                    .filter(stand -> !stand.isVisible() && !stand.hasGravity() && stand.isCustomNameVisible())
+                    .forEach(stand -> {
+                        Location loc = stand.getLocation();
+                        stand.remove();
+                        removed.incrementAndGet();
+                        Logger.debug("Removed orphaned name tag at " + formatLocation(loc));
+                        cleanedLocations.add(loc.getBlock().getLocation());
+                    });
         }
 
         if (removed.get() > 0) {
@@ -956,20 +994,47 @@ public class LootboxManager {
         removeAllEntities();
         cleanupGhostEntities();
 
+        // Force save all worlds to ensure entities are removed from world data
+        for (World world : plugin.getServer().getWorlds()) {
+            // Get all chunks that might contain lootbox entities
+            Set<Chunk> chunksToSave = new HashSet<>();
+
+            // Collect chunks from known lootbox locations
+            for (Lootbox lootbox : lootboxes.values()) {
+                for (Location loc : lootbox.getLocations().values()) {
+                    if (loc.getWorld().equals(world)) {
+                        chunksToSave.add(loc.getChunk());
+                    }
+                }
+            }
+
+            // Also check nearby chunks
+            Set<Chunk> additionalChunks = new HashSet<>();
+            for (Chunk chunk : chunksToSave) {
+                for (int x = -1; x <= 1; x++) {
+                    for (int z = -1; z <= 1; z++) {
+                        additionalChunks.add(world.getChunkAt(chunk.getX() + x, chunk.getZ() + z));
+                    }
+                }
+            }
+            chunksToSave.addAll(additionalChunks);
+
+            // Force save these chunks
+            for (Chunk chunk : chunksToSave) {
+                if (chunk.isLoaded()) {
+                    chunk.unload(true);
+                    chunk.load();
+                }
+            }
+
+            // Force save world
+            world.save();
+        }
+
         // Clear tracking
         entities.clear();
         activeLootboxUUIDs.clear();
         saveActiveLootboxes();
-
-        // Unforce-load chunks
-        for (Lootbox lootbox : lootboxes.values()) {
-            for (Location location : lootbox.getLocations().values()) {
-                Chunk chunk = location.getChunk();
-                if (chunk.isForceLoaded()) {
-                    chunk.setForceLoaded(false);
-                }
-            }
-        }
     }
 
     /**

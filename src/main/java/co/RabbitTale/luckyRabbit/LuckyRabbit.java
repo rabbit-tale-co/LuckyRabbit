@@ -12,9 +12,11 @@ import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
 import co.RabbitTale.luckyRabbit.listeners.EntityListener;
 import co.RabbitTale.luckyRabbit.listeners.ListenerManager;
 import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
+import co.RabbitTale.luckyRabbit.lootbox.KeyManager;
 import co.RabbitTale.luckyRabbit.user.UserManager;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.milkbowl.vault.economy.Economy;
+import lombok.Getter;
 
 /*
  * LuckyRabbit.java
@@ -53,7 +55,10 @@ public class LuckyRabbit extends JavaPlugin {
     private static LuckyRabbit instance;
 
     private ConfigManager configManager;
+    @Getter
     private LootboxManager lootboxManager;
+    @Getter
+    private KeyManager keyManager;
     private UserManager userManager;
     private CreatorEffects creatorEffects;
 
@@ -78,6 +83,7 @@ public class LuckyRabbit extends JavaPlugin {
         // Initialize managers
         this.configManager = new ConfigManager(this);
         this.lootboxManager = new LootboxManager(this);
+        this.keyManager = new KeyManager(this);
         CommandManager commandManager = new CommandManager(this);
         ListenerManager listenerManager = new ListenerManager(this);
         this.userManager = new UserManager(this);

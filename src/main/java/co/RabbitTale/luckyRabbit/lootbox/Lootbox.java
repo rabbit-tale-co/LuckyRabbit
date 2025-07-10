@@ -13,9 +13,11 @@ import io.th0rgal.oraxen.utils.drops.Loot;
 import java.io.File;
 import lombok.Setter;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
@@ -23,6 +25,8 @@ import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.lootbox.items.OraxenLootboxItem;
 import lombok.Getter;
 import co.RabbitTale.luckyRabbit.utils.Logger;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 
 @Getter
 public class Lootbox {
@@ -74,6 +78,8 @@ public class Lootbox {
     private boolean modified = false;
     private boolean isExample = false;
     private List<String> descriptions = new ArrayList<>();
+    private boolean keyRequired = false;
+    private String keyName = null;
 
     /**
      * Creates a new lootbox instance.
@@ -166,6 +172,13 @@ public class Lootbox {
 
         // Load statistics
         lootbox.openCount = config.getInt("openedCount", 0);
+
+        // Load key settings
+        lootbox.keyRequired = config.getBoolean("key_required", false);
+        ConfigurationSection keySection = config.getConfigurationSection("key");
+        if (keySection != null && keySection.contains("name")) {
+            lootbox.keyName = keySection.getString("name");
+        }
 
         return lootbox;
     }
@@ -366,5 +379,43 @@ public class Lootbox {
 
     public List<String> getDescriptions() {
         return descriptions;
+    }
+
+    /**
+     * Checks if this lootbox requires a key to open.
+     *
+     * @return true if key is required, false otherwise
+     */
+    public boolean isKeyRequired() {
+        return keyRequired;
+    }
+
+    /**
+     * Gets the key name required to open this lootbox.
+     *
+     * @return name of the key, or null if no key required
+     */
+    public String getKeyName() {
+        return keyName;
+    }
+
+    /**
+     * Sets whether this lootbox requires a key.
+     *
+     * @param required true to require key, false otherwise
+     */
+    public void setKeyRequired(boolean required) {
+        this.keyRequired = required;
+        setModified();
+    }
+
+    /**
+     * Sets the key name required to open this lootbox.
+     *
+     * @param name name of the key
+     */
+    public void setKeyName(String name) {
+        this.keyName = name;
+        setModified();
     }
 }
