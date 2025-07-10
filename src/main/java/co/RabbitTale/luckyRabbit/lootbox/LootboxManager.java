@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -79,6 +81,8 @@ public class LootboxManager {
     private final LuckyRabbit plugin;
     private final Map<String, Lootbox> lootboxes;
     private final Map<UUID, LootboxEntity> entities;
+    private final File activeLootboxesFile;
+    private final Set<String> activeLootboxUUIDs;
     private int respawnTaskId = -1;
 
     // Add reference to examples directory
@@ -94,10 +98,34 @@ public class LootboxManager {
         this.plugin = plugin;
         this.lootboxes = new HashMap<>();
         this.entities = new HashMap<>();
+        this.activeLootboxUUIDs = new HashSet<>();
+        this.activeLootboxesFile = new File(plugin.getDataFolder(), "active_lootboxes.yml");
 
         // Initialize folder references
         this.lootboxFolder = new File(plugin.getDataFolder(), "lootboxes");
         this.examplesFolder = new File(lootboxFolder, "examples");
+
+        // Load active lootbox UUIDs
+        loadActiveLootboxes();
+    }
+
+    private void loadActiveLootboxes() {
+        if (!activeLootboxesFile.exists()) {
+            return;
+        }
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(activeLootboxesFile);
+        activeLootboxUUIDs.clear();
+        activeLootboxUUIDs.addAll(config.getStringList("active_lootboxes"));
+    }
+
+    private void saveActiveLootboxes() {
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("active_lootboxes", new ArrayList<>(activeLootboxUUIDs));
+        try {
+            config.save(activeLootboxesFile);
+        } catch (IOException e) {
+            Logger.error("Failed to save active lootboxes: " + e.getMessage());
+        }
     }
 
     /**
@@ -106,6 +134,9 @@ public class LootboxManager {
      * animations and items.
      */
     public void loadLootboxes() {
+        // First, clean up any ghost entities from previous crashes
+        cleanupGhostEntities();
+
         // Create main lootbox directory if it doesn't exist
         if (!lootboxFolder.exists()) {
             Logger.debug("Lootbox folder doesn't exist, creating...");
@@ -145,7 +176,7 @@ public class LootboxManager {
                         // Save to examples directory, not main lootboxes directory
                         File targetFile = new File(examplesFolder, fileName);
                         if (!targetFile.exists()) {
-                            java.nio.file.Files.copy(resource, targetFile.toPath());
+                            Files.copy(resource, targetFile.toPath());
                             Logger.debug("Created example file: " + targetFile.getPath());
                         }
                         resource.close();
@@ -549,9 +580,8 @@ public class LootboxManager {
      * Places a lootbox in the world. Creates a new LootboxEntity at the
      * player's location.
      *
-     * @param player Player placing the lootbox
-     * @param id Lootbox ID to place
-     * @throws IllegalArgumentException if lootbox doesn't exist
+     * placing the lootbox Lootbox ID to place IllegalArgumentException if
+     * lootbox doesn't exist
      */
     public boolean placeLootbox(Lootbox lootbox, Location location) {
         // Don't allow placing example lootboxes
@@ -595,15 +625,12 @@ public class LootboxManager {
         // Basic info
         config.set("id", lootbox.getId());
         config.set("title", lootbox.getTitle());
+        config.set("description", lootbox.getDescriptions());
+        config.set("lore", lootbox.getLore());
+
         config.set("animationType", lootbox.getAnimationType().name());
         config.set("openedCount", lootbox.getOpenCount());
         config.set("created", lootbox.getCreated());
-
-        // Save descriptions
-        config.set("description", lootbox.getDescriptions());
-
-        // Save lore
-        config.set("lore", lootbox.getLore());
 
         // Save items
         ConfigurationSection itemsSection = config.createSection("items");
@@ -755,31 +782,134 @@ public class LootboxManager {
         return entity;
     }
 
+    /**
+     * Cleans up ghost entities from previous server crashes. These are entities
+     * that have LootboxEntity metadata but no active animation.
+     */
+    private void cleanupGhostEntities() {
+        Logger.debug("Cleaning up ghost lootbox entities...");
+        AtomicInteger removed = new AtomicInteger(0);
+        Set<Location> cleanedLocations = new HashSet<>();
+
+        // Get all loaded worlds
+        for (World world : plugin.getServer().getWorlds()) {
+            // First pass - collect all potential lootbox entities
+            List<ArmorStand> potentialLootboxes = world.getEntitiesByClass(ArmorStand.class).stream()
+                .filter(stand -> {
+                    // Check if it's a known lootbox
+                    if (stand.hasMetadata("LootboxEntity") || stand.hasMetadata("LootboxEntityUUID")) {
+                        return true;
+                    }
+
+                    // Check if it might be a ghost lootbox:
+                    // 1. Invisible
+                    // 2. No gravity
+                    // 3. Has chest as head or no name visible
+                    // 4. No base plate
+                    if (!stand.isVisible() && !stand.hasGravity() && !stand.hasBasePlate()) {
+                        ItemStack helmet = stand.getEquipment().getHelmet();
+                        return helmet != null && helmet.getType() == Material.CHEST;
+                    }
+
+                    return false;
+                })
+                .toList();
+
+            // Process each potential lootbox
+            for (ArmorStand stand : potentialLootboxes) {
+                Location baseLoc = stand.getLocation().getBlock().getLocation();
+                boolean isGhost = true;
+
+                // Check if it's a valid active lootbox
+                if (stand.hasMetadata("LootboxEntityUUID")) {
+                    String uuid = stand.getMetadata("LootboxEntityUUID").get(0).asString();
+                    if (activeLootboxUUIDs.contains(uuid)) {
+                        isGhost = false;
+                    } else {
+                        Logger.debug("Found ghost lootbox with inactive UUID at " + formatLocation(baseLoc));
+                    }
+                } else {
+                    Logger.debug("Found potential ghost lootbox without metadata at " + formatLocation(baseLoc));
+                }
+
+                if (isGhost) {
+                    // Remove all nearby ArmorStands (main entity and potential name tags)
+                    world.getNearbyEntities(baseLoc.clone().add(0.5, 0.5, 0.5), 3, 3, 3).stream()
+                        .filter(e -> e instanceof ArmorStand)
+                        .forEach(e -> {
+                            e.remove();
+                            removed.incrementAndGet();
+                            Logger.debug("Removed entity at " + formatLocation(e.getLocation()));
+                        });
+
+                    cleanedLocations.add(baseLoc);
+                }
+            }
+
+            // Second pass - check for orphaned name tags
+            // These might be floating text without a main stand
+            world.getEntitiesByClass(ArmorStand.class).stream()
+                .filter(stand -> !stand.isVisible() && !stand.hasGravity() && stand.isCustomNameVisible())
+                .forEach(stand -> {
+                    Location loc = stand.getLocation();
+                    stand.remove();
+                    removed.incrementAndGet();
+                    Logger.debug("Removed orphaned name tag at " + formatLocation(loc));
+                    cleanedLocations.add(loc.getBlock().getLocation());
+                });
+        }
+
+        if (removed.get() > 0) {
+            Logger.info("Removed " + removed.get() + " ghost lootbox entities from " + cleanedLocations.size() + " locations");
+            Logger.info("If you still see ghost lootboxes, please restart the server to ensure all chunks are properly loaded.");
+        }
+    }
+
+    private String formatLocation(Location loc) {
+        return String.format("%.2f, %.2f, %.2f", loc.getX(), loc.getY(), loc.getZ());
+    }
+
     public void respawnEntities() {
         Logger.debug("Respawning all lootbox entities...");
 
-        // First, remove all existing entities
+        // First, remove all existing entities including ghosts
         removeAllEntities();
+        cleanupGhostEntities();
 
-        // Clear the entities map since we removed all entities
+        // Clear tracking
         entities.clear();
+        activeLootboxUUIDs.clear();
+
+        // Track spawned locations to prevent duplicates
+        Set<Location> spawnedLocations = new HashSet<>();
 
         // Now respawn entities for each lootbox
         for (Lootbox lootbox : lootboxes.values()) {
             for (Map.Entry<UUID, Location> entry : lootbox.getLocations().entrySet()) {
                 UUID uuid = entry.getKey();
-                Location location = entry.getValue();
+                Location location = entry.getValue().getBlock().getLocation();
+
+                // Skip if we already spawned at this location
+                if (spawnedLocations.contains(location)) {
+                    Logger.debug("Skipping duplicate spawn at " + formatLocation(location));
+                    continue;
+                }
 
                 // Only spawn if no entity exists at this location
                 if (!hasEntityAtLocation(location)) {
                     LootboxEntity entity = spawnEntity(lootbox, location, uuid);
                     if (entity != null) {
+                        spawnedLocations.add(location);
+                        activeLootboxUUIDs.add(entity.getUniqueId().toString());
                         Logger.debug("Respawned entity for lootbox: " + lootbox.getId()
-                                + " at " + location.getX() + ", " + location.getY() + ", " + location.getZ());
+                                + " at " + formatLocation(location));
                     }
                 }
             }
         }
+
+        // Save active lootboxes
+        saveActiveLootboxes();
     }
 
     public void removeAllEntities() {
@@ -805,17 +935,11 @@ public class LootboxManager {
      * @return true if entity exists, false otherwise
      */
     private boolean hasEntityAtLocation(Location location) {
-        double radius = 1.0; // Check within 1 block radius
-
-        return location.getWorld().getEntities().stream()
-                .filter(entity -> entity instanceof ArmorStand && entity.hasMetadata("LootboxEntity"))
-                .anyMatch(entity -> {
-                    Location entityLoc = entity.getLocation();
-                    return entityLoc.getWorld().equals(location.getWorld())
-                            && Math.abs(entityLoc.getX() - location.getX()) < 0.1
-                            && Math.abs(entityLoc.getY() - location.getY()) < 0.1
-                            && Math.abs(entityLoc.getZ() - location.getZ()) < 0.1;
-                });
+        Location blockLoc = location.getBlock().getLocation();
+        return location.getWorld().getNearbyEntities(blockLoc.clone().add(0.5, 0.5, 0.5), 1, 1, 1).stream()
+                .anyMatch(entity -> entity instanceof ArmorStand
+                && entity.hasMetadata("LootboxEntity")
+                && entity.getLocation().getBlock().getLocation().equals(blockLoc));
     }
 
     /**
@@ -829,10 +953,13 @@ public class LootboxManager {
         }
 
         // Remove all entities and unforce chunks
-        for (LootboxEntity entity : entities.values()) {
-            entity.remove();
-        }
+        removeAllEntities();
+        cleanupGhostEntities();
+
+        // Clear tracking
         entities.clear();
+        activeLootboxUUIDs.clear();
+        saveActiveLootboxes();
 
         // Unforce-load chunks
         for (Lootbox lootbox : lootboxes.values()) {

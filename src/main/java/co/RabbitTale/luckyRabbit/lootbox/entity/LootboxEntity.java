@@ -43,7 +43,7 @@ public class LootboxEntity {
         this.uniqueId = UUID.randomUUID();
 
         // Center the location
-        location = location.getBlock().getLocation().add(0.5, 0, 0.5);
+        location = location.getBlock().getLocation().add(0.5, -0.5, 0.5);
 
         // Create main armor stand without name
         this.armorStand = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
