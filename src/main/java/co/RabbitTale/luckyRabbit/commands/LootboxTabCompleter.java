@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
+import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
 import net.kyori.adventure.text.Component;
 
 public class LootboxTabCompleter implements TabCompleter {
@@ -21,8 +22,10 @@ public class LootboxTabCompleter implements TabCompleter {
     private final LuckyRabbit plugin;
     private static final List<String> RARITIES = Arrays.asList("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY");
     private static final List<String> CHANCES = Arrays.asList("5", "10", "15", "20", "25", "30", "35", "40", "45", "50");
-    private static final List<String> SUPPORTED_ANIMATIONS = Arrays.asList("HORIZONTAL", "CIRCLE");
-    private static final List<String> KEY_ACTIONS = Arrays.asList("add", "remove");
+    private static final List<String> SUPPORTED_ANIMATIONS = Arrays.stream(AnimationType.values())
+            .map(Enum::name)
+            .collect(Collectors.toList());
+    private static final List<String> KEY_ACTIONS = Arrays.asList("add", "remove", "generate");
     private static final List<String> ITEM_ACTIONS = Arrays.asList("add", "remove");
 
     public LootboxTabCompleter(LuckyRabbit plugin) {
@@ -40,7 +43,7 @@ public class LootboxTabCompleter implements TabCompleter {
                 commands.add("creator");
             }
             if (sender.hasPermission("luckyrabbit.admin")) {
-                commands.addAll(Arrays.asList("create", "delete", "item", "spawn", "despawn", "key", "reload", "config"));
+                commands.addAll(Arrays.asList("create", "delete", "item", "spawn", "despawn", "key", "reload", "config", "animations"));
             }
             return filterCompletions(commands, args[0]);
         }
@@ -79,6 +82,21 @@ public class LootboxTabCompleter implements TabCompleter {
                 if (args.length == 2) {
                     return filterCompletions(KEY_ACTIONS, args[1]);
                 }
+
+                // Handle generate subcommand differently
+                if (args.length >= 3 && args[1].equalsIgnoreCase("generate")) {
+                    if (args.length == 3) {
+                        // Animation IDs for generate
+                        return filterCompletions(SUPPORTED_ANIMATIONS, args[2]);
+                    }
+                    if (args.length == 4) {
+                        // Plugin versions for generate
+                        return filterCompletions(Arrays.asList("1.1.0", "1.0.0"), args[3]);
+                    }
+                    return new ArrayList<>();
+                }
+
+                // Handle add/remove subcommands
                 if (args.length == 3) {
                     return filterCompletions(Bukkit.getOnlinePlayers().stream()
                             .map(Player::getName)
@@ -170,6 +188,11 @@ public class LootboxTabCompleter implements TabCompleter {
                 .append(Component.text("lootbox_id ", LootboxCommand.ITEM_COLOR))
                 .append(Component.text("amount", LootboxCommand.NAME_COLOR))
                 .append(Component.text(" - Remove keys from a player", LootboxCommand.DESCRIPTION_COLOR)),
+                Component.text("» ", LootboxCommand.SEPARATOR_COLOR)
+                .append(Component.text("/lb ", LootboxCommand.SEPARATOR_COLOR))
+                .append(Component.text("key generate ", LootboxCommand.ACTION_COLOR))
+                .append(Component.text("[animation_id] [version]", LootboxCommand.ITEM_COLOR))
+                .append(Component.text(" - Generate animation keys (creators only)", LootboxCommand.DESCRIPTION_COLOR)),
                 Component.text("\nType the command for more information", LootboxCommand.DESCRIPTION_COLOR)
                 );
             case "list" ->

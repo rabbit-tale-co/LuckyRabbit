@@ -1,0 +1,529 @@
+# ===========================================
+# CASCADE ANIMATION LOOTBOX CONFIGURATION
+# ===========================================
+# Designed for the CascadeSpinGUI animation
+# Items flow down in a waterfall pattern creating
+# a mesmerizing cascading effect!
+# Contains many items to test pagination system
+
+# Unique identifier for the lootbox
+id: cascade_waterfall_premium
+
+# Title of the lootbox
+# Supports MiniMessage format
+title: <gradient:#00BFFF:#1E90FF>Treasure Waterfall</gradient>
+
+# Description shown when hovering over the lootbox
+# Supports MiniMessage format
+description:
+  - <gray> • Cascading treasures
+  - <gray> • Flowing rewards
+  - <gray> • Waterfall animation
+  - ''
+  - <aqua>Let the treasures flow!
+
+# Lore shown when hovering over the lootbox
+lore:
+  - <gray>A magical waterfall of treasures
+  - <gray>Items cascade down like flowing water
+  - <gray>Each drop brings new possibilities
+  - ''
+  - <blue>🌊 Premium Cascade Animation 🌊
+
+# Animation type for this lootbox
+animationType: CASCADE
+
+# Counter for how many times this lootbox has been opened
+openedCount: 0
+
+# Create date
+created: 2025-01-25 15:30:00
+
+# List of possible rewards - MANY ITEMS FOR PAGINATION TESTING
+items:
+  # =====================
+  # LEGENDARY TIER (3% total chance)
+  # =====================
+  '0':
+    id: waterfall-crown
+    chance: 1.0
+    rarity: LEGENDARY
+    item:
+      type: GOLDEN_HELMET
+      meta:
+        displayName: "<aqua><bold>Crown of the Waterfall</bold>"
+        lore:
+          - "<gray>A crown forged from crystallized"
+          - "<gray>waterfall essence, eternally flowing"
+          - ""
+          - "<aqua>Grants dominion over water"
+        enchants:
+          AQUA_AFFINITY: 1
+          RESPIRATION: 10
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "give {player} diamond 64"
+        - "eco give {player} 100000"
+
+  '1':
+    id: trident-depths
+    chance: 1.0
+    rarity: LEGENDARY
+    item:
+      type: TRIDENT
+      meta:
+        displayName: "<dark_aqua><bold>Trident of the Depths</bold>"
+        lore:
+          - "<gray>A legendary trident that commands"
+          - "<gray>the very essence of flowing water"
+          - ""
+          - "<dark_aqua>Ancient Ocean Weapon"
+        enchants:
+          LOYALTY: 3
+          RIPTIDE: 3
+          IMPALING: 5
+        glow: true
+
+  '2':
+    id: pearl-ultimate
+    chance: 1.0
+    rarity: LEGENDARY
+    item:
+      type: HEART_OF_THE_SEA
+      meta:
+        displayName: "<#00FFFF><bold>Ultimate Pearl of Tides</bold>"
+        lore:
+          - "<gray>The heart of all oceans condensed"
+          - "<gray>into a single, perfect pearl"
+          - ""
+          - "<#00FFFF>Controls all water"
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 75000"
+
+  # =====================
+  # EPIC TIER (12% total chance)
+  # =====================
+  '3':
+    id: sapphire-sword
+    chance: 2.0
+    rarity: EPIC
+    item:
+      type: DIAMOND_SWORD
+      meta:
+        displayName: "<blue>Sapphire Cascade Blade"
+        lore:
+          - "<gray>A blade infused with sapphire"
+          - "<gray>crystals from the waterfall"
+        enchants:
+          DAMAGE_ALL: 7
+          SWEEPING: 3
+        glow: true
+
+  '4':
+    id: aqua-boots
+    chance: 2.0
+    rarity: EPIC
+    item:
+      type: DIAMOND_BOOTS
+      meta:
+        displayName: "<aqua>Boots of Water Walking"
+        lore:
+          - "<gray>These boots allow you to walk"
+          - "<gray>on water as if it were solid ground"
+        enchants:
+          DEPTH_STRIDER: 3
+          FROST_WALKER: 2
+        glow: true
+
+  '5':
+    id: crystal-staff
+    chance: 2.0
+    rarity: EPIC
+    item:
+      type: STICK
+      meta:
+        displayName: "<#87CEEB>Crystal Cascade Staff"
+        lore:
+          - "<gray>A staff that channels the power"
+          - "<gray>of flowing crystal waters"
+        enchants:
+          KNOCKBACK: 5
+        glow: true
+
+  '6':
+    id: tide-bow
+    chance: 2.0
+    rarity: EPIC
+    item:
+      type: BOW
+      meta:
+        displayName: "<blue>Bow of Rushing Tides"
+        lore:
+          - "<gray>Each arrow fired carries the"
+          - "<gray>force of a cascading waterfall"
+        enchants:
+          ARROW_DAMAGE: 5
+          ARROW_KNOCKBACK: 3
+        glow: true
+
+  '7':
+    id: depth-helmet
+    chance: 2.0
+    rarity: EPIC
+    item:
+      type: DIAMOND_HELMET
+      meta:
+        displayName: "<dark_blue>Helmet of Ocean Depths"
+        lore:
+          - "<gray>Protects against the crushing"
+          - "<gray>pressure of deep waters"
+        enchants:
+          PROTECTION_ENVIRONMENTAL: 5
+          AQUA_AFFINITY: 1
+        glow: true
+
+  '8':
+    id: water-pickaxe
+    chance: 2.0
+    rarity: EPIC
+    item:
+      type: DIAMOND_PICKAXE
+      meta:
+        displayName: "<aqua>Pickaxe of Flowing Veins"
+        lore:
+          - "<gray>Mines through stone like water"
+          - "<gray>flows through a riverbed"
+        enchants:
+          EFFICIENCY: 6
+          SILK_TOUCH: 1
+        glow: true
+
+  # =====================
+  # RARE TIER (25% total chance)
+  # =====================
+  '9':
+    id: azure-gem
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: DIAMOND
+      amount: 8
+      meta:
+        displayName: "<blue>Azure Waterfall Gems"
+        lore:
+          - "<gray>Precious gems formed where"
+          - "<gray>the waterfall meets the earth"
+
+  '10':
+    id: flowing-potion-heal
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: POTION
+      meta:
+        displayName: "<red>Flowing Healing Potion"
+        potion-effects:
+          - "HEAL:0:5"
+          - "REGENERATION:60:2"
+
+  '11':
+    id: cascade-arrows
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: ARROW
+      amount: 64
+      meta:
+        displayName: "<aqua>Cascade Arrows"
+        lore:
+          - "<gray>Arrows blessed by flowing water"
+          - "<gray>Never miss their target"
+
+  '12':
+    id: water-bucket-special
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: WATER_BUCKET
+      amount: 5
+      meta:
+        displayName: "<blue>Endless Water Bucket"
+        lore:
+          - "<gray>A bucket that never runs dry"
+          - "<gray>Refills itself from the ether"
+
+  '13':
+    id: prismarine-crystals
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: PRISMARINE_CRYSTALS
+      amount: 16
+      meta:
+        displayName: "<#00FFFF>Cascade Prismarine"
+        lore:
+          - "<gray>Crystals formed in underwater"
+          - "<gray>cascades over millennia"
+
+  '14':
+    id: kelp-rope
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: KELP
+      amount: 32
+      meta:
+        displayName: "<green>Enchanted Kelp Rope"
+        lore:
+          - "<gray>Rope made from magical kelp"
+          - "<gray>Stronger than any material"
+
+  '15':
+    id: fish-golden
+    chance: 2.0
+    rarity: RARE
+    item:
+      type: TROPICAL_FISH
+      amount: 12
+      meta:
+        displayName: "<gold>Golden Cascade Fish"
+        lore:
+          - "<gray>Fish that swim in liquid gold"
+          - "<gray>Extremely valuable and rare"
+
+  '16':
+    id: sponge-magical
+    chance: 2.0
+    rarity: RARE
+    item:
+      type: SPONGE
+      amount: 8
+      meta:
+        displayName: "<yellow>Magical Absorption Sponge"
+        lore:
+          - "<gray>Can absorb any liquid instantly"
+          - "<gray>Including lava and acid"
+
+  '17':
+    id: coral-rare
+    chance: 3.0
+    rarity: RARE
+    item:
+      type: BRAIN_CORAL
+      amount: 6
+      meta:
+        displayName: "<#FF1493>Rare Waterfall Coral"
+        lore:
+          - "<gray>Coral that grows only where"
+          - "<gray>fresh water meets the sea"
+
+  # =====================
+  # UNCOMMON TIER (35% total chance)
+  # =====================
+  '18':
+    id: blue-fish
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: COD
+      amount: 16
+      meta:
+        displayName: "<blue>Cascade Cod"
+        lore:
+          - "<gray>Fresh fish from the waterfall pool"
+
+  '19':
+    id: water-bottles
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: POTION
+      amount: 8
+      meta:
+        displayName: "<aqua>Pure Waterfall Water"
+        lore:
+          - "<gray>The purest water in existence"
+
+  '20':
+    id: lily-pads
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: LILY_PAD
+      amount: 12
+      meta:
+        displayName: "<green>Waterfall Lily Pads"
+        lore:
+          - "<gray>Lily pads that grow in"
+          - "<gray>the calm pools below"
+
+  '21':
+    id: ice-blocks
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: ICE
+      amount: 24
+      meta:
+        displayName: "<white>Frozen Cascade Ice"
+        lore:
+          - "<gray>Ice formed when the waterfall"
+          - "<gray>freezes in winter"
+
+  '22':
+    id: seagrass-bundle
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: SEAGRASS
+      amount: 20
+      meta:
+        displayName: "<green>Cascade Seagrass Bundle"
+        lore:
+          - "<gray>Grass that grows in the spray"
+          - "<gray>of the mighty waterfall"
+
+  '23':
+    id: nautilus-shells
+    chance: 3.0
+    rarity: UNCOMMON
+    item:
+      type: NAUTILUS_SHELL
+      amount: 4
+      meta:
+        displayName: "<#F5F5DC>Waterfall Nautilus Shells"
+        lore:
+          - "<gray>Shells washed down from"
+          - "<gray>the mountain streams"
+
+  '24':
+    id: salmon-fresh
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: SALMON
+      amount: 10
+      meta:
+        displayName: "<red>Fresh Cascade Salmon"
+        lore:
+          - "<gray>Salmon swimming upstream"
+          - "<gray>to spawn in the waterfall"
+
+  '25':
+    id: pufferfish-small
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: PUFFERFISH
+      amount: 6
+      meta:
+        displayName: "<yellow>Cascade Pufferfish"
+        lore:
+          - "<gray>Small pufferfish caught"
+          - "<gray>in the turbulent waters"
+
+  '26':
+    id: sugar-cane-bunch
+    chance: 4.0
+    rarity: UNCOMMON
+    item:
+      type: SUGAR_CANE
+      amount: 16
+      meta:
+        displayName: "<green>Waterfall Sugar Cane"
+        lore:
+          - "<gray>Sweet cane that grows"
+          - "<gray>beside flowing waters"
+
+  # =====================
+  # COMMON TIER (25% total chance)
+  # =====================
+  '27':
+    id: cobblestone-smooth
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: COBBLESTONE
+      amount: 64
+      meta:
+        displayName: "<gray>Water-Smoothed Cobblestone"
+        lore:
+          - "<gray>Stones polished smooth by"
+          - "<gray>centuries of flowing water"
+
+  '28':
+    id: gravel-fine
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: GRAVEL
+      amount: 48
+      meta:
+        displayName: "<gray>Fine Waterfall Gravel"
+        lore:
+          - "<gray>Small stones collected"
+          - "<gray>at the waterfall base"
+
+  '29':
+    id: sand-white
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: SAND
+      amount: 32
+      meta:
+        displayName: "<yellow>White Cascade Sand"
+        lore:
+          - "<gray>Pure white sand formed"
+          - "<gray>by eroded limestone"
+
+  '30':
+    id: clay-balls
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: CLAY_BALL
+      amount: 20
+      meta:
+        displayName: "<#A52A2A>Waterfall Clay"
+        lore:
+          - "<gray>Clay deposited by the"
+          - "<gray>slow-moving waters"
+
+  '31':
+    id: sticks-driftwood
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: STICK
+      amount: 24
+      meta:
+        displayName: "<#A52A2A>Driftwood Sticks"
+        lore:
+          - "<gray>Wood worn smooth by"
+          - "<gray>the constant water flow"
+
+# List of placed lootbox locations
+locations: {}
+
+# Optional key requirement
+# key_required: true
+# key:
+#   material: WATER_BUCKET
+#   name: "<blue>🌊 Cascade Key 🌊"
+#   lore:
+#     - "<gray>A key that flows like water"
+#     - "<gray>Opens the Treasure Waterfall"
+#     - ""
+#     - "<blue>Premium cascade animation"
+
+# Notes:
+# - 32 total items for pagination testing
+# - Themed around water/waterfall/ocean
+# - Designed to showcase CASCADE animation
+# - Total chances add up to 100%

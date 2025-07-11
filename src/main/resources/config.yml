@@ -64,6 +64,17 @@ animations:
     max-per-lootbox: 3
 
 # ======================================
+# DATABASE SETTINGS
+# ======================================
+database:
+  url: "jdbc:postgresql://aws-0-eu-central-1.pooler.supabase.com:5432/postgres?user=plugin_reader.dzairwsnlqeikuetowla&password=cV!Tvb.HVncsypjT3T9r2eXWm"
+
+  # Connection pool settings
+  pool:
+    maxSize: 5
+    idleTimeout: 30000
+
+# ======================================
 # PLUGIN INTEGRATIONS
 # ======================================
 integrations:

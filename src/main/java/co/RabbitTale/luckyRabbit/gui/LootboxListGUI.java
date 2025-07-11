@@ -345,6 +345,14 @@ public class LootboxListGUI implements GUI {
                     .decoration(TextDecoration.ITALIC, false));
         }
 
+        // Show animation type for admins
+        if (player.hasPermission("luckyrabbit.admin")) {
+            lore.add(Component.empty());
+            lore.add(Component.text("Animation: " + lootbox.getAnimationType().name())
+                    .color(INFO_COLOR)
+                    .decoration(TextDecoration.ITALIC, false));
+        }
+
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 .withZone(ZoneId.systemDefault());
 

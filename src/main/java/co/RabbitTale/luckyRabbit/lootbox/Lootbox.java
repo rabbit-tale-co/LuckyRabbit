@@ -27,6 +27,7 @@ import lombok.Getter;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import co.RabbitTale.luckyRabbit.LuckyRabbit;
 
 @Getter
 public class Lootbox {
@@ -117,9 +118,9 @@ public class Lootbox {
         Object createdObj = config.get("created");
         long created;
 
-        if (createdObj instanceof Number n) {               // zapis w millis
+        if (createdObj instanceof Number n) {
             created = n.longValue();
-        } else if (createdObj instanceof String s) {        // zapis jako data
+        } else if (createdObj instanceof String s) {
             created = parseDateString(s, System.currentTimeMillis()); // Use current time as fallback, not file time
         } else if (createdObj instanceof java.util.Date date) { // Handle Date objects from YAML
             created = date.getTime();

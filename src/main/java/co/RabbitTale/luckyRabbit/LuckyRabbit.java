@@ -6,6 +6,7 @@ import java.util.List;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import co.RabbitTale.luckyRabbit.animations.AnimationManager;
 import co.RabbitTale.luckyRabbit.commands.CommandManager;
 import co.RabbitTale.luckyRabbit.config.ConfigManager;
 import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
@@ -15,6 +16,7 @@ import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 import co.RabbitTale.luckyRabbit.lootbox.KeyManager;
 import co.RabbitTale.luckyRabbit.user.UserManager;
 import co.RabbitTale.luckyRabbit.utils.Logger;
+import co.RabbitTale.luckyRabbit.db.DB;
 import net.milkbowl.vault.economy.Economy;
 import lombok.Getter;
 
@@ -58,6 +60,7 @@ public class LuckyRabbit extends JavaPlugin {
     private KeyManager keyManager;
     private UserManager userManager;
     private CreatorEffects creatorEffects;
+    private AnimationManager animationManager;
 
     /**
      * Called when the plugin is enabled. Initializes all managers, loads
@@ -74,8 +77,14 @@ public class LuckyRabbit extends JavaPlugin {
         // Initialize logger with debug setting
         Logger.init(this);
 
+        // Initialize database connection
+        boolean dbConnected = DB.init(this);
+
         // Setup integrations and collect status
         List<String> hookedPlugins = new ArrayList<>();
+        if (dbConnected) {
+            hookedPlugins.add("Supabase Database");
+        }
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
@@ -85,6 +94,7 @@ public class LuckyRabbit extends JavaPlugin {
         ListenerManager listenerManager = new ListenerManager(this);
         this.userManager = new UserManager(this);
         this.creatorEffects = new CreatorEffects(this);
+        this.animationManager = new AnimationManager(this);
 
         // Load configurations
         configManager.loadConfigs();
@@ -116,6 +126,11 @@ public class LuckyRabbit extends JavaPlugin {
             }
 
             boolean debugMode = getConfig().getBoolean("settings.debug", false);
+
+            // Check for plugin updates if database is connected
+            if (dbConnected) {
+                checkForUpdates();
+            }
 
             // Display startup banner
             Logger.info("==========================================");
@@ -153,6 +168,9 @@ public class LuckyRabbit extends JavaPlugin {
             userManager.saveAllUsers();
         }
 
+        // Shutdown database connection
+        DB.shutdown();
+
         Logger.info("Plugin disabled successfully!");
         instance = null;
     }
@@ -178,7 +196,35 @@ public class LuckyRabbit extends JavaPlugin {
         // Respawn all entities
         lootboxManager.respawnEntities();
 
+        userManager.reload();
+        animationManager.reload();
+
         Logger.success("Plugin reloaded successfully!");
+    }
+
+    /**
+     * Check for plugin updates using the database
+     */
+    private void checkForUpdates() {
+        getServer().getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                String currentVersion = getDescription().getVersion();
+                String latestVersion = DB.getLatestPluginVersion();
+
+                if (!"unknown".equals(latestVersion) && !currentVersion.equals(latestVersion)) {
+                    getServer().getScheduler().runTask(this, () -> {
+                        Logger.info("==========================================");
+                        Logger.info("        NEW VERSION AVAILABLE!");
+                        Logger.info("        Current: " + currentVersion);
+                        Logger.info("        Latest: " + latestVersion);
+                        Logger.info("        Download from your provider");
+                        Logger.info("==========================================");
+                    });
+                }
+            } catch (Exception e) {
+                Logger.debug("Failed to check for updates: " + e.getMessage());
+            }
+        });
     }
 
     /**
@@ -262,6 +308,15 @@ public class LuckyRabbit extends JavaPlugin {
      */
     public CreatorEffects getCreatorEffects() {
         return creatorEffects;
+    }
+
+    /**
+     * Gets the animation manager instance.
+     *
+     * @return The animation manager
+     */
+    public AnimationManager getAnimationManager() {
+        return animationManager;
     }
 
     /**

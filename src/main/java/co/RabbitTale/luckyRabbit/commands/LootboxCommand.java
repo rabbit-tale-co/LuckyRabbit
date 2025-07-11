@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.io.File;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -14,12 +15,12 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
+import co.RabbitTale.luckyRabbit.animations.AnimationLicenseEncryption;
+import co.RabbitTale.luckyRabbit.animations.AnimationConfig;
 import co.RabbitTale.luckyRabbit.effects.CreatorEffects;
 import co.RabbitTale.luckyRabbit.gui.LootboxListGUI;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
-import co.RabbitTale.luckyRabbit.lootbox.LootboxManager;
 import co.RabbitTale.luckyRabbit.lootbox.animation.AnimationType;
-import co.RabbitTale.luckyRabbit.lootbox.entity.LootboxEntity;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -89,6 +90,8 @@ public class LootboxCommand implements CommandExecutor {
                 }
                 case "reload" ->
                     handleReload(sender);
+                case "animations" ->
+                    handleAnimations(sender);
                 default -> {
                     if (!(sender instanceof Player player)) {
                         sender.sendMessage(Component.text("This command can only be used by players!")
@@ -124,6 +127,27 @@ public class LootboxCommand implements CommandExecutor {
 
     // Modified methods to accept CommandSender instead of Player
     private void handleKey(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(Component.text("Usage: /lootbox key <add/remove/generate> [arguments...]")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+
+        // Handle generate action separately (creators only)
+        if (action.equals("generate")) {
+            if (!(sender instanceof Player player) || !CreatorEffects.isCreator(player.getUniqueId())) {
+                sender.sendMessage(Component.text("This command is only available for plugin creators!")
+                        .color(ERROR_COLOR));
+                return;
+            }
+
+            handleKeyGenerate(sender, args);
+            return;
+        }
+
+        // Handle add/remove actions (admin permission required)
         if (!sender.hasPermission("luckyrabbit.admin.key")) {
             sender.sendMessage(Component.text("You don't have permission to manage keys!")
                     .color(ERROR_COLOR));
@@ -136,7 +160,6 @@ public class LootboxCommand implements CommandExecutor {
             return;
         }
 
-        String action = args[1].toLowerCase();
         Player target = Bukkit.getPlayer(args[2]);
         String id = args[3];
         int amount;
@@ -199,8 +222,81 @@ public class LootboxCommand implements CommandExecutor {
                 sender.sendMessage(message);
             }
             default ->
-                sender.sendMessage(Component.text("Invalid action! Use 'add' or 'remove'")
+                sender.sendMessage(Component.text("Invalid action! Use 'add', 'remove', or 'generate'")
                         .color(ERROR_COLOR));
+        }
+    }
+
+    private void handleKeyGenerate(CommandSender sender, String[] args) {
+        // /lb key generate [animation_id] [plugin_version]
+        if (args.length == 2) {
+            // Generate all default animations
+            generateDefaultKeys(sender);
+            return;
+        }
+
+        if (args.length > 4) {
+            sender.sendMessage(Component.text("Usage: /lb key generate [animation_id] [plugin_version]")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        String animationId = args[2].toUpperCase();
+        String pluginVersion = args.length > 3 ? args[3] : plugin.getDescription().getVersion();
+
+        // Notify player that key is being generated
+        sender.sendMessage(Component.text("Generating key for " + animationId + "...").color(INFO_COLOR));
+        sender.sendMessage(Component.text("Check console for SQL statement!").color(TARGET_COLOR));
+
+        generateSingleKey(sender, animationId, pluginVersion);
+    }
+
+    private void generateDefaultKeys(CommandSender sender) {
+        String pluginVersion = plugin.getDescription().getVersion();
+        String[] defaultAnimations = {"HORIZONTAL", "CIRCLE", "THREE_IN_ROW"};
+
+        // Notify player that keys are being generated
+        sender.sendMessage(Component.text("Generating animation keys...").color(INFO_COLOR));
+        sender.sendMessage(Component.text("Check console for SQL statements!").color(TARGET_COLOR));
+
+        // Log to console
+        Logger.info("=== LuckyRabbit Key Generator ===");
+        Logger.info("Plugin Version: " + pluginVersion);
+        Logger.info("");
+
+        for (String animationId : defaultAnimations) {
+            generateSingleKey(sender, animationId, pluginVersion);
+        }
+
+        Logger.info("");
+        Logger.info("Copy the SQL statements above and run them in your Supabase SQL Editor!");
+        Logger.info("Don't forget to update the plugin version in the plugininfo table.");
+    }
+
+    private void generateSingleKey(CommandSender sender, String animationId, String pluginVersion) {
+        try {
+            String encryptedKey = AnimationLicenseEncryption.generateAnimationKey(animationId, pluginVersion);
+
+            if (encryptedKey == null) {
+                sender.sendMessage(Component.text("Failed to generate key for " + animationId).color(ERROR_COLOR));
+                Logger.error("Failed to generate key for " + animationId);
+                return;
+            }
+
+            String validationKey = "LR_ENC:" + encryptedKey;
+
+            // Log SQL statement to console
+            Logger.info("-- " + animationId + " Animation --");
+            Logger.info("INSERT INTO animations (id, validation_key, min_api_version) VALUES ('"
+                    + animationId + "', '" + validationKey + "', '1.0.0') ON CONFLICT (id) DO UPDATE SET validation_key = EXCLUDED.validation_key, updated_at = NOW();");
+            Logger.info("");
+
+            // Simple confirmation to player
+            sender.sendMessage(Component.text("✓ Generated key for " + animationId).color(SUCCESS_COLOR));
+
+        } catch (Exception e) {
+            sender.sendMessage(Component.text("Error generating key for " + animationId + ": " + e.getMessage()).color(ERROR_COLOR));
+            Logger.error("Failed to generate key for " + animationId + ": " + e.getMessage());
         }
     }
 
@@ -234,6 +330,43 @@ public class LootboxCommand implements CommandExecutor {
                     .color(ERROR_COLOR));
             Logger.error("Error during reload:", e);
         }
+    }
+
+    private void handleAnimations(CommandSender sender) {
+        if (!sender.hasPermission("luckyrabbit.admin")) {
+            sender.sendMessage(Component.text("You don't have permission to view animations!")
+                    .color(ERROR_COLOR));
+            return;
+        }
+
+        File animationsDir = new File(plugin.getDataFolder(), "animations");
+        if (!animationsDir.exists()) {
+            sender.sendMessage(Component.text("Animations folder not found!", ERROR_COLOR));
+            return;
+        }
+
+        sender.sendMessage(Component.empty());
+        sender.sendMessage(Component.text("=== LuckyRabbit Animations ===", INFO_COLOR));
+
+        File[] files = animationsDir.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (files == null || files.length == 0) {
+            sender.sendMessage(Component.text("No animation files found.", DESCRIPTION_COLOR));
+            return;
+        }
+
+        for (File file : files) {
+            AnimationConfig cfg = AnimationConfig.fromFile(file);
+            boolean valid = cfg != null && cfg.isValid();
+
+            String id = cfg != null ? cfg.getId() : file.getName();
+            Component line = Component.text(" - ", SEPARATOR_COLOR)
+                    .append(Component.text(id, ITEM_COLOR))
+                    .append(Component.text(" : "))
+                    .append(Component.text(valid ? "VALID" : "INVALID", valid ? SUCCESS_COLOR : ERROR_COLOR));
+            sender.sendMessage(line);
+        }
+
+        sender.sendMessage(Component.empty());
     }
 
     // New method to handle player-only commands
@@ -741,6 +874,10 @@ public class LootboxCommand implements CommandExecutor {
         player.sendMessage(Component.text("• /lb creator status")
                 .color(DESCRIPTION_COLOR)
                 .append(Component.text(" - Show current settings")
+                        .color(TARGET_COLOR)));
+        player.sendMessage(Component.text("• /lb key generate")
+                .color(DESCRIPTION_COLOR)
+                .append(Component.text(" - Generate animation keys")
                         .color(TARGET_COLOR)));
     }
 }

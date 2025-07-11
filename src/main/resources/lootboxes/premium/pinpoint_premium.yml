@@ -1,0 +1,393 @@
+# ===========================================
+# PINPOINT ANIMATION LOOTBOX CONFIGURATION
+# ===========================================
+# Designed for the PinPointSpinGUI animation
+# Single slot focus with rapid item cycling
+# Precision targeting theme!
+
+# Unique identifier for the lootbox
+id: pinpoint_precision_premium
+
+# Title of the lootbox
+# Supports MiniMessage format
+title: <gradient:#FF4500:#DC143C>Precision Target</gradient>
+
+# Description shown when hovering over the lootbox
+# Supports MiniMessage format
+description:
+  - <gray> • Precision rewards
+  - <gray> • Focused energy
+  - <gray> • Single-slot animation
+  - ''
+  - <red>Aim for perfection!
+
+# Lore shown when hovering over the lootbox
+lore:
+  - <gray>A precision-focused lootbox
+  - <gray>One slot, infinite possibilities
+  - <gray>Perfect aim yields perfect rewards
+  - ''
+  - <red>🎯 Premium Pinpoint Animation 🎯
+
+# Animation type for this lootbox
+animationType: PIN_POINT
+
+# Counter for how many times this lootbox has been opened
+openedCount: 0
+
+# Create date
+created: 2025-01-25 15:45:00
+
+# List of possible rewards - Precision/Targeting themed
+items:
+  # =====================
+  # LEGENDARY TIER (4% total chance)
+  # =====================
+  '0':
+    id: master-crossbow
+    chance: 2.0
+    rarity: LEGENDARY
+    item:
+      type: CROSSBOW
+      meta:
+        displayName: "<red><bold>Master Sniper's Crossbow</bold>"
+        lore:
+          - "<gray>A legendary crossbow crafted by"
+          - "<gray>the greatest marksman of all time"
+          - ""
+          - "<red>Never misses its target"
+        enchants:
+          QUICK_CHARGE: 5
+          PIERCING: 4
+          MULTISHOT: 1
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "give {player} diamond 32"
+        - "eco give {player} 50000"
+        - "broadcast <red>{player} <gray>has obtained the <red><bold>Master Sniper's Crossbow</bold><gray>!"
+
+  '1':
+    id: precision-scope
+    chance: 2.0
+    rarity: LEGENDARY
+    item:
+      type: SPYGLASS
+      meta:
+        displayName: "<gold><bold>Scope of Perfect Aim</bold>"
+        lore:
+          - "<gray>A mystical scope that reveals"
+          - "<gray>the weak points of any target"
+          - ""
+          - "<gold>Grants supernatural accuracy"
+        glow: true
+    action:
+      type: COMMAND
+      commands:
+        - "eco give {player} 40000"
+        - "effect give {player} minecraft:night_vision 3600 0"
+
+  # =====================
+  # EPIC TIER (16% total chance)
+  # =====================
+  '2':
+    id: sharpshooter-bow
+    chance: 4.0
+    rarity: EPIC
+    item:
+      type: BOW
+      meta:
+        displayName: "<aqua>Sharpshooter's Recurve Bow"
+        lore:
+          - "<gray>A bow designed for maximum"
+          - "<gray>accuracy and penetrating power"
+          - ""
+          - "<aqua>Sharpshooter's Choice"
+        enchants:
+          ARROW_DAMAGE: 8
+          ARROW_INFINITE: 1
+          FLAME: 1
+        glow: true
+
+  '3':
+    id: targeting-arrows
+    chance: 4.0
+    rarity: EPIC
+    item:
+      type: SPECTRAL_ARROW
+      amount: 64
+      meta:
+        displayName: "<yellow>Guided Targeting Arrows"
+        lore:
+          - "<gray>Arrows that seek their target"
+          - "<gray>with supernatural guidance"
+          - ""
+          - "<yellow>Self-guiding ammunition"
+        glow: true
+
+  '4':
+    id: marksman-helmet
+    chance: 4.0
+    rarity: EPIC
+    item:
+      type: LEATHER_HELMET
+      meta:
+        displayName: "<dark_red>Marksman's Focus Helmet"
+        lore:
+          - "<gray>Enhances concentration and"
+          - "<gray>eliminates all distractions"
+          - ""
+          - "<dark_red>+100% Focus"
+        color: 139,0,0  # Dark red color
+        enchants:
+          PROTECTION_PROJECTILE: 6
+        glow: true
+
+  '5':
+    id: precision-blade
+    chance: 4.0
+    rarity: EPIC
+    item:
+      type: DIAMOND_SWORD
+      meta:
+        displayName: "<red>Precision Strike Blade"
+        lore:
+          - "<gray>A sword designed for surgical"
+          - "<gray>strikes at vital points"
+          - ""
+          - "<red>Critical hit guaranteed"
+        enchants:
+          DAMAGE_ALL: 6
+          SWEEPING: 3
+          FIRE_ASPECT: 2
+        glow: true
+
+  # =====================
+  # RARE TIER (30% total chance)
+  # =====================
+  '6':
+    id: target-practice-blocks
+    chance: 5.0
+    rarity: RARE
+    item:
+      type: TARGET
+      amount: 16
+      meta:
+        displayName: "<red>Professional Target Blocks"
+        lore:
+          - "<gray>High-quality targets for"
+          - "<gray>precision training sessions"
+
+  '7':
+    id: explosive-arrows
+    chance: 5.0
+    rarity: RARE
+    item:
+      type: TIPPED_ARROW
+      amount: 32
+      meta:
+        displayName: "<#FFA500>Explosive Tipped Arrows"
+        lore:
+          - "<gray>Arrows tipped with explosive"
+          - "<gray>compounds for maximum impact"
+        potion-effects:
+          - "HARM:0:2"
+
+  '8':
+    id: fletching-kit
+    chance: 5.0
+    rarity: RARE
+    item:
+      type: FLETCHING_TABLE
+      meta:
+        displayName: "<#A52A2A>Master Fletcher's Kit"
+        lore:
+          - "<gray>A complete kit for crafting"
+          - "<gray>the finest arrows and bolts"
+
+  '9':
+    id: precision-tools
+    chance: 5.0
+    rarity: RARE
+    item:
+      type: IRON_PICKAXE
+      meta:
+        displayName: "<gray>Precision Mining Tool"
+        lore:
+          - "<gray>Mines exactly where you aim"
+          - "<gray>with surgical precision"
+        enchants:
+          EFFICIENCY: 5
+          SILK_TOUCH: 1
+
+  '10':
+    id: focus-potion
+    chance: 5.0
+    rarity: RARE
+    item:
+      type: POTION
+      meta:
+        displayName: "<blue>Potion of Perfect Focus"
+        lore:
+          - "<gray>Enhances mental clarity"
+          - "<gray>and hand-eye coordination"
+        potion-effects:
+          - "NIGHT_VISION:1200:0"
+          - "SLOW_FALLING:600:0"
+
+  '11':
+    id: sniper-food
+    chance: 5.0
+    rarity: RARE
+    item:
+      type: GOLDEN_CARROT
+      amount: 16
+      meta:
+        displayName: "<#FFA500>Sniper's Rations"
+        lore:
+          - "<gray>Special food that enhances"
+          - "<gray>vision and steady hands"
+
+  # =====================
+  # UNCOMMON TIER (30% total chance)
+  # =====================
+  '12':
+    id: basic-arrows
+    chance: 6.0
+    rarity: UNCOMMON
+    item:
+      type: ARROW
+      amount: 64
+      meta:
+        displayName: "<white>Precision Arrows"
+        lore:
+          - "<gray>Well-crafted arrows for"
+          - "<gray>accurate shooting"
+
+  '13':
+    id: bowstring
+    chance: 6.0
+    rarity: UNCOMMON
+    item:
+      type: STRING
+      amount: 32
+      meta:
+        displayName: "<white>High-Tension Bowstring"
+        lore:
+          - "<gray>Premium string for maximum"
+          - "<gray>bow performance"
+
+  '14':
+    id: iron-ingots
+    chance: 6.0
+    rarity: UNCOMMON
+    item:
+      type: IRON_INGOT
+      amount: 24
+      meta:
+        displayName: "<gray>Precision-Forged Iron"
+        lore:
+          - "<gray>Iron ingots forged to exact"
+          - "<gray>specifications for weaponry"
+
+  '15':
+    id: redstone-dust
+    chance: 6.0
+    rarity: UNCOMMON
+    item:
+      type: REDSTONE
+      amount: 32
+      meta:
+        displayName: "<red>Targeting System Components"
+        lore:
+          - "<gray>Redstone for building"
+          - "<gray>advanced targeting systems"
+
+  '16':
+    id: leather-strips
+    chance: 6.0
+    rarity: UNCOMMON
+    item:
+      type: LEATHER
+      amount: 16
+      meta:
+        displayName: "<#A52A2A>Weapon Grip Leather"
+        lore:
+          - "<gray>High-quality leather for"
+          - "<gray>weapon grips and armor"
+
+  # =====================
+  # COMMON TIER (20% total chance)
+  # =====================
+  '17':
+    id: flint-chips
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: FLINT
+      amount: 32
+      meta:
+        displayName: "<gray>Sharp Flint Chips"
+        lore:
+          - "<gray>Basic material for crafting"
+          - "<gray>arrowheads and tools"
+
+  '18':
+    id: feathers-flight
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: FEATHER
+      amount: 24
+      meta:
+        displayName: "<white>Flight Feathers"
+        lore:
+          - "<gray>Feathers for arrow fletching"
+          - "<gray>and stabilization"
+
+  '19':
+    id: wood-sticks
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: STICK
+      amount: 32
+      meta:
+        displayName: "<#A52A2A>Arrow Shafts"
+        lore:
+          - "<gray>Straight wooden shafts"
+          - "<gray>for arrow construction"
+
+  '20':
+    id: stone-blocks
+    chance: 5.0
+    rarity: COMMON
+    item:
+      type: STONE
+      amount: 48
+      meta:
+        displayName: "<gray>Target Backing Stone"
+        lore:
+          - "<gray>Stone blocks for building"
+          - "<gray>target practice ranges"
+
+# List of placed lootbox locations
+locations: {}
+
+# Optional key requirement
+# key_required: true
+# key:
+#   material: ARROW
+#   name: "<red>🎯 Precision Key 🎯"
+#   lore:
+#     - "<gray>An arrow-shaped key that"
+#     - "<gray>unlocks focused power"
+#     - ""
+#     - "<red>Premium pinpoint animation"
+
+# Notes:
+# - 21 total items (good size for testing)
+# - Themed around precision, targeting, archery
+# - Designed to showcase PINPOINT animation
+# - Total chances add up to 100%

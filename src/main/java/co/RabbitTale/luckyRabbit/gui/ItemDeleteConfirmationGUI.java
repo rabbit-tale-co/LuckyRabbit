@@ -7,18 +7,14 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.lootbox.Lootbox;
 import co.RabbitTale.luckyRabbit.lootbox.items.LootboxItem;
 import co.RabbitTale.luckyRabbit.gui.utils.GUIUtils;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
 
-import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ERROR_COLOR;
 import static co.RabbitTale.luckyRabbit.commands.LootboxCommand.ITEM_COLOR;
 
 public class ItemDeleteConfirmationGUI implements GUI {

@@ -5,6 +5,9 @@ import org.bukkit.command.PluginCommand;
 import co.RabbitTale.luckyRabbit.LuckyRabbit;
 import co.RabbitTale.luckyRabbit.utils.Logger;
 
+/**
+ * Manages all plugin commands registration
+ */
 public class CommandManager {
 
     private final LuckyRabbit plugin;
@@ -13,8 +16,10 @@ public class CommandManager {
         this.plugin = plugin;
     }
 
+    /**
+     * Register all plugin commands
+     */
     public void registerCommands() {
-
         // Register main lootbox command
         PluginCommand lootboxCommand = plugin.getCommand("lootbox");
         if (lootboxCommand != null) {

@@ -277,4 +277,13 @@ public class UserManager {
             Logger.debug("Unloaded data for user: " + uuid);
         }
     }
+
+    public void reload() {
+        // Save current data
+        saveAllUsers();
+
+        // Clear and reload
+        userConfigs.clear();
+        loadAllPlayerData();
+    }
 }
